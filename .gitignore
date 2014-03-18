@@ -1,0 +1,13 @@
+*~
+*.out
+*.DAT
+*.out
+*#
+*.aux
+*.log
+*.o
+*.mod
+*.dat
+*.swp
+*.zip
+*.a
