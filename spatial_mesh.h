@@ -18,5 +18,6 @@ typedef struct {
 Spatial_mesh spatial_mesh_init( const double x_size, const double x_step,
 				const double y_size, const double y_step );
 void spatial_mesh_print( const Spatial_mesh *spm );
+void spatial_mesh_write_to_file( const Spatial_mesh *spm, FILE *f );
 
 #endif /* _SPATIAL_MESH_H_ */

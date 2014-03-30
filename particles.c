@@ -17,7 +17,7 @@ void particles_test_init( Particle **ps, int *num_of_particles )
     double ytop = 6.0;
     double ybottom = 4.0;
     // Momentum
-    double temperature = 3000;
+    double temperature = 10;
     // Particle characteristics
     double charge = 1.0;
     double mass = 1.0;
@@ -100,4 +100,11 @@ Vec2d maxwell_momentum_distr( const double temperature, const double mass,
 		      gsl_ran_gaussian(rng, maxwell_gauss_std_div) );		     
     mom = vec2d_times_scalar( mom, 1.0 ); // recheck
     return mom;
+}
+
+
+void particles_write_to_file( const Particle *p, const int num, FILE *f )
+{
+    fprintf(f, "%s", "Hello.\n");
+    return;
 }

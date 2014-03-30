@@ -17,34 +17,20 @@ LDFLAGS = -fsanitize=address
 #LDFLAGS = -g -fsanitize=address
 
 ### Libraries
-LIBS=-lm -lgsl -lgslcblas -L./fishpack -lfishpack_dbl
+LIBS=-lm -lgsl -lgslcblas
 
 ### Sources and executable
 CSOURCES=$(wildcard *.c)
 OBJECTS=$(CSOURCES:%.c=%.o)
 EXECUTABLE=main.out
-MAKE=make
-SUBDIRS=fishpack
 
 all: $(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJECTS) subdirs
+$(EXECUTABLE): $(OBJECTS) 
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
 
 $(OBJECTS):%.o:%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-.PHONY: subdirs $(SUBDIRS) clean cleansubdirs cleanall
-
-subdirs: $(SUBDIRS)
-
-$(SUBDIRS):
-	$(MAKE) -C $@
-
-clean: 
+clean:
 	rm -f *.o *.out *.mod *.zip
-
-cleansubdirs:
-	for X in $(SUBDIRS); do $(MAKE) clean -C $$X; done 
-
-cleanall: clean cleansubdirs

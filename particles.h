@@ -18,5 +18,6 @@ typedef struct {
 void particles_test_init( Particle **ps, int *num_of_particles );
 void particle_print( const Particle *p );
 void particle_print_all( const Particle *p, int n );
+void particles_write_to_file( const Particle *p, const int num, FILE *f );
 
 #endif /* _PARTICLES_H_ */

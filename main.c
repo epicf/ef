@@ -19,26 +19,22 @@ void pic_simulation()
   int time_step_to_save;
 
   domain_prepare( &dom );
-  time_grid_print( dom.time_grid );
-  spatial_mesh_print( &(dom.spat_mesh) );
-  particle_print_all(  dom.particles, dom.num_of_particles );
 
   total_time_steps = dom.time_grid.total_nodes;
   time_step_to_save = total_time_steps/10;
   
   for (int i = 0; i < total_time_steps; i++){
       domain_run_pic( &dom );
-      /* write_nth_step( &dom, i, time_step_to_save ); */
+      write_nth_step( &dom, i, time_step_to_save );
   }
-  spatial_mesh_print( &(dom.spat_mesh) );
-  /* domain_free( &dom ); */
+  domain_free( &dom );
   return;
 }
 
 void write_nth_step( Domain *dom, int current_step, int step_to_save )
 {
-  if ( !( current_step % step_to_save ) ){
-    domain_write( dom );
-  }
-  return;
+    if ( !( current_step % step_to_save ) ){	
+	domain_write( dom );
+    }
+    return;
 }

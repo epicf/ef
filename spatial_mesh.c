@@ -42,21 +42,21 @@ void init_y_grid( Spatial_mesh *spm, const double y_size, const double y_step )
 
 void allocate_arrays_for_ongrid_values( Spatial_mesh *spm )
 {
-    int nrows = spm->y_n_nodes;
-    int ncols = spm->x_n_nodes;
-    spm->charge_density = (double **) malloc( nrows * sizeof(double *) );
-    spm->potential = (double **) malloc( nrows * sizeof(double *) );
-    spm->electric_field = (Vec2d **) malloc( nrows * sizeof(Vec2d *) );
+    int nx = spm->x_n_nodes;
+    int ny = spm->y_n_nodes;    
+    spm->charge_density = (double **) malloc( nx * sizeof(double *) );
+    spm->potential = (double **) malloc( nx * sizeof(double *) );
+    spm->electric_field = (Vec2d **) malloc( nx * sizeof(Vec2d *) );
     if ( ( spm->charge_density == NULL ) || 
 	 ( spm->potential == NULL ) || 
 	 ( spm->electric_field == NULL ) ) {
 	printf( "allocate_arrays_for_ongrid_values: rows: out of memory ");
 	exit( EXIT_FAILURE );	
     }
-    for( int i = 0; i < nrows; i++) {
-	spm->charge_density[i] = (double *) malloc( ncols * sizeof(double) );
-	spm->potential[i] = (double *) malloc( ncols * sizeof(double) );
-	spm->electric_field[i] = (Vec2d *) malloc( ncols * sizeof(Vec2d) );
+    for( int i = 0; i < nx; i++) {
+	spm->charge_density[i] = (double *) calloc( ny, sizeof(double) );
+	spm->potential[i] = (double *) calloc( ny, sizeof(double) );
+	spm->electric_field[i] = (Vec2d *) calloc( ny, sizeof(Vec2d) );
 	if ( ( spm->charge_density[i] == NULL ) || 
 	     ( spm->potential[i] == NULL ) || 
 	     ( spm->electric_field[i] == NULL ) ) {
@@ -85,16 +85,23 @@ void print_grid( const Spatial_mesh *spm )
 
 void print_ongrid_values( const Spatial_mesh *spm )
 {
-    int nrows = spm->y_n_nodes;
-    int ncols = spm->x_n_nodes;
+    int nx = spm->x_n_nodes;
+    int ny = spm->y_n_nodes;
     printf( "(row, col): \t charge_density \t potential \t electric_field(x,y) \n");
-    for ( int i = 0; i < nrows; i++ ) {
-	for ( int j = 0; j < ncols; j++ ) {
+    for ( int i = 0; i < nx; i++ ) {
+	for ( int j = 0; j < ny; j++ ) {
 	    printf( "(%d,%d): \t %.3f \t %.3f \t (%.3f,%.3f) \n",
 		    i, j, 
 		    spm->charge_density[i][j], spm->potential[i][j], 
 		    vec2d_x( spm->electric_field[i][j] ), vec2d_y( spm->electric_field[i][j] ) );
 	}
     }
+    return;
+}
+
+
+void spatial_mesh_write_to_file( const Spatial_mesh *spm, FILE *f )
+{
+    fprintf(f, "%s", "Hello.\n");
     return;
 }

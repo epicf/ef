@@ -25,3 +25,9 @@ void time_grid_print( Time_grid tg )
     printf( "Current node = %d \n", tg.current_node );
     return;
 }
+
+void time_grid_write_to_file( const Time_grid *tg, FILE *f )
+{
+    fprintf(f, "%s", "Hello.\n");
+    return;
+}

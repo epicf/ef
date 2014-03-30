@@ -4,10 +4,15 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
 #include "time_grid.h"
 #include "spatial_mesh.h"
 #include "particles.h"
 #include "vec2d.h"
+
+#define M_PI 3.14159265358979323846264338327
 
 typedef struct {
     Time_grid time_grid;
