@@ -15,7 +15,7 @@ Time_grid time_grid_init( double total_time, double time_step_size )
   return tg;
 }
 
-void time_grid_print( Time_grid tg )
+void time_grid_print( const Time_grid tg )
 {
     printf( "Time grid:\n" );
     printf( "Total time = %f \n", tg.total_time );
@@ -28,6 +28,11 @@ void time_grid_print( Time_grid tg )
 
 void time_grid_write_to_file( const Time_grid *tg, FILE *f )
 {
-    fprintf(f, "%s", "Hello.\n");
+    fprintf(f, "### Time grid\n" );
+    fprintf(f, "Total time = %f \n", tg->total_time );
+    fprintf(f, "Current time = %f \n", tg->current_time );
+    fprintf(f, "Time step size = %f \n", tg->time_step_size );
+    fprintf(f, "Total nodes = %d \n", tg->total_nodes );
+    fprintf(f, "Current node = %d \n", tg->current_node );
     return;
 }

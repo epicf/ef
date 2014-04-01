@@ -102,6 +102,22 @@ void print_ongrid_values( const Spatial_mesh *spm )
 
 void spatial_mesh_write_to_file( const Spatial_mesh *spm, FILE *f )
 {
-    fprintf(f, "%s", "Hello.\n");
+    int nx = spm->x_n_nodes;
+    int ny = spm->y_n_nodes;
+
+    fprintf( f, "### Grid:\n" );
+    fprintf( f, "Length: x = %f, y = %f \n", spm->x_volume_size, spm->y_volume_size );
+    fprintf( f, "Cell size: x = %f, y = %f \n", spm->x_cell_size, spm->y_cell_size );
+    fprintf( f, "Total nodes: x = %d, y = %d \n", spm->x_n_nodes, spm->y_n_nodes );
+    fprintf( f, "(x_node, y_node): \t charge_density \t potential \t electric_field(x,y) \n");
+    for ( int i = 0; i < nx; i++ ) {
+	for ( int j = 0; j < ny; j++ ) {
+	    fprintf( f, "( %6d , %6d ): \t %14.3f %15.3f \t ( %12.3f , %12.3f ) \n",
+		    i, j, 
+		    spm->charge_density[i][j], 
+		    spm->potential[i][j], 
+		    vec2d_x( spm->electric_field[i][j] ), vec2d_y( spm->electric_field[i][j] ) );
+	}
+    }
     return;
 }

@@ -451,7 +451,7 @@ void update_position( Domain *dom )
     Vec2d pos_shift;
 
     for ( int i = 0; i < dom->num_of_particles; i++ ) {
-	pos_shift = vec2d_times_scalar( dom->particles[i].momentum, 1.0 );
+	pos_shift = vec2d_times_scalar( dom->particles[i].momentum, 0.00000001 );
 	dom->particles[i].position = vec2d_add( dom->particles[i].position, pos_shift );
     }
     return;

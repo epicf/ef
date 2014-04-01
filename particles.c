@@ -105,6 +105,16 @@ Vec2d maxwell_momentum_distr( const double temperature, const double mass,
 
 void particles_write_to_file( const Particle *p, const int num, FILE *f )
 {
-    fprintf(f, "%s", "Hello.\n");
+    printf( "num = %d \n", num );
+    fprintf( f, "### Particles\n" );
+    fprintf( f, "Particles total number = %d\n", num );    
+    fprintf( f, "charge \t\t mass \t\t position(x,y) \t\t\t\t momentum(px,py) \n");
+    for ( int i = 0; i < num; i++ ) {	
+	fprintf( f, 
+		 "%8.3f %12.3f \t\t ( %10.3f , %10.3f ) \t ( %10.3f , %10.3f ) \n", 
+		 p->charge, p->mass, 
+		 vec2d_x(p->position), vec2d_y(p->position), 
+		 vec2d_x(p->momentum), vec2d_y(p->momentum) );
+    }
     return;
 }
