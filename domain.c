@@ -12,7 +12,7 @@ void apply_domain_constrains( Domain *dom );
 void update_time_grid( Domain *dom );
 // Eval charge density on grid
 void weight_particles_charge_to_mesh( Domain *dom );
-void next_node_num_and_weight( const double x, int *next_node, double *weight );
+void next_node_num_and_weight( const double x, const double grid_step, int *next_node, double *weight );
 // Eval fields from charges
 void solve_poisson_eqn( Domain *dom );
 extern void hwscrt_( double *, double *, int *, int *, double *, double *,
@@ -40,14 +40,20 @@ void apply_domain_boundary_conditions( Domain *dom );
 bool out_of_bound( Domain *dom, Vec2d r );
 void remove_particle( int *i, Domain *dom );
 void proceed_to_next_particle( int *i, Domain *dom );
-// Various functions
-void domain_print_particles( Domain *dom );
 // Domain print
 char *construct_output_filename( const char *output_filename_prefix, 
 				 const int current_time_step,
 				 const char *output_filename_suffix );
+// Various functions
+void domain_print_particles( Domain *dom );
 
 
+
+
+
+//
+// Domain initialization
+//
 
 void domain_prepare( Domain *dom )
 {
@@ -56,67 +62,6 @@ void domain_prepare( Domain *dom )
     domain_particles_init( dom );
     return;
 }
-
-void domain_run_pic( Domain *dom )
-{
-    eval_charge_density( dom );
-    eval_potential_and_fields( dom );
-    push_particles( dom );
-    apply_domain_constrains( dom );
-    update_time_grid( dom );
-    return;
-}
-
-void domain_write( Domain *dom )
-{
-    const char output_filename_prefix[] = "out";
-    const char output_filename_suffix[] = ".dat";
-    char *file_name_to_write;
-    
-    file_name_to_write = construct_output_filename( output_filename_prefix, 
-						    dom->time_grid.current_node,
-						    output_filename_suffix  );
-			           
-    FILE *f = fopen(file_name_to_write, "w");
-    if (f == NULL) {
-	printf("Error opening file!\n");
-	exit( EXIT_FAILURE );
-    }
-    printf ("Writing step %d to file %s\n", dom->time_grid.current_node, file_name_to_write);
-	    
-    time_grid_write_to_file( &(dom->time_grid), f );
-    spatial_mesh_write_to_file( &(dom->spat_mesh), f );
-    particles_write_to_file( dom->particles, dom->num_of_particles, f );
-
-    free( file_name_to_write );
-    fclose(f);
-    return;
-}
-
-char *construct_output_filename( const char *output_filename_prefix, 
-				 const int current_time_step,
-				 const char *output_filename_suffix )
-{    
-    int prefix_len = strlen(output_filename_prefix);
-    int suffix_len = strlen(output_filename_suffix);
-    int number_len = ((CHAR_BIT * sizeof(int) - 1) / 3 + 2); // don't know how this works
-    int ENOUGH = prefix_len + number_len + suffix_len;
-    char *filename;
-    filename = (char *) malloc( ENOUGH * sizeof(char) );
-    snprintf(filename, ENOUGH, "%s%.4d%s", 
-	     output_filename_prefix, current_time_step, output_filename_suffix);
-    return filename;
-}
-
-void domain_free( Domain *dom )
-{
-    printf( "TODO: free domain.\n" );
-    return;
-}
-
-//
-// Domain initialization
-//
 
 void domain_time_grid_init( Domain *dom )
 {
@@ -128,9 +73,9 @@ void domain_time_grid_init( Domain *dom )
 
 void domain_spatial_mesh_init( Domain *dom )
 {
-    double x_size = 10.0;
+    double x_size = 30.0;
     double x_step = 1.0;
-    double y_size = 10.0;
+    double y_size = 20.0;
     double y_step = 1.0;
     dom->spat_mesh = spatial_mesh_init( x_size, x_step, y_size, y_step );  
     return;
@@ -145,6 +90,16 @@ void domain_particles_init( Domain *dom )
 //
 // Pic algorithm
 //
+
+void domain_run_pic( Domain *dom )
+{
+    eval_charge_density( dom );
+    eval_potential_and_fields( dom );
+    push_particles( dom );
+    apply_domain_constrains( dom );
+    update_time_grid( dom );
+    return;
+}
 
 void eval_charge_density( Domain *dom )
 {
@@ -183,13 +138,15 @@ void weight_particles_charge_to_mesh( Domain *dom )
     //   find nonzero weights and corresponding nodes
     //   charge[node] = weight(particle, node) * particle.charge
     // }
+    double dx = dom->spat_mesh.x_cell_size;
+    double dy = dom->spat_mesh.y_cell_size;
     int tr_i, tr_j; // 'tr' = 'top_right'
     double tr_x_weight, tr_y_weight;
 
     for ( int i = 0; i < dom->num_of_particles; i++ ) {
-	next_node_num_and_weight( vec2d_x( dom->particles[i].position ),
+	next_node_num_and_weight( vec2d_x( dom->particles[i].position ), dx, 
 				  &tr_i, &tr_x_weight );
-	next_node_num_and_weight( vec2d_y( dom->particles[i].position ),
+	next_node_num_and_weight( vec2d_y( dom->particles[i].position ), dy,
 				  &tr_j, &tr_y_weight );
 	dom->spat_mesh.charge_density[tr_i][tr_j] +=
 	    tr_x_weight * tr_y_weight * dom->particles[i].charge;
@@ -204,10 +161,12 @@ void weight_particles_charge_to_mesh( Domain *dom )
     return;
 }
 
-void next_node_num_and_weight( const double x, int *next_node, double *weight )
+void next_node_num_and_weight( const double x, const double grid_step, 
+			       int *next_node, double *weight )
 {
-    *next_node = ceil( x );
-    *weight = *next_node - x;
+    double x_in_grid_units = x / grid_step;
+    *next_node = ceil( x_in_grid_units );
+    *weight = *next_node - x_in_grid_units;
     return;
 }
 
@@ -405,14 +364,17 @@ void update_momentum( Domain *dom )
     //   find nonzero weights and corresponding nodes
     //   force[particle] = weight(particle, node) * force(node)
     // }
+    double dt = dom->time_grid.time_step_size;
+    double dx = dom->spat_mesh.x_cell_size;
+    double dy = dom->spat_mesh.y_cell_size;
     int tr_i, tr_j; // 'tr' = 'top_right'
     double tr_x_weight, tr_y_weight;  
     Vec2d force, field_from_node;
     
     for ( int i = 0; i < dom->num_of_particles; i++ ) {
-	next_node_num_and_weight( vec2d_x( dom->particles[i].position ), 
+	next_node_num_and_weight( vec2d_x( dom->particles[i].position ), dx,
 				  &tr_i, &tr_x_weight );
-	next_node_num_and_weight( vec2d_y( dom->particles[i].position ), 
+	next_node_num_and_weight( vec2d_y( dom->particles[i].position ), dy,
 				  &tr_j, &tr_y_weight );
 	//
 	force = vec2d_zero();
@@ -440,7 +402,7 @@ void update_momentum( Domain *dom )
 	field_from_node = vec2d_times_scalar( field_from_node, 1.0 - tr_y_weight );
 	force = vec2d_add( force, field_from_node );
 	//
-	force = vec2d_times_scalar( force, 1.0 );
+	force = vec2d_times_scalar( force, dt * dom->particles[i].charge );
 	dom->particles[i].momentum = vec2d_add( dom->particles[i].momentum, force );
     }
     return;
@@ -449,9 +411,10 @@ void update_momentum( Domain *dom )
 void update_position( Domain *dom )
 {
     Vec2d pos_shift;
+    double dt = dom->time_grid.time_step_size;
 
     for ( int i = 0; i < dom->num_of_particles; i++ ) {
-	pos_shift = vec2d_times_scalar( dom->particles[i].momentum, 0.00000001 );
+	pos_shift = vec2d_times_scalar( dom->particles[i].momentum, dt/dom->particles[i].mass );
 	dom->particles[i].position = vec2d_add( dom->particles[i].position, pos_shift );
     }
     return;
@@ -482,11 +445,9 @@ bool out_of_bound( Domain *dom, Vec2d r )
     double y = vec2d_y( r );
     bool out;
     
-    // TODO: verify condition x,y >= n_nodes - 1.
-    // Why 'n_nodes - 1' instead of just n_nodes?
     out = 
-	( x >= dom->spat_mesh.x_n_nodes - 1 ) || ( x <= 0 ) ||
-	( y >= dom->spat_mesh.y_n_nodes - 1 ) || ( y <= 0 ) ;
+	( x >= dom->spat_mesh.x_volume_size ) || ( x <= 0 ) ||
+	( y >= dom->spat_mesh.y_volume_size ) || ( y <= 0 ) ;
     return out;
 }
 
@@ -513,6 +474,59 @@ void update_time_grid( Domain *dom )
     dom->time_grid.current_time += dom->time_grid.time_step_size;
     return;
 }
+
+
+//
+// Write domain to file
+//
+
+void domain_write( Domain *dom )
+{
+    const char output_filename_prefix[] = "out";
+    const char output_filename_suffix[] = ".dat";
+    char *file_name_to_write;
+    
+    file_name_to_write = construct_output_filename( output_filename_prefix, 
+						    dom->time_grid.current_node,
+						    output_filename_suffix  );
+			           
+    FILE *f = fopen(file_name_to_write, "w");
+    if (f == NULL) {
+	printf("Error opening file!\n");
+	exit( EXIT_FAILURE );
+    }
+    printf ("Writing step %d to file %s\n", dom->time_grid.current_node, file_name_to_write);
+	    
+    time_grid_write_to_file( &(dom->time_grid), f );
+    spatial_mesh_write_to_file( &(dom->spat_mesh), f );
+    particles_write_to_file( dom->particles, dom->num_of_particles, f );
+
+    free( file_name_to_write );
+    fclose(f);
+    return;
+}
+
+char *construct_output_filename( const char *output_filename_prefix, 
+				 const int current_time_step,
+				 const char *output_filename_suffix )
+{    
+    int prefix_len = strlen(output_filename_prefix);
+    int suffix_len = strlen(output_filename_suffix);
+    int number_len = ((CHAR_BIT * sizeof(int) - 1) / 3 + 2); // don't know how this works
+    int ENOUGH = prefix_len + number_len + suffix_len;
+    char *filename;
+    filename = (char *) malloc( ENOUGH * sizeof(char) );
+    snprintf(filename, ENOUGH, "%s%.4d%s", 
+	     output_filename_prefix, current_time_step, output_filename_suffix);
+    return filename;
+}
+
+void domain_free( Domain *dom )
+{
+    printf( "TODO: free domain.\n" );
+    return;
+}
+
 
 //
 // Various functions

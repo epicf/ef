@@ -22,7 +22,7 @@ void particles_test_init( Particle **ps, int *num_of_particles )
     double charge = 1.0;
     double mass = 1.0;
     Vec2d pos, mom;
-    *num_of_particles = 100;
+    *num_of_particles = 200;
     *ps = (Particle *) malloc( (*num_of_particles) * sizeof( Particle ) );
     if ( *ps == NULL ) {
 	printf( "Failed to allocate memory for particles. Aborting" );
@@ -105,16 +105,16 @@ Vec2d maxwell_momentum_distr( const double temperature, const double mass,
 
 void particles_write_to_file( const Particle *p, const int num, FILE *f )
 {
-    printf( "num = %d \n", num );
+    printf( "Particles number = %d \n", num );
     fprintf( f, "### Particles\n" );
     fprintf( f, "Particles total number = %d\n", num );    
     fprintf( f, "charge \t\t mass \t\t position(x,y) \t\t\t\t momentum(px,py) \n");
     for ( int i = 0; i < num; i++ ) {	
 	fprintf( f, 
 		 "%8.3f %12.3f \t\t ( %10.3f , %10.3f ) \t ( %10.3f , %10.3f ) \n", 
-		 p->charge, p->mass, 
-		 vec2d_x(p->position), vec2d_y(p->position), 
-		 vec2d_x(p->momentum), vec2d_y(p->momentum) );
+		 p[i].charge, p[i].mass, 
+		 vec2d_x( p[i].position ), vec2d_y( p[i].position ), 
+		 vec2d_x( p[i].momentum ), vec2d_y( p[i].momentum ) );
     }
     return;
 }

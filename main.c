@@ -19,6 +19,7 @@ void pic_simulation()
   int time_step_to_save;
 
   domain_prepare( &dom );
+  domain_write( &dom );
 
   total_time_steps = dom.time_grid.total_nodes;
   time_step_to_save = total_time_steps/10;
