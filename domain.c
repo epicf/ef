@@ -236,13 +236,13 @@ double **poisson_init_rhs( double left, double top,
     double **rhs = NULL;
     rhs = (double **) malloc( nx * sizeof(double *) );
     if ( rhs == NULL ) {
-	printf( "f_rhs allocate: ny: out of memory ");
+	printf( "f_rhs allocate: nx: out of memory ");
 	exit( EXIT_FAILURE );	
     }
     for( int i = 0; i < nx; i++) {
 	rhs[i] = (double *) malloc( ny * sizeof(double) );
 	if ( rhs[i] == NULL ) {
-	    printf( "f_rhs allocate: nx: out of memory ");
+	    printf( "f_rhs allocate: ny: out of memory ");
 	    exit( EXIT_FAILURE );	
 	}
     }

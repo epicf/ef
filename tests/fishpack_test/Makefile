@@ -6,7 +6,7 @@ CFLAGS = -std=c99 -O2 -Wall -fbounds-check -Warray-bounds -fsanitize=address
 LDFLAGS = -fsanitize=address
 
 ### Libraries
-LIBS= -L./ -lfishpack_dbl2 -lm
+LIBS= -L../../fishpack/ -lfishpack_dbl -lm
 CSOURCES=$(wildcard *.c)
 OBJECTS=$(CSOURCES:%.c=%.o)
 EXECUTABLE=main.out
