@@ -1,9 +1,10 @@
 #include "particles.h"
 
-Particle particle_init( const double charge,  const double mass, 
+Particle particle_init( const int id, const double charge, const double mass, 
 			const Vec2d position, const Vec2d momentum );
 Vec2d uniform_position_in_rectangle( const double xleft,  const double ytop,
 				     const double xright, const double ybottom );
+int generate_particle_id( const int number );
 double random_in_range( const double low, const double up );
 Vec2d maxwell_momentum_distr( const double temperature, const double mass, 
 			      const gsl_rng *rng);
@@ -19,6 +20,7 @@ void particles_test_init( Particle **ps, int *num_of_particles )
     // Momentum
     double temperature = 10;
     // Particle characteristics
+    int id = 0;
     double charge = 1.0;
     double mass = 1.0;
     Vec2d pos, mom;
@@ -35,18 +37,20 @@ void particles_test_init( Particle **ps, int *num_of_particles )
     const gsl_rng_type *rng_t = gsl_rng_default;
     gsl_rng *rng = gsl_rng_alloc( rng_t );
 
-    for ( int i = 0; i < (*num_of_particles); i++ ) {	
+    for ( int i = 0; i < (*num_of_particles); i++ ) {
+	id = generate_particle_id( i );
 	pos = uniform_position_in_rectangle( xleft, ytop, xright, ybottom );
 	mom = maxwell_momentum_distr( temperature, mass, rng );
-	(*ps)[i] = particle_init( charge, mass, pos, mom );
+	(*ps)[i] = particle_init( id, charge, mass, pos, mom );
     }
 
 }
 
-Particle particle_init( const double charge,  const double mass, 
+Particle particle_init( const int id, const double charge, const double mass, 
 			const Vec2d position, const Vec2d momentum )
 {
     Particle p;
+    p.id = id;
     p.charge = charge;
     p.mass = mass;
     p.position = position;
@@ -57,6 +61,7 @@ Particle particle_init( const double charge,  const double mass,
 void particle_print( const Particle *p )
 {
     printf( "Particle: " );
+    printf( "id: %d, ", p->id );
     printf( "charge = %.3f, mass = %.3f, ", p->charge, p->mass );
     printf( "pos(x,y) = (%.3f, %.3f), ", vec2d_x(p->position), vec2d_y(p->position) );
     printf( "momentum(px,py) = (%.3f, %.3f)", vec2d_x(p->momentum), vec2d_y(p->momentum) );
@@ -70,6 +75,11 @@ void particle_print_all( const Particle *p, int n )
 	particle_print( p+i );
     }
     return;
+}
+
+int generate_particle_id( const int number )
+{    
+    return number;
 }
 
 
@@ -105,14 +115,14 @@ Vec2d maxwell_momentum_distr( const double temperature, const double mass,
 
 void particles_write_to_file( const Particle *p, const int num, FILE *f )
 {
-    printf( "Particles number = %d \n", num );
+    printf( "Number of particles  = %d \n", num );
     fprintf( f, "### Particles\n" );
-    fprintf( f, "Particles total number = %d\n", num );    
-    fprintf( f, "charge \t\t mass \t\t position(x,y) \t\t\t\t momentum(px,py) \n");
+    fprintf( f, "Total number of particles = %d\n", num );    
+    fprintf( f, "id \t   charge      mass \t\t position(x,y) \t\t momentum(px,py) \n");
     for ( int i = 0; i < num; i++ ) {	
 	fprintf( f, 
-		 "%8.3f %12.3f \t\t ( %10.3f , %10.3f ) \t ( %10.3f , %10.3f ) \n", 
-		 p[i].charge, p[i].mass, 
+		 "%-10d %-10.3f %-10.3f ( %-10.3f , %-10.3f )   ( %-10.3f , %-10.3f ) \n", 
+		 p[i].id, p[i].charge, p[i].mass, 
 		 vec2d_x( p[i].position ), vec2d_y( p[i].position ), 
 		 vec2d_x( p[i].momentum ), vec2d_y( p[i].momentum ) );
     }

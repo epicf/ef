@@ -9,6 +9,7 @@
 
 
 typedef struct {
+    int id;
     double charge;
     double mass;
     Vec2d position;
