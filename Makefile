@@ -5,7 +5,7 @@ SHELL:=/bin/bash -O extglob
 ##### GNU
 CC = gcc
 ## Detect errors:
-CFLAGS = -std=c99 -O2 -Wall -fbounds-check -Warray-bounds -fsanitize=address
+CFLAGS = -std=c99 -O2 -Wall -fbounds-check -Warray-bounds -fsanitize=address `pkg-config --cflags glib-2.0`
 LDFLAGS = -fsanitize=address
 ### Usual flags
 #CFLAGS = -std=c99 -O2
@@ -17,7 +17,7 @@ LDFLAGS = -fsanitize=address
 #LDFLAGS = -g -fsanitize=address
 
 ### Libraries
-LIBS=-lm -lgsl -lgslcblas -L./fishpack -lfishpack_dbl
+LIBS=-lm -lgsl -lgslcblas -L./fishpack -lfishpack_dbl `pkg-config --libs glib-2.0`
 
 ### Sources and executable
 CSOURCES=$(wildcard *.c)

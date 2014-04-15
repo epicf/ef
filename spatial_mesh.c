@@ -67,6 +67,27 @@ void allocate_arrays_for_ongrid_values( Spatial_mesh *spm )
     return;
 }
 
+void spatial_mesh_set_boundary_conditions( Spatial_mesh *spm, 
+					   const double phi_left, const double phi_right,
+					   const double phi_top, const double phi_bottom )
+{
+    int nx = spm->x_n_nodes;
+    int ny = spm->y_n_nodes;    
+
+    for ( int i = 0; i < nx; i++ ) {
+	spm->potential[i][0] = phi_bottom;
+	spm->potential[i][ny-1] = phi_top;
+    }
+    
+    for ( int j = 0; j < ny; j++ ) {
+	spm->potential[0][j] = phi_left;
+	spm->potential[nx-1][j] = phi_right;
+    }
+
+    return;
+}
+
+
 void spatial_mesh_print( const Spatial_mesh *spm )
 {
     print_grid( spm );
@@ -109,10 +130,10 @@ void spatial_mesh_write_to_file( const Spatial_mesh *spm, FILE *f )
     fprintf( f, "Length: x = %f, y = %f \n", spm->x_volume_size, spm->y_volume_size );
     fprintf( f, "Cell size: x = %f, y = %f \n", spm->x_cell_size, spm->y_cell_size );
     fprintf( f, "Total nodes: x = %d, y = %d \n", spm->x_n_nodes, spm->y_n_nodes );
-    fprintf( f, "(x_node, y_node): \t charge_density \t potential \t electric_field(x,y) \n");
+    fprintf( f, "x_node  y_node  charge_density   potential \t electric_field(x,y) \n");
     for ( int i = 0; i < nx; i++ ) {
 	for ( int j = 0; j < ny; j++ ) {
-	    fprintf( f, "( %6d , %6d ): \t %14.3f %15.3f \t ( %12.3f , %12.3f ) \n",
+	    fprintf( f, "%-8d %-8d %-14.3f %-14.3f %-14.3f %-14.3f \n",
 		    i, j, 
 		    spm->charge_density[i][j], 
 		    spm->potential[i][j], 

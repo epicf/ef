@@ -1,9 +1,9 @@
 #include "domain.h"
 
 // Domain initialization
-void domain_time_grid_init( Domain *dom );
-void domain_spatial_mesh_init( Domain *dom );
-void domain_particles_init( Domain *dom );
+void domain_time_grid_init( Domain *dom, Config *conf );
+void domain_spatial_mesh_init( Domain *dom, Config *conf );
+void domain_particles_init( Domain *dom, Config *conf );
 // Pic algorithm
 void eval_charge_density( Domain *dom );
 void eval_potential_and_fields( Domain *dom );
@@ -23,10 +23,7 @@ void colmajor_to_rowmajor( double *fortran, double **c, int dim1, int dim2 );
 void hwscrt_init_f( double left, double top, 
 		    double right, double bottom, 
 		    double **charge_density, double **hwscrt_f);
-double **poisson_init_rhs( double left, double top, 
-			   double right, double bottom, 
-			   double **charge_density, 
-			   int nrow, int ncol );
+double **poisson_init_rhs( Spatial_mesh *spm );
 void poisson_free_rhs( double **rhs, int nrow, int ncol );
 void eval_fields_from_potential( Domain *dom );
 double boundary_difference( double phi1, double phi2, double dx );
@@ -55,35 +52,41 @@ void domain_print_particles( Domain *dom );
 // Domain initialization
 //
 
-void domain_prepare( Domain *dom )
+void domain_prepare( Domain *dom, Config *conf )
 {
-    domain_time_grid_init( dom );    
-    domain_spatial_mesh_init( dom );
-    domain_particles_init( dom );
+    config_check_correctness( conf );
+    domain_time_grid_init( dom, conf );    
+    domain_spatial_mesh_init( dom, conf );
+    domain_particles_init( dom, conf );
     return;
 }
 
-void domain_time_grid_init( Domain *dom )
+void domain_time_grid_init( Domain *dom, Config *conf )
 {
-    double total_time = 1.0;
-    double step_size = 0.1;
+    double total_time = conf->total_time;
+    double step_size = conf->time_step_size;
     dom->time_grid = time_grid_init( total_time, step_size );
     return;
 }
 
-void domain_spatial_mesh_init( Domain *dom )
+void domain_spatial_mesh_init( Domain *dom, Config *conf )
 {
-    double x_size = 30.0;
-    double x_step = 1.0;
-    double y_size = 20.0;
-    double y_step = 1.0;
-    dom->spat_mesh = spatial_mesh_init( x_size, x_step, y_size, y_step );  
+    double x_size = conf->grid_x_size;
+    double x_step = conf->grid_x_step;
+    double y_size = conf->grid_y_size;
+    double y_step = conf->grid_y_step;
+    double phi_left = conf->boundary_phi_left;
+    double phi_right = conf->boundary_phi_right;
+    double phi_top = conf->boundary_phi_top;
+    double phi_bottom = conf->boundary_phi_bottom;
+    dom->spat_mesh = spatial_mesh_init( x_size, x_step, y_size, y_step );
+    spatial_mesh_set_boundary_conditions( &(dom->spat_mesh), phi_left, phi_right, phi_top, phi_bottom );
     return;
 }
 
-void domain_particles_init( Domain *dom )
+void domain_particles_init( Domain *dom, Config *conf )
 {
-    particles_test_init( &(dom->particles), &(dom->num_of_particles) );
+    particles_test_init( &(dom->particles), &(dom->num_of_particles), conf );
     return;
 }
 
@@ -203,15 +206,8 @@ void solve_poisson_eqn( Domain *dom )
     double w[w_dim];
     double pertrb;
     int ierror;
-    // Boundary potential values
-    double left = 0.0;
-    double top = 10.0;
-    double right = 20.0;
-    double bottom = 30.0; 
 
-    f_rhs = poisson_init_rhs( left, top, right, bottom, 
-			      dom->spat_mesh.charge_density,
-			      nx, ny );
+    f_rhs = poisson_init_rhs( &( dom->spat_mesh ) );
     rowmajor_to_colmajor( f_rhs, hwscrt_f, nx, ny );
     hwscrt_( 
 	&a, &b, &M, &MBDCND, BDA, BDB,
@@ -228,11 +224,11 @@ void solve_poisson_eqn( Domain *dom )
 }
 
 
-double **poisson_init_rhs( double left, double top, 
-			   double right, double bottom, 
-			   double **charge_density, 
-			   int nx, int ny )
+double **poisson_init_rhs( Spatial_mesh *spm )
 {
+    int nx = spm->x_n_nodes;
+    int ny = spm->y_n_nodes;    
+
     double **rhs = NULL;
     rhs = (double **) malloc( nx * sizeof(double *) );
     if ( rhs == NULL ) {
@@ -249,18 +245,18 @@ double **poisson_init_rhs( double left, double top,
     
     for ( int i = 1; i < nx-1; i++ ) {
 	for ( int j = 1; j < ny-1; j++ ) {
-	    rhs[i][j] = -4.0 * M_PI * charge_density[i][j];
+	    rhs[i][j] = -4.0 * M_PI * spm->charge_density[i][j];
 	}
     }
 
     for ( int i = 0; i < nx; i++ ) {
-	rhs[i][0] = bottom;
-	rhs[i][ny-1] = top;
+	rhs[i][0] = spm->potential[i][0];
+	rhs[i][ny-1] = spm->potential[i][ny-1];
     }
 
     for ( int j = 0; j < ny; j++ ) {
-	rhs[0][j] = left;
-	rhs[nx-1][j] = right;
+	rhs[0][j] = spm->potential[0][j];
+	rhs[nx-1][j] = spm->potential[nx-1][j];
     }
     
     return rhs;
@@ -480,7 +476,7 @@ void update_time_grid( Domain *dom )
 // Write domain to file
 //
 
-void domain_write( Domain *dom )
+void domain_write( Domain *dom, Config *conf )
 {
     const char output_filename_prefix[] = "out";
     const char output_filename_suffix[] = ".dat";

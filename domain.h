@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include "config.h"
 #include "time_grid.h"
 #include "spatial_mesh.h"
 #include "particles.h"
@@ -21,9 +22,9 @@ typedef struct {
     Particle *particles;
 } Domain;
 
-void domain_prepare( Domain *dom );
+void domain_prepare( Domain *dom, Config *conf );
 void domain_run_pic( Domain *dom );
-void domain_write( Domain *dom );
+void domain_write( Domain *dom, Config *conf );
 void domain_free( Domain *dom );
 
 #endif /* _DOMAIN_H_ */

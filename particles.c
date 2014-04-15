@@ -10,21 +10,21 @@ Vec2d maxwell_momentum_distr( const double temperature, const double mass,
 			      const gsl_rng *rng);
 
 
-void particles_test_init( Particle **ps, int *num_of_particles )
+void particles_test_init( Particle **ps, int *num_of_particles, Config *conf )
 {
     // Position
-    double xleft = 4.0;
-    double xright = 6.0;
-    double ytop = 6.0;
-    double ybottom = 4.0;
+    double xleft = conf->particle_source_x_left;
+    double xright = conf->particle_source_x_right;
+    double ytop = conf->particle_source_y_top;
+    double ybottom = conf->particle_source_y_bottom;
     // Momentum
-    double temperature = 10;
+    double temperature = conf->particle_source_temperature;
     // Particle characteristics
     int id = 0;
-    double charge = 1.0;
-    double mass = 1.0;
+    double charge = conf->particle_source_charge;
+    double mass = conf->particle_source_mass;
     Vec2d pos, mom;
-    *num_of_particles = 200;
+    *num_of_particles = conf->particle_source_number_of_particles;
     *ps = (Particle *) malloc( (*num_of_particles) * sizeof( Particle ) );
     if ( *ps == NULL ) {
 	printf( "Failed to allocate memory for particles. Aborting" );
@@ -118,10 +118,10 @@ void particles_write_to_file( const Particle *p, const int num, FILE *f )
     printf( "Number of particles  = %d \n", num );
     fprintf( f, "### Particles\n" );
     fprintf( f, "Total number of particles = %d\n", num );    
-    fprintf( f, "id \t   charge      mass \t\t position(x,y) \t\t momentum(px,py) \n");
+    fprintf( f, "id \t   charge      mass \t position(x,y) \t\t momentum(px,py) \n");
     for ( int i = 0; i < num; i++ ) {	
 	fprintf( f, 
-		 "%-10d %-10.3f %-10.3f ( %-10.3f , %-10.3f )   ( %-10.3f , %-10.3f ) \n", 
+		 "%-10d %-10.3f %-10.3f %-10.3f %-10.3f  %-10.3f %-10.3f \n", 
 		 p[i].id, p[i].charge, p[i].mass, 
 		 vec2d_x( p[i].position ), vec2d_y( p[i].position ), 
 		 vec2d_x( p[i].momentum ), vec2d_y( p[i].momentum ) );
