@@ -11,6 +11,7 @@ void push_particles( Domain *dom );
 void apply_domain_constrains( Domain *dom );
 void update_time_grid( Domain *dom );
 // Eval charge density on grid
+void clear_old_density_values( Domain *dom );
 void weight_particles_charge_to_mesh( Domain *dom );
 void next_node_num_and_weight( const double x, const double grid_step, int *next_node, double *weight );
 // Eval fields from charges
@@ -106,6 +107,7 @@ void domain_run_pic( Domain *dom )
 
 void eval_charge_density( Domain *dom )
 {
+    clear_old_density_values( dom );
     weight_particles_charge_to_mesh( dom );
     return;
 }
@@ -133,6 +135,20 @@ void apply_domain_constrains( Domain *dom )
 //
 // Eval charge density
 //
+
+void clear_old_density_values( Domain *dom )
+{
+    Spatial_mesh *spm = &( dom->spat_mesh );
+    int nx = spm->x_n_nodes;
+    int ny = spm->y_n_nodes;    
+    
+    for ( int i = 0; i < nx; i++ ) {
+	for ( int j = 0; j < ny; j++ ) {
+	    spm->charge_density[i][j] = 0;
+	}
+    }
+}
+
 
 void weight_particles_charge_to_mesh( Domain *dom )
 {
