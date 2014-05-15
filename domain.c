@@ -494,8 +494,8 @@ void update_time_grid( Domain *dom )
 
 void domain_write( Domain *dom, Config *conf )
 {
-    const char output_filename_prefix[] = "out";
-    const char output_filename_suffix[] = ".dat";
+    char *output_filename_prefix = conf->output_filename_prefix;
+    char *output_filename_suffix = conf->output_filename_suffix;
     char *file_name_to_write;
     
     file_name_to_write = construct_output_filename( output_filename_prefix, 

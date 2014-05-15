@@ -127,9 +127,12 @@ void spatial_mesh_write_to_file( const Spatial_mesh *spm, FILE *f )
     int ny = spm->y_n_nodes;
 
     fprintf( f, "### Grid:\n" );
-    fprintf( f, "Length: x = %f, y = %f \n", spm->x_volume_size, spm->y_volume_size );
-    fprintf( f, "Cell size: x = %f, y = %f \n", spm->x_cell_size, spm->y_cell_size );
-    fprintf( f, "Total nodes: x = %d, y = %d \n", spm->x_n_nodes, spm->y_n_nodes );
+    fprintf( f, "X volume size = %f \n", spm->x_volume_size );
+    fprintf( f, "Y volume size = %f \n", spm->y_volume_size );
+    fprintf( f, "X cell size = %f \n", spm->x_cell_size );
+    fprintf( f, "Y cell size = %f \n", spm->y_cell_size );
+    fprintf( f, "X nodes = %d \n", spm->x_n_nodes );
+    fprintf( f, "Y nodes = %d \n", spm->y_n_nodes );
     fprintf( f, "x_node  y_node  charge_density   potential \t electric_field(x,y) \n");
     for ( int i = 0; i < nx; i++ ) {
 	for ( int j = 0; j < ny; j++ ) {

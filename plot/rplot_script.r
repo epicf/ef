@@ -101,18 +101,21 @@ plot_potential <- function( dataframe_to_plot, domain_properties, filename ) {
     as.data.frame.matrix( z )
 ###
     png( filename )
-    xmin <- 0
-    xmax <- max( x )
-    ymin <- 0
-    ymax <- max( y )
-    axis_ticks_step <- 10
+    xlim <- c( min(x), max(x) )
+    xticks <- pretty( xlim )
+    xtickslabels <- format( xticks, nsmall=1 )
+    ylim <- c( min(y), max(y) )
+    yticks <- pretty( ylim )
+    ytickslabels <- format( yticks, nsmall=1 )
     filled.contour(x, y, z,
                    color = topo.colors,
-                   xlim <- c( xmin, xmax ),
-                   ylim <- c( ymin, ymax ),
-                   plot.axes = { axis( 1 ) #, seq( xmin, xmax, by = axis_ticks_step ))
-                                 axis( 2 ) },#, seq( ymin, ymax, by = axis_ticks_step ))},
-                   plot.title = title(main="Potential", xlab = "nx", ylab = "ny" ),
+                   xlim <- xlim,
+                   ylim <- ylim,
+                   plot.axes = { axis( 1, las = 1, lwd.ticks=2, 
+                                       at = xticks, labels = xtickslabels )
+                                 axis( 2, las = 1, lwd.ticks=2, 
+                                       at = yticks, labels = ytickslabels ) },
+                   plot.title = title(main="Potential", xlab = "X", ylab = "Y" ),
                    )
     dev.off()
 }
@@ -132,26 +135,29 @@ extract_data_for_density_plot <- function( data ){
 }
 
 plot_density <- function( dataframe_to_plot, domain_properties, filename ) {
-    x <- unique( dataframe_to_plot$nx )
-    y <- unique( dataframe_to_plot$ny )
+    x <- unique( dataframe_to_plot$x )
+    y <- unique( dataframe_to_plot$y )
     z <- xtabs(
-          dataframe_to_plot$charge_density ~ dataframe_to_plot$nx + dataframe_to_plot$ny,
+          dataframe_to_plot$charge_density ~ dataframe_to_plot$x + dataframe_to_plot$y,
           dataframe_to_plot )
     as.data.frame.matrix( z )
 ###
     png( filename )
-    xmin <- 0
-    xmax <- domain_properties$grid$x_nodes - 1
-    ymin <- 0
-    ymax <- domain_properties$grid$y_nodes - 1
-    axis_ticks_step <- 10
+    xlim <- c( min(x), max(x) )
+    xticks <- pretty( xlim )
+    xtickslabels <- format( xticks, nsmall=1 )
+    ylim <- c( min(y), max(y) )
+    yticks <- pretty( ylim )
+    ytickslabels <- format( yticks, nsmall=1 )
     filled.contour(x, y, z,
                    color = topo.colors,
-                   xlim <- c( xmin, xmax ),
-                   ylim <- c( ymin, ymax ),
-                   plot.axes = { axis(1, seq( xmin, xmax, by = axis_ticks_step ))
-                                 axis(2, seq( ymin, ymax, by = axis_ticks_step ))},
-                   plot.title = title(main="Charge density", xlab = "nx", ylab = "ny" ),
+                   xlim <- xlim,
+                   ylim <- ylim,
+                   plot.axes = { axis( 1, las = 1, lwd.ticks=2, 
+                                       at = xticks, labels = xtickslabels )
+                                 axis( 2, las = 1, lwd.ticks=2, 
+                                       at = yticks, labels = ytickslabels ) },
+                   plot.title = title(main="Charge density", xlab = "X", ylab = "Y" ),
                    )
     dev.off()
 }
@@ -173,10 +179,15 @@ plot_particles_coords <- function( particles_data, domain_properties, outfile ) 
     png( outfile )
     xmin <- 0
     xmax <- domain_properties$grid$x_volume_size
+    xlim <- c( xmin, xmax )
+    xticks <- pretty( xlim )
+    xtickslabels <- format( xticks, nsmall=1 )
     ymin <- 0
     ymax <- domain_properties$grid$y_volume_size  
-    xlim <- c( xmin, xmax )
-    ylim <- c( ymin, ymax )
+    ylim <- c( ymin, ymax )    
+    yticks <- pretty( ylim )
+    ytickslabels <- format( yticks, nsmall=1 )
+
     plot(NA, NA,
          xaxs="i", yaxs="i", axes = F,
          xlim = xlim,
@@ -184,7 +195,7 @@ plot_particles_coords <- function( particles_data, domain_properties, outfile ) 
          ##         las = 1,
          ##         cex.lab=2.5, cex.axis=1.5,
          main = "Particles", 
-         xlab = "x", ylab = "y"
+         xlab = "X", ylab = "Y"
          )
 
     points( particles_data$x, particles_data$y,
@@ -200,8 +211,8 @@ plot_particles_coords <- function( particles_data, domain_properties, outfile ) 
             col = "red" )
     
     box()
-    axis(1, las = 1, lwd.ticks=4)
-    axis(2, las = 1, lwd.ticks=4)         
+    axis( 1, las = 1, lwd.ticks=2, at = xticks, labels = xtickslabels )
+    axis( 2, las = 1, lwd.ticks=2, at = yticks, labels = ytickslabels )         
 
     dev.off()
 }
@@ -250,6 +261,7 @@ if ( any_flag ) {
     if ( !is.null( opt$density ) ) {
       print( paste( "Plotting density for", file ) )
       data_density <- extract_data_for_density_plot( data )
+      data_density <- grid_nodes_to_real_coords( data_density, domain_properties )
       output_filename <- construct_output_filename( file, "density" )
       plot_density( data_density, domain_properties, output_filename )
       rm( list = c( "data_density" ) )
