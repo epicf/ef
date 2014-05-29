@@ -1,5 +1,6 @@
 #include "config.h"
 #include "domain.h"
+#include "parse_args.h"
 
 void pic_simulation( Config *conf );
 void write_nth_step( Domain *dom, Config *conf,
@@ -8,10 +9,15 @@ void write_nth_step( Domain *dom, Config *conf,
 int main(int argc, char *argv[])
 {
 
+    char *config_file = NULL;
     Config conf;
 
-    // prepare_everything    
-    config_read( "test.conf", &conf );
+    // prepare everything
+    //// Parse command line
+    parse_args( argc, argv, &config_file );
+    printf( "CONFIG = %s \n", config_file );
+    //// Read config
+    config_read( config_file, &conf );
     config_print( &conf );
     // run simulation
     pic_simulation( &conf );
