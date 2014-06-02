@@ -137,10 +137,11 @@ void spatial_mesh_write_to_file( const Spatial_mesh *spm, FILE *f )
     for ( int i = 0; i < nx; i++ ) {
 	for ( int j = 0; j < ny; j++ ) {
 	    fprintf( f, "%-8d %-8d %-14.3f %-14.3f %-14.3f %-14.3f \n",
-		    i, j, 
-		    spm->charge_density[i][j], 
-		    spm->potential[i][j], 
-		    vec2d_x( spm->electric_field[i][j] ), vec2d_y( spm->electric_field[i][j] ) );
+		     i, j, 
+		     spm->charge_density[i][j], 
+		     spm->potential[i][j], 
+		     vec2d_x( spm->electric_field[i][j] ), 
+		     vec2d_y( spm->electric_field[i][j] ) );
 	}
     }
     return;

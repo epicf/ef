@@ -47,7 +47,7 @@ void pic_simulation( Config *conf )
 
 void write_nth_step( Domain *dom, Config *conf, int current_step, int step_to_save )
 {
-    if ( !( current_step % step_to_save ) ){	
+    if ( ( current_step % step_to_save ) == 0 ){	
 	domain_write( dom, conf );
     }
     return;

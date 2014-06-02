@@ -185,7 +185,7 @@ void next_node_num_and_weight( const double x, const double grid_step,
 {
     double x_in_grid_units = x / grid_step;
     *next_node = ceil( x_in_grid_units );
-    *weight = *next_node - x_in_grid_units;
+    *weight = 1.0 - ( *next_node - x_in_grid_units );
     return;
 }
 

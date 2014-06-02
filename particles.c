@@ -104,12 +104,11 @@ double random_in_range( const double low, const double up )
 Vec2d maxwell_momentum_distr( const double temperature, const double mass, 
 			      const gsl_rng *rng)
 {
-    double maxwell_gauss_std_div = sqrt( mass * temperature * 1.0 ); // recheck
-    Vec2d mom;
-    mom = vec2d_init( gsl_ran_gaussian(rng, maxwell_gauss_std_div),
-		      gsl_ran_gaussian(rng, maxwell_gauss_std_div) );		     
-    mom = vec2d_times_scalar( mom, 1.0 ); // recheck
-    return mom;
+    double maxwell_gauss_std_div = sqrt( mass * temperature );
+    Vec2d mnt;
+    mnt = vec2d_init( gsl_ran_gaussian(rng, maxwell_gauss_std_div),
+		      gsl_ran_gaussian(rng, maxwell_gauss_std_div) );
+    return mnt;
 }
 
 
