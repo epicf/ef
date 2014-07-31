@@ -22,11 +22,17 @@ Epicf-v0.01 написан на C.
 Уравнение Пуассона:
 \begin{gather}
   \Delta \phi = - 4 \pi \rho  
+  \\
+  \frac{ \phi_{i-1,j} - 2 \phi_{i,j} + \phi_{i+1,j} }{ \Delta x^2 }
+  + 
+  \frac{ \phi_{i,j-1} - 2 \phi_{i,j} + \phi_{i,j+1} }{ \Delta y^2 }
+  =
+  -4 \pi \rho_{i,j}
 \end{gather}
 \todo{Дописать про дискретизацию и граничные условия.}
 Для численного решения используется библиотека FISHPACK [ссылка]. 
 При вызове фортрановской функции из C нужно учитывать особенности 
-представления многомерных массивов в памяти [ссылка]. \todo{написать по-понятнее}.
+представления многомерных массивов в памяти [ссылка].
 В фортране - column-major order, в C - row-major. 
 В программе за преобразование между двумя форматами отвечают функции \todo{...}.
 
@@ -34,9 +40,9 @@ Epicf-v0.01 написан на C.
 \begin{gather}
   \vec{ E } = - \nabla \phi
   \\
-  \todo{ E_{x_i} =  - \mbox{ центральная разность } }
+  E_{x_i} =  - \frac{ \phi_{i+1,j} - \phi_{i-1,j} }{ 2 \Delta x }  - \mbox{ центральная разность }
   \\
-  \todo{ E_{x_i} =  - \mbox{ на границе } }
+  E_{x_i} =  - \frac{ \phi_{i+1,j} - \phi_{i,j} }{ \Delta x } - \mbox{ на границе }
 \end{gather}
 
 Обновление импульсов и координат частиц:
@@ -49,7 +55,7 @@ Epicf-v0.01 написан на C.
 \begin{gather}
   \vec{p}_{t+1/2} = \vec{p}_{t-1/2} + q \vec{E} \Delta t  
   \\
-  \vec{r}_{t} = \vec{r}_{t-1} + \frac{ \vec{p}_{t+1/2} }{ m } \Delta t
+  \vec{r}_{t+1} = \vec{r}_{t} + \frac{ \vec{p}_{t+1/2} }{ m } \Delta t
 \end{gather}
 
 %%% Local Variables: 

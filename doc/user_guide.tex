@@ -91,7 +91,11 @@ Epicf-v0.01 не поддерживает магнитное поле
 
 В комплекте с программой идет скрипт для визуализации результатов.
 ( скрипт на R - см. раздел ``установка'' ).
-Лежит в директории plot. Вызывается командой \todo{пример}.
+Лежит в директории plot. Вызывается командой вида
+\begin{verbatim}
+./rplot_script.r [options] /path_to_output_files/output.dat
+\end{verbatim}
+где output.dat - выходной фаил, полученный при работе программы.
 
 Пока доступно 3 опции: 
 \begin{itemize}
@@ -99,10 +103,29 @@ Epicf-v0.01 не поддерживает магнитное поле
 \item -d, --density - строит значения плотности заряда в узлах сетки.
 \item -P, --particles - рисует частицы и направления их импульсов.
 \end{itemize}
+
+Пример:
+\begin{verbatim}
+./rplot_script.r -pdP ../out/out0001.dat
+\end{verbatim}
+построит графики для потенциала, плотности заряда и частиц и 
+сохранит их в текущей директории в фаилы \texttt{out0001\_potential.png}, 
+\texttt{out0001\_density.png} и \texttt{out0001\_particles.png}.
 \todo{Вставить пару примеров картинок.}
 
 \subsection{ Установка }
 \todo{Тоже написать пару слов.}
+
+В комплекте с программой идет скрипт для визуализации результатов.
+Скрипт написан на R. 
+Кроме того, для работы требуется установить пакет 'optparse' для R.
+Это можно сделать, выполнив в командной строке
+\begin{verbatim}
+R -e "install.packages('optparse', repos='http://cran.us.r-project.org')"
+\end{verbatim}
+или \texttt{install.packages('optparse')} из консоли R.
+
+
 %%% Local Variables: 
 %%% mode: latex
 %%% TeX-master: "major"
