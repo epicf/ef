@@ -504,7 +504,9 @@ void domain_write( Domain *dom, Config *conf )
 			           
     FILE *f = fopen(file_name_to_write, "w");
     if (f == NULL) {
-	printf("Error opening file!\n");
+	printf( "Error: can't open file \'%s\' to save results of simulation!\n", file_name_to_write );
+	printf( "Recheck 'output_filename_prefix' key in config file.\n" );
+	printf( "Make sure the directory you want to save to exists.\n" );
 	exit( EXIT_FAILURE );
     }
     printf ("Writing step %d to file %s\n", dom->time_grid.current_node, file_name_to_write);

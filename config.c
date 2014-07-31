@@ -272,6 +272,7 @@ void check_and_exit_if_not( bool should_be, char *message )
 
 void config_print( const Config *conf )
 {
+    printf( "=== echo config file === " );
     printf( "total_time = %f, time_step_size = %f \n", conf->total_time, conf->time_step_size );
     printf( "grid_x_size = %f, grid_x_step = %f, grid_y_size = %f, grid_y_step = %f \n", 
 	    conf->grid_x_size, conf->grid_x_step, conf->grid_y_size, conf->grid_y_step);
@@ -286,6 +287,7 @@ void config_print( const Config *conf )
     printf( "boundary_phi_bottom = %f, boundary_phi_top = %f \n", conf->boundary_phi_bottom, conf->boundary_phi_top );
     printf( "output_filename_prefix = %s\n", conf->output_filename_prefix );
     printf( "output_filename_suffix = %s\n", conf->output_filename_suffix );
-
+    printf( "=== \n" );
+    printf( "\n" );
     return;
 }
