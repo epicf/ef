@@ -90,6 +90,7 @@ Epicf-v0.01 не поддерживает магнитное поле
 \subsection{ Визуализация результатов }
 
 В комплекте с программой идет скрипт для визуализации результатов.
+\todo{переименовать по-проще}
 ( скрипт на R - см. раздел ``установка'' ).
 Лежит в директории plot. Вызывается командой вида
 \begin{verbatim}
@@ -111,7 +112,15 @@ Epicf-v0.01 не поддерживает магнитное поле
 построит графики для потенциала, плотности заряда и частиц и 
 сохранит их в текущей директории в фаилы \texttt{out0001\_potential.png}, 
 \texttt{out0001\_density.png} и \texttt{out0001\_particles.png}.
-\todo{Вставить пару примеров картинок.}
+\begin{figure}[h]
+  \centering
+  \includegraphics[scale=0.3]{./figs/out0001_density.png}
+  \includegraphics[scale=0.3]{./figs/out0001_potential.png}
+  \includegraphics[scale=0.3]{./figs/out0001_particles.png}
+  \caption{
+    Графики плотности заряда, потенциала и распределения частиц.
+  }
+\end{figure}
 
 \subsection{ Установка }
 \todo{Тоже написать пару слов.}
