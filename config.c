@@ -11,6 +11,7 @@ void config_read_output_filename_part( GKeyFile *keyfile, Config *conf, GError *
 void check_and_exit_if_not( bool should_be, char *message );
 void total_time_gt_zero( Config *conf );
 void time_step_size_gt_zero_le_total_time( Config *conf );
+void time_save_step_ge_time_step_size( Config *conf );
 void grid_x_size_gt_zero( Config *conf );
 void grid_x_step_gt_zero_le_grid_x_size( Config *conf );
 void grid_y_size_gt_zero( Config *conf );
@@ -60,6 +61,8 @@ void config_read_time_part( GKeyFile *keyfile, Config *conf, GError *error )
     conf->total_time = g_key_file_get_double( keyfile, time_section_name, "total_time", &error);
     exit_if_error( error );    
     conf->time_step_size = g_key_file_get_double( keyfile, time_section_name, "time_step_size", &error);
+    exit_if_error( error );
+    conf->time_save_step = g_key_file_get_double( keyfile, time_section_name, "time_save_step", &error);
     exit_if_error( error );
 }
 
@@ -151,6 +154,7 @@ void config_check_correctness( Config *conf )
 {
     total_time_gt_zero( conf );
     time_step_size_gt_zero_le_total_time( conf );
+    time_save_step_ge_time_step_size( conf );
     grid_x_size_gt_zero( conf );
     grid_x_step_gt_zero_le_grid_x_size( conf );
     grid_y_size_gt_zero( conf );
@@ -174,9 +178,18 @@ void total_time_gt_zero( Config *conf )
 
 void time_step_size_gt_zero_le_total_time( Config *conf )
 {
-    check_and_exit_if_not( conf->time_step_size >= 0 && conf->time_step_size <= conf->total_time,
-			   "time_step_size < 0 or time_step_size > total_time" );
+    check_and_exit_if_not( conf->time_step_size > 0 && conf->time_step_size <= conf->total_time,
+			   "time_step_size <= 0 or time_step_size > total_time" );
+    return;
 }
+
+void time_save_step_ge_time_step_size( Config *conf )
+{
+    check_and_exit_if_not( conf->time_save_step >= conf->time_step_size,
+			   "time_save_step < time_step_size" );
+    return;
+}
+
 
 void grid_x_size_gt_zero( Config *conf )
 {
@@ -273,7 +286,8 @@ void check_and_exit_if_not( bool should_be, char *message )
 void config_print( const Config *conf )
 {
     printf( "=== echo config file === " );
-    printf( "total_time = %f, time_step_size = %f \n", conf->total_time, conf->time_step_size );
+    printf( "total_time = %f, time_step_size = %f, time_save_step = %f \n", 
+	    conf->total_time, conf->time_step_size, conf->time_save_step );
     printf( "grid_x_size = %f, grid_x_step = %f, grid_y_size = %f, grid_y_step = %f \n", 
 	    conf->grid_x_size, conf->grid_x_step, conf->grid_y_size, conf->grid_y_step);
 

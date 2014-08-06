@@ -5,6 +5,7 @@ void domain_time_grid_init( Domain *dom, Config *conf );
 void domain_spatial_mesh_init( Domain *dom, Config *conf );
 void domain_particles_init( Domain *dom, Config *conf );
 // Pic algorithm
+void domain_advance_one_time_step( Domain *dom );
 void eval_charge_density( Domain *dom );
 void eval_potential_and_fields( Domain *dom );
 void push_particles( Domain *dom );
@@ -66,7 +67,8 @@ void domain_time_grid_init( Domain *dom, Config *conf )
 {
     double total_time = conf->total_time;
     double step_size = conf->time_step_size;
-    dom->time_grid = time_grid_init( total_time, step_size );
+    double save_time = conf->time_save_step;
+    dom->time_grid = time_grid_init( total_time, step_size, save_time );
     return;
 }
 
@@ -92,10 +94,28 @@ void domain_particles_init( Domain *dom, Config *conf )
 }
 
 //
+// Pic simulation 
+//
+
+void domain_run_pic( Domain *dom, Config *conf )
+{
+    int total_time_iterations, current_node;
+    total_time_iterations = dom->time_grid.total_nodes - 1;
+    current_node = dom->time_grid.current_node;
+  
+    for ( int i = current_node; i < total_time_iterations; i++ ){
+	domain_advance_one_time_step( dom );
+	domain_write_step_to_save( dom, conf );
+    }
+
+    return;
+}
+
+//
 // Pic algorithm
 //
 
-void domain_run_pic( Domain *dom )
+void domain_advance_one_time_step( Domain *dom )
 {
     eval_charge_density( dom );
     eval_potential_and_fields( dom );
@@ -492,6 +512,16 @@ void update_time_grid( Domain *dom )
 // Write domain to file
 //
 
+void domain_write_step_to_save( Domain *dom, Config *conf )
+{
+    int current_step = dom->time_grid.current_node;
+    int step_to_save = dom->time_grid.node_to_save;
+    if ( ( current_step % step_to_save ) == 0 ){	
+	domain_write( dom, conf );
+    }
+    return;
+}
+
 void domain_write( Domain *dom, Config *conf )
 {
     char *output_filename_prefix = conf->output_filename_prefix;
@@ -534,6 +564,10 @@ char *construct_output_filename( const char *output_filename_prefix,
 	     output_filename_prefix, current_time_step, output_filename_suffix);
     return filename;
 }
+
+//
+// Free domain
+//
 
 void domain_free( Domain *dom )
 {

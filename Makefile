@@ -21,6 +21,7 @@ LIBS=-lm -lgsl -lgslcblas -L./fishpack -lfishpack_dbl `pkg-config --libs glib-2.
 
 ### Sources and executable
 CSOURCES=$(wildcard *.c)
+CHEADERS=$(wildcard *.h)
 OBJECTS=$(CSOURCES:%.c=%.o)
 EXECUTABLE=main.out
 MAKE=make

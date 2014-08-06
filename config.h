@@ -9,6 +9,7 @@
 typedef struct {
     double total_time;
     double time_step_size;
+    double time_save_step;
     double grid_x_size;
     double grid_x_step;
     double grid_y_size;

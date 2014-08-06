@@ -23,7 +23,8 @@ typedef struct {
 } Domain;
 
 void domain_prepare( Domain *dom, Config *conf );
-void domain_run_pic( Domain *dom );
+void domain_run_pic( Domain *dom, Config *conf );
+void domain_write_step_to_save( Domain *dom, Config *conf );
 void domain_write( Domain *dom, Config *conf );
 void domain_free( Domain *dom );
 

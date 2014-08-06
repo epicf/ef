@@ -5,12 +5,13 @@
 #include <math.h>
 
 typedef struct {
-  double total_time, current_time;
-  double time_step_size;
-  int total_nodes, current_node;
+    double total_time, current_time;
+    double time_step_size;
+    double time_save_step;
+    int total_nodes, current_node, node_to_save;
 } Time_grid;
 
-Time_grid time_grid_init( double total_time, double time_step_size );
+Time_grid time_grid_init( double total_time, double time_step_size, double time_save_step );
 void time_grid_print( const Time_grid tg );
 void time_grid_write_to_file( const Time_grid *tg, FILE *f );
 
