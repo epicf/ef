@@ -23,7 +23,7 @@ LIBS=-lm -lgsl -lgslcblas -L./fishpack -lfishpack_dbl `pkg-config --libs glib-2.
 CSOURCES=$(wildcard *.c)
 CHEADERS=$(wildcard *.h)
 OBJECTS=$(CSOURCES:%.c=%.o)
-EXECUTABLE=main.out
+EXECUTABLE=epicf.out
 MAKE=make
 SUBDIRS=fishpack
 
@@ -32,7 +32,7 @@ all: $(EXECUTABLE)
 $(EXECUTABLE): $(OBJECTS) subdirs
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
 
-$(OBJECTS):%.o:%.c
+$(OBJECTS):%.o:%.c $(CHEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 .PHONY: subdirs $(SUBDIRS) clean cleansubdirs cleanall
