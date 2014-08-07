@@ -285,7 +285,7 @@ void check_and_exit_if_not( bool should_be, char *message )
 
 void config_print( const Config *conf )
 {
-    printf( "=== echo config file === " );
+    printf( "=== echo config file ===\n" );
     printf( "total_time = %f, time_step_size = %f, time_save_step = %f \n", 
 	    conf->total_time, conf->time_step_size, conf->time_save_step );
     printf( "grid_x_size = %f, grid_x_step = %f, grid_y_size = %f, grid_y_step = %f \n", 
