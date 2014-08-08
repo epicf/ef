@@ -34,6 +34,7 @@ double central_difference( double phi1, double phi2, double dx );
 void leap_frog( Domain *dom );
 void update_momentum( Domain *dom );
 void update_position( Domain *dom );
+Vec2d force_on_particle( Domain *dom, int particle_number );
 // Boundaries and generation
 void apply_domain_boundary_conditions( Domain *dom );
 bool out_of_bound( Domain *dom, Vec2d r );
@@ -205,7 +206,7 @@ void next_node_num_and_weight( const double x, const double grid_step,
 {
     double x_in_grid_units = x / grid_step;
     *next_node = ceil( x_in_grid_units );
-    *weight = *next_node - x_in_grid_units;
+    *weight = 1.0 - ( *next_node - x_in_grid_units );
     return;
 }
 
@@ -397,47 +398,56 @@ void update_momentum( Domain *dom )
     //   force[particle] = weight(particle, node) * force(node)
     // }
     double dt = dom->time_grid.time_step_size;
+    Vec2d force, dp;
+
+    for ( int i = 0; i < dom->num_of_particles; i++ ) {
+	force = force_on_particle( dom, i );
+	dp = vec2d_times_scalar( force, dt );
+	dom->particles[i].momentum = vec2d_add( dom->particles[i].momentum, dp );
+    }
+    return;
+}
+
+Vec2d force_on_particle( Domain *dom, int particle_number )
+{
     double dx = dom->spat_mesh.x_cell_size;
     double dy = dom->spat_mesh.y_cell_size;
     int tr_i, tr_j; // 'tr' = 'top_right'
     double tr_x_weight, tr_y_weight;  
-    Vec2d force, field_from_node;
-    
-    for ( int i = 0; i < dom->num_of_particles; i++ ) {
-	next_node_num_and_weight( vec2d_x( dom->particles[i].position ), dx,
-				  &tr_i, &tr_x_weight );
-	next_node_num_and_weight( vec2d_y( dom->particles[i].position ), dy,
-				  &tr_j, &tr_y_weight );
-	//
-	force = vec2d_zero();
-	field_from_node = vec2d_times_scalar(			
-	    dom->spat_mesh.electric_field[tr_i][tr_j],		
-	    tr_x_weight );
-	field_from_node = vec2d_times_scalar( field_from_node, tr_y_weight );
-	force = vec2d_add( force, field_from_node );
-	//
-	field_from_node = vec2d_times_scalar(		        
-	    dom->spat_mesh.electric_field[tr_i-1][tr_j],		
-	    1.0 - tr_x_weight );
-	field_from_node = vec2d_times_scalar( field_from_node, tr_y_weight );
-	force = vec2d_add( force, field_from_node );
-	//
-	field_from_node = vec2d_times_scalar(			
-	    dom->spat_mesh.electric_field[tr_i][tr_j - 1],	
-	    tr_x_weight );
-	field_from_node = vec2d_times_scalar( field_from_node, 1.0 - tr_y_weight );
-	force = vec2d_add( force, field_from_node );
-	//
-	field_from_node = vec2d_times_scalar(			
-	    dom->spat_mesh.electric_field[tr_i-1][tr_j-1],	
-	    1.0 - tr_x_weight );
-	field_from_node = vec2d_times_scalar( field_from_node, 1.0 - tr_y_weight );
-	force = vec2d_add( force, field_from_node );
-	//
-	force = vec2d_times_scalar( force, dt * dom->particles[i].charge );
-	dom->particles[i].momentum = vec2d_add( dom->particles[i].momentum, force );
-    }
-    return;
+    Vec2d field_from_node, total_field, force;
+    //
+    next_node_num_and_weight( vec2d_x( dom->particles[particle_number].position ), dx,
+			      &tr_i, &tr_x_weight );
+    next_node_num_and_weight( vec2d_y( dom->particles[particle_number].position ), dy,
+			      &tr_j, &tr_y_weight );
+    //
+    total_field = vec2d_zero();
+    field_from_node = vec2d_times_scalar(			
+	dom->spat_mesh.electric_field[tr_i][tr_j],		
+	tr_x_weight );
+    field_from_node = vec2d_times_scalar( field_from_node, tr_y_weight );
+    total_field = vec2d_add( total_field, field_from_node );
+    //
+    field_from_node = vec2d_times_scalar(		        
+	dom->spat_mesh.electric_field[tr_i-1][tr_j],		
+	1.0 - tr_x_weight );
+    field_from_node = vec2d_times_scalar( field_from_node, tr_y_weight );
+    total_field = vec2d_add( total_field, field_from_node );
+    //
+    field_from_node = vec2d_times_scalar(			
+	dom->spat_mesh.electric_field[tr_i][tr_j - 1],	
+	tr_x_weight );
+    field_from_node = vec2d_times_scalar( field_from_node, 1.0 - tr_y_weight );
+    total_field = vec2d_add( total_field, field_from_node );
+    //
+    field_from_node = vec2d_times_scalar(			
+	dom->spat_mesh.electric_field[tr_i-1][tr_j-1],	
+	1.0 - tr_x_weight );
+    field_from_node = vec2d_times_scalar( field_from_node, 1.0 - tr_y_weight );
+    total_field = vec2d_add( total_field, field_from_node );
+    //
+    force = vec2d_times_scalar( total_field, dom->particles[particle_number].charge );
+    return force;
 }
 
 void update_position( Domain *dom )
