@@ -5,6 +5,7 @@ void domain_time_grid_init( Domain *dom, Config *conf );
 void domain_spatial_mesh_init( Domain *dom, Config *conf );
 void domain_particles_init( Domain *dom, Config *conf );
 // Pic algorithm
+void domain_prepare_leap_frog( Domain *dom );
 void domain_advance_one_time_step( Domain *dom );
 void eval_charge_density( Domain *dom );
 void eval_potential_and_fields( Domain *dom );
@@ -32,8 +33,9 @@ double boundary_difference( double phi1, double phi2, double dx );
 double central_difference( double phi1, double phi2, double dx );
 // Push particles
 void leap_frog( Domain *dom );
-void update_momentum( Domain *dom );
-void update_position( Domain *dom );
+void shift_velocities_half_time_step_back( Domain *dom );
+void update_momentum( Domain *dom, double dt );
+void update_position( Domain *dom, double dt );
 Vec2d force_on_particle( Domain *dom, int particle_number );
 // Boundaries and generation
 void apply_domain_boundary_conditions( Domain *dom );
@@ -103,7 +105,9 @@ void domain_run_pic( Domain *dom, Config *conf )
     int total_time_iterations, current_node;
     total_time_iterations = dom->time_grid.total_nodes - 1;
     current_node = dom->time_grid.current_node;
-  
+    
+    domain_prepare_leap_frog( dom );
+
     for ( int i = current_node; i < total_time_iterations; i++ ){
 	domain_advance_one_time_step( dom );
 	domain_write_step_to_save( dom, conf );
@@ -112,16 +116,20 @@ void domain_run_pic( Domain *dom, Config *conf )
     return;
 }
 
-//
-// Pic algorithm
-//
+void domain_prepare_leap_frog( Domain *dom )
+{
+    eval_charge_density( dom );
+    eval_potential_and_fields( dom );    
+    shift_velocities_half_time_step_back( dom );
+    return;
+}
 
 void domain_advance_one_time_step( Domain *dom )
 {
-    eval_charge_density( dom );
-    eval_potential_and_fields( dom );
     push_particles( dom );
     apply_domain_constrains( dom );
+    eval_charge_density( dom );
+    eval_potential_and_fields( dom );
     update_time_grid( dom );
     return;
 }
@@ -385,19 +393,28 @@ double boundary_difference( double phi1, double phi2, double dx )
 
 void leap_frog( Domain *dom )
 {  
-    update_momentum( dom );
-    update_position( dom );
+    double dt = dom->time_grid.time_step_size;
+
+    update_momentum( dom, dt );
+    update_position( dom, dt );
     return;
 }
 
-void update_momentum( Domain *dom )
+void shift_velocities_half_time_step_back( Domain *dom )
+{
+    double half_dt = dom->time_grid.time_step_size / 2;
+
+    update_momentum( dom, -half_dt );
+    return;    
+}
+
+void update_momentum( Domain *dom, double dt )
 {
     // Rewrite:
     // forall particles {
     //   find nonzero weights and corresponding nodes
     //   force[particle] = weight(particle, node) * force(node)
     // }
-    double dt = dom->time_grid.time_step_size;
     Vec2d force, dp;
 
     for ( int i = 0; i < dom->num_of_particles; i++ ) {
@@ -450,10 +467,9 @@ Vec2d force_on_particle( Domain *dom, int particle_number )
     return force;
 }
 
-void update_position( Domain *dom )
+void update_position( Domain *dom, double dt )
 {
     Vec2d pos_shift;
-    double dt = dom->time_grid.time_step_size;
 
     for ( int i = 0; i < dom->num_of_particles; i++ ) {
 	pos_shift = vec2d_times_scalar( dom->particles[i].momentum, dt/dom->particles[i].mass );
