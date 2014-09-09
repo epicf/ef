@@ -25,9 +25,8 @@ int main(int argc, char *argv[])
 
 void pic_simulation( Config *conf )
 {
-  Domain dom;
+  Domain dom( conf );
 
-  domain_prepare( &dom, conf );
   domain_write( &dom, conf );
   domain_run_pic( &dom, conf );
   domain_free( &dom );

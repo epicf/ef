@@ -13,16 +13,19 @@
 #include "particles.h"
 #include "vec2d.h"
 
-#define M_PI 3.14159265358979323846264338327
+//#define M_PI 3.14159265358979323846264338327
 
-typedef struct {
+class Domain {
+  private:
+    //Domain() {};
+  public:
     Time_grid time_grid;
     Spatial_mesh spat_mesh;
     int num_of_particles;
     Particle *particles;
-} Domain;
+    Domain( Config *conf );
+};
 
-void domain_prepare( Domain *dom, Config *conf );
 void domain_run_pic( Domain *dom, Config *conf );
 void domain_write_step_to_save( Domain *dom, Config *conf );
 void domain_write( Domain *dom, Config *conf );

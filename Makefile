@@ -3,9 +3,9 @@ SHELL:=/bin/bash -O extglob
 
 ##### Compilers
 ##### GNU
-CC = gcc
+CC = g++
 ## Detect errors:
-CFLAGS = -std=c99 -O2 -Wall -fbounds-check -Warray-bounds -fsanitize=address `pkg-config --cflags glib-2.0`
+CFLAGS = -O2 -std=c++11 -Wall -fbounds-check -Warray-bounds -fsanitize=address `pkg-config --cflags glib-2.0`
 LDFLAGS = -fsanitize=address
 ### Usual flags
 #CFLAGS = -std=c99 -O2
@@ -20,9 +20,9 @@ LDFLAGS = -fsanitize=address
 LIBS=-lm -lgsl -lgslcblas -L./fishpack -lfishpack_dbl `pkg-config --libs glib-2.0`
 
 ### Sources and executable
-CSOURCES=$(wildcard *.c)
-CHEADERS=$(wildcard *.h)
-OBJECTS=$(CSOURCES:%.c=%.o)
+CPPSOURCES=$(wildcard *.cpp)
+CPPHEADERS=$(wildcard *.h)
+OBJECTS=$(CPPSOURCES:%.cpp=%.o)
 EXECUTABLE=epicf.out
 MAKE=make
 SUBDIRS=fishpack
@@ -32,7 +32,7 @@ all: $(EXECUTABLE)
 $(EXECUTABLE): $(OBJECTS) subdirs
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
 
-$(OBJECTS):%.o:%.c $(CHEADERS)
+$(OBJECTS):%.o:%.cpp $(CHEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 .PHONY: subdirs $(SUBDIRS) clean cleansubdirs cleanall

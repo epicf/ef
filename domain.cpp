@@ -18,9 +18,9 @@ void weight_particles_charge_to_mesh( Domain *dom );
 void next_node_num_and_weight( const double x, const double grid_step, int *next_node, double *weight );
 // Eval fields from charges
 void solve_poisson_eqn( Domain *dom );
-extern void hwscrt_( double *, double *, int *, int *, double *, double *,
-		    double *, double *, int *, int *, double *, double *,
-		    double *, double *, int *, double *, int *, double * );
+extern "C" void hwscrt_( double *, double *, int *, int *, double *, double *,
+			 double *, double *, int *, int *, double *, double *,
+			 double *, double *, int *, double *, int *, double * );
 void rowmajor_to_colmajor( double **c, double *fortran, int dim1, int dim2 );
 void colmajor_to_rowmajor( double *fortran, double **c, int dim1, int dim2 );		  
 void hwscrt_init_f( double left, double top, 
@@ -57,21 +57,13 @@ void domain_print_particles( Domain *dom );
 // Domain initialization
 //
 
-void domain_prepare( Domain *dom, Config *conf )
+Domain::Domain( Config *conf ) :
+  time_grid( Time_grid( conf ) )
 {
     config_check_correctness( conf );
-    domain_time_grid_init( dom, conf );    
-    domain_spatial_mesh_init( dom, conf );
-    domain_particles_init( dom, conf );
-    return;
-}
-
-void domain_time_grid_init( Domain *dom, Config *conf )
-{
-    double total_time = conf->total_time;
-    double step_size = conf->time_step_size;
-    double save_time = conf->time_save_step;
-    dom->time_grid = time_grid_init( total_time, step_size, save_time );
+    //
+    domain_spatial_mesh_init( this, conf );
+    domain_particles_init( this, conf );
     return;
 }
 
@@ -567,7 +559,7 @@ void domain_write( Domain *dom, Config *conf )
     }
     printf ("Writing step %d to file %s\n", dom->time_grid.current_node, file_name_to_write);
 	    
-    time_grid_write_to_file( &(dom->time_grid), f );
+    dom->time_grid.write_to_file( f );
     spatial_mesh_write_to_file( &(dom->spat_mesh), f );
     particles_write_to_file( dom->particles, dom->num_of_particles, f );
 
