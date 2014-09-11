@@ -9,9 +9,6 @@ void config_read_boundary_conditions_part( GKeyFile *keyfile, Config *conf, GErr
 void config_read_output_filename_part( GKeyFile *keyfile, Config *conf, GError *error );
 // Check config
 void check_and_exit_if_not( bool should_be, char *message );
-void total_time_gt_zero( Config *conf );
-void time_step_size_gt_zero_le_total_time( Config *conf );
-void time_save_step_ge_time_step_size( Config *conf );
 void grid_x_size_gt_zero( Config *conf );
 void grid_x_step_gt_zero_le_grid_x_size( Config *conf );
 void grid_y_size_gt_zero( Config *conf );
@@ -152,9 +149,6 @@ void exit_if_error( GError *error )
 
 void config_check_correctness( Config *conf )
 {
-    total_time_gt_zero( conf );
-    time_step_size_gt_zero_le_total_time( conf );
-    time_save_step_ge_time_step_size( conf );
     grid_x_size_gt_zero( conf );
     grid_x_step_gt_zero_le_grid_x_size( conf );
     grid_y_size_gt_zero( conf );
@@ -169,27 +163,6 @@ void config_check_correctness( Config *conf )
     particle_source_temperature_gt_zero( conf );
     particle_source_mass_gt_zero( conf );
 }
-
-void total_time_gt_zero( Config *conf )
-{
-    check_and_exit_if_not( conf->total_time >= 0,
-			   "total_time < 0" );
-}
-
-void time_step_size_gt_zero_le_total_time( Config *conf )
-{
-    check_and_exit_if_not( conf->time_step_size > 0 && conf->time_step_size <= conf->total_time,
-			   "time_step_size <= 0 or time_step_size > total_time" );
-    return;
-}
-
-void time_save_step_ge_time_step_size( Config *conf )
-{
-    check_and_exit_if_not( conf->time_save_step >= conf->time_step_size,
-			   "time_save_step < time_step_size" );
-    return;
-}
-
 
 void grid_x_size_gt_zero( Config *conf )
 {
