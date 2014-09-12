@@ -9,10 +9,6 @@ void config_read_boundary_conditions_part( GKeyFile *keyfile, Config *conf, GErr
 void config_read_output_filename_part( GKeyFile *keyfile, Config *conf, GError *error );
 // Check config
 void check_and_exit_if_not( bool should_be, char *message );
-void grid_x_size_gt_zero( Config *conf );
-void grid_x_step_gt_zero_le_grid_x_size( Config *conf );
-void grid_y_size_gt_zero( Config *conf );
-void grid_y_step_gt_zero_le_grid_y_size( Config *conf );
 void particle_source_number_of_particles_gt_zero( Config *conf );
 void particle_source_x_left_ge_zero( Config *conf );
 void particle_source_x_left_le_particle_source_x_right( Config *conf );
@@ -149,10 +145,6 @@ void exit_if_error( GError *error )
 
 void config_check_correctness( Config *conf )
 {
-    grid_x_size_gt_zero( conf );
-    grid_x_step_gt_zero_le_grid_x_size( conf );
-    grid_y_size_gt_zero( conf );
-    grid_y_step_gt_zero_le_grid_y_size( conf );
     particle_source_number_of_particles_gt_zero( conf );
     particle_source_x_left_ge_zero( conf );
     particle_source_x_left_le_particle_source_x_right( conf );
@@ -162,30 +154,6 @@ void config_check_correctness( Config *conf )
     particle_source_y_top_le_grid_y_size( conf );
     particle_source_temperature_gt_zero( conf );
     particle_source_mass_gt_zero( conf );
-}
-
-void grid_x_size_gt_zero( Config *conf )
-{
-    check_and_exit_if_not( conf->grid_x_size > 0,
-			   "grid_x_size < 0" );    
-}
-
-void grid_x_step_gt_zero_le_grid_x_size( Config *conf )
-{
-    check_and_exit_if_not( conf->grid_x_step > 0 && conf->grid_x_step <= conf->grid_x_size,
-			   "grid_x_step < 0 or grid_x_step >= grid_x_size" );    
-}
-
-void grid_y_size_gt_zero( Config *conf )
-{
-    check_and_exit_if_not( conf->grid_y_size > 0,
-			   "grid_y_size < 0" );    
-}
-
-void grid_y_step_gt_zero_le_grid_y_size( Config *conf )
-{
-    check_and_exit_if_not( conf->grid_y_step > 0 && conf->grid_y_step <= conf->grid_y_size,
-			   "grid_y_step < 0 or grid_y_step >= grid_y_size" );    
 }
 
 void particle_source_number_of_particles_gt_zero( Config *conf )

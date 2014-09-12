@@ -1,8 +1,6 @@
 #include "domain.h"
 
 // Domain initialization
-void domain_time_grid_init( Domain *dom, Config *conf );
-void domain_spatial_mesh_init( Domain *dom, Config *conf );
 void domain_particles_init( Domain *dom, Config *conf );
 // Pic algorithm
 void domain_prepare_leap_frog( Domain *dom );
@@ -58,27 +56,12 @@ void domain_print_particles( Domain *dom );
 //
 
 Domain::Domain( Config *conf ) :
-  time_grid( Time_grid( conf ) )
+  time_grid( Time_grid( conf ) ),
+  spat_mesh( Spatial_mesh( conf ) )
 {
     config_check_correctness( conf );
     //
-    domain_spatial_mesh_init( this, conf );
     domain_particles_init( this, conf );
-    return;
-}
-
-void domain_spatial_mesh_init( Domain *dom, Config *conf )
-{
-    double x_size = conf->grid_x_size;
-    double x_step = conf->grid_x_step;
-    double y_size = conf->grid_y_size;
-    double y_step = conf->grid_y_step;
-    double phi_left = conf->boundary_phi_left;
-    double phi_right = conf->boundary_phi_right;
-    double phi_top = conf->boundary_phi_top;
-    double phi_bottom = conf->boundary_phi_bottom;
-    dom->spat_mesh = spatial_mesh_init( x_size, x_step, y_size, y_step );
-    spatial_mesh_set_boundary_conditions( &(dom->spat_mesh), phi_left, phi_right, phi_top, phi_bottom );
     return;
 }
 
@@ -560,7 +543,7 @@ void domain_write( Domain *dom, Config *conf )
     printf ("Writing step %d to file %s\n", dom->time_grid.current_node, file_name_to_write);
 	    
     dom->time_grid.write_to_file( f );
-    spatial_mesh_write_to_file( &(dom->spat_mesh), f );
+    dom->spat_mesh.write_to_file( f );
     particles_write_to_file( dom->particles, dom->num_of_particles, f );
 
     free( file_name_to_write );
