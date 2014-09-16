@@ -1,21 +1,8 @@
 #include "domain.h"
 
-// Domain initialization
-void domain_particles_init( Domain *dom, Config *conf );
-// Pic algorithm
-void domain_prepare_leap_frog( Domain *dom );
-void domain_advance_one_time_step( Domain *dom );
-void eval_charge_density( Domain *dom );
-void eval_potential_and_fields( Domain *dom );
-void push_particles( Domain *dom );
-void apply_domain_constrains( Domain *dom );
-void update_time_grid( Domain *dom );
 // Eval charge density on grid
-void clear_old_density_values( Domain *dom );
-void weight_particles_charge_to_mesh( Domain *dom );
 void next_node_num_and_weight( const double x, const double grid_step, int *next_node, double *weight );
 // Eval fields from charges
-void solve_poisson_eqn( Domain *dom );
 extern "C" void hwscrt_( double *, double *, int *, int *, double *, double *,
 			 double *, double *, int *, int *, double *, double *,
 			 double *, double *, int *, double *, int *, double * );
@@ -26,30 +13,12 @@ void hwscrt_init_f( double left, double top,
 		    double **charge_density, double **hwscrt_f);
 double **poisson_init_rhs( Spatial_mesh *spm );
 void poisson_free_rhs( double **rhs, int nrow, int ncol );
-void eval_fields_from_potential( Domain *dom );
 double boundary_difference( double phi1, double phi2, double dx );
 double central_difference( double phi1, double phi2, double dx );
-// Push particles
-void leap_frog( Domain *dom );
-void shift_velocities_half_time_step_back( Domain *dom );
-void update_momentum( Domain *dom, double dt );
-void update_position( Domain *dom, double dt );
-Vec2d force_on_particle( Domain *dom, int particle_number );
-// Boundaries and generation
-void apply_domain_boundary_conditions( Domain *dom );
-bool out_of_bound( Domain *dom, Vec2d r );
-void remove_particle( int *i, Domain *dom );
-void proceed_to_next_particle( int *i, Domain *dom );
 // Domain print
-char *construct_output_filename( const char *output_filename_prefix, 
-				 const int current_time_step,
-				 const char *output_filename_suffix );
-// Various functions
-void domain_print_particles( Domain *dom );
-
-
-
-
+std::string construct_output_filename( const std::string output_filename_prefix, 
+				       const int current_time_step,
+				       const std::string output_filename_suffix );
 
 //
 // Domain initialization
@@ -61,13 +30,13 @@ Domain::Domain( Config *conf ) :
 {
     config_check_correctness( conf );
     //
-    domain_particles_init( this, conf );
+    this->particles_init( conf );
     return;
 }
 
-void domain_particles_init( Domain *dom, Config *conf )
+void Domain::particles_init( Config *conf )
 {
-    particles_test_init( &(dom->particles), &(dom->num_of_particles), conf );
+    particles_test_init( &(this->particles), &(this->num_of_particles), conf );
     return;
 }
 
@@ -75,63 +44,63 @@ void domain_particles_init( Domain *dom, Config *conf )
 // Pic simulation 
 //
 
-void domain_run_pic( Domain *dom, Config *conf )
+void Domain::run_pic( Config *conf )
 {
     int total_time_iterations, current_node;
-    total_time_iterations = dom->time_grid.total_nodes - 1;
-    current_node = dom->time_grid.current_node;
+    total_time_iterations = this->time_grid.total_nodes - 1;
+    current_node = this->time_grid.current_node;
     
-    domain_prepare_leap_frog( dom );
+    this->prepare_leap_frog();
 
     for ( int i = current_node; i < total_time_iterations; i++ ){
-	domain_advance_one_time_step( dom );
-	domain_write_step_to_save( dom, conf );
+	this->advance_one_time_step();
+	this->write_step_to_save( conf );
     }
 
     return;
 }
 
-void domain_prepare_leap_frog( Domain *dom )
+void Domain::prepare_leap_frog()
 {
-    eval_charge_density( dom );
-    eval_potential_and_fields( dom );    
-    shift_velocities_half_time_step_back( dom );
+    this->eval_charge_density();
+    this->eval_potential_and_fields();
+    this->shift_velocities_half_time_step_back();
     return;
 }
 
-void domain_advance_one_time_step( Domain *dom )
+void Domain::advance_one_time_step()
 {
-    push_particles( dom );
-    apply_domain_constrains( dom );
-    eval_charge_density( dom );
-    eval_potential_and_fields( dom );
-    update_time_grid( dom );
+    this->push_particles();
+    this->apply_domain_constrains();
+    this->eval_charge_density();
+    this->eval_potential_and_fields();
+    this->update_time_grid();
     return;
 }
 
-void eval_charge_density( Domain *dom )
+void Domain::eval_charge_density()
 {
-    clear_old_density_values( dom );
-    weight_particles_charge_to_mesh( dom );
+    this->clear_old_density_values();
+    this->weight_particles_charge_to_mesh();
     return;
 }
 
-void eval_potential_and_fields( Domain *dom )
+void Domain::eval_potential_and_fields()
 {
-    solve_poisson_eqn( dom );
-    eval_fields_from_potential( dom );
+    this->solve_poisson_eqn();
+    this->eval_fields_from_potential();
     return;
 }
 
-void push_particles( Domain *dom )
+void Domain::push_particles()
 {
-    leap_frog( dom );
+    this->leap_frog();
     return;
 }
 
-void apply_domain_constrains( Domain *dom )
+void Domain::apply_domain_constrains( )
 {
-    apply_domain_boundary_conditions( dom );
+    this->apply_domain_boundary_conditions( );
     //generate_new_particles();
     return;
 }
@@ -140,46 +109,45 @@ void apply_domain_constrains( Domain *dom )
 // Eval charge density
 //
 
-void clear_old_density_values( Domain *dom )
+void Domain::clear_old_density_values()
 {
-    Spatial_mesh *spm = &( dom->spat_mesh );
-    int nx = spm->x_n_nodes;
-    int ny = spm->y_n_nodes;    
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;    
     
     for ( int i = 0; i < nx; i++ ) {
 	for ( int j = 0; j < ny; j++ ) {
-	    spm->charge_density[i][j] = 0;
+	    spat_mesh.charge_density[i][j] = 0;
 	}
     }
 }
 
 
-void weight_particles_charge_to_mesh( Domain *dom )
+void Domain::weight_particles_charge_to_mesh()
 {
     // Rewrite:
     // forall particles {
     //   find nonzero weights and corresponding nodes
     //   charge[node] = weight(particle, node) * particle.charge
     // }
-    double dx = dom->spat_mesh.x_cell_size;
-    double dy = dom->spat_mesh.y_cell_size;
+    double dx = spat_mesh.x_cell_size;
+    double dy = spat_mesh.y_cell_size;
     int tr_i, tr_j; // 'tr' = 'top_right'
     double tr_x_weight, tr_y_weight;
 
-    for ( int i = 0; i < dom->num_of_particles; i++ ) {
-	next_node_num_and_weight( vec2d_x( dom->particles[i].position ), dx, 
+    for ( int i = 0; i < num_of_particles; i++ ) {
+	next_node_num_and_weight( vec2d_x( particles[i].position ), dx, 
 				  &tr_i, &tr_x_weight );
-	next_node_num_and_weight( vec2d_y( dom->particles[i].position ), dy,
+	next_node_num_and_weight( vec2d_y( particles[i].position ), dy,
 				  &tr_j, &tr_y_weight );
-	dom->spat_mesh.charge_density[tr_i][tr_j] +=
-	    tr_x_weight * tr_y_weight * dom->particles[i].charge;
-	dom->spat_mesh.charge_density[tr_i-1][tr_j] +=
-	    ( 1.0 - tr_x_weight ) * tr_y_weight * dom->particles[i].charge;
-	dom->spat_mesh.charge_density[tr_i][tr_j-1] +=
-	    tr_x_weight * ( 1.0 - tr_y_weight ) * dom->particles[i].charge;
-	dom->spat_mesh.charge_density[tr_i-1][tr_j-1] +=
+	spat_mesh.charge_density[tr_i][tr_j] +=
+	    tr_x_weight * tr_y_weight * particles[i].charge;
+	spat_mesh.charge_density[tr_i-1][tr_j] +=
+	    ( 1.0 - tr_x_weight ) * tr_y_weight * particles[i].charge;
+	spat_mesh.charge_density[tr_i][tr_j-1] +=
+	    tr_x_weight * ( 1.0 - tr_y_weight ) * particles[i].charge;
+	spat_mesh.charge_density[tr_i-1][tr_j-1] +=
 	    ( 1.0 - tr_x_weight ) * ( 1.0 - tr_y_weight )
-	    * dom->particles[i].charge;
+	    * particles[i].charge;
     }
     return;
 }
@@ -197,17 +165,17 @@ void next_node_num_and_weight( const double x, const double grid_step,
 // Eval potential and fields
 //
 
-void solve_poisson_eqn( Domain *dom )
+void Domain::solve_poisson_eqn()
 {
     double a = 0.0;
-    double b = dom->spat_mesh.x_volume_size;
-    int nx = dom->spat_mesh.x_n_nodes;
+    double b = spat_mesh.x_volume_size;
+    int nx = spat_mesh.x_n_nodes;
     int M = nx-1;
     int MBDCND = 1; // 1st kind boundary conditions
     //
     double c = 0.0;
-    double d = dom->spat_mesh.y_volume_size;
-    int ny = dom->spat_mesh.y_n_nodes;
+    double d = spat_mesh.y_volume_size;
+    int ny = spat_mesh.y_n_nodes;
     int N = ny-1;
     int NBDCND = 1; // 1st kind boundary conditions
     //
@@ -227,7 +195,7 @@ void solve_poisson_eqn( Domain *dom )
     double pertrb;
     int ierror;
 
-    f_rhs = poisson_init_rhs( &( dom->spat_mesh ) );
+    f_rhs = poisson_init_rhs( &( spat_mesh ) );
     rowmajor_to_colmajor( f_rhs, hwscrt_f, nx, ny );
     hwscrt_( 
 	&a, &b, &M, &MBDCND, BDA, BDB,
@@ -238,7 +206,7 @@ void solve_poisson_eqn( Domain *dom )
 	printf( "ierror = %d \n", ierror );
     	exit( EXIT_FAILURE );
     }
-    colmajor_to_rowmajor( hwscrt_f, dom->spat_mesh.potential, nx, ny );
+    colmajor_to_rowmajor( hwscrt_f, spat_mesh.potential, nx, ny );
     poisson_free_rhs( f_rhs, nx, ny );
     return;
 }
@@ -310,13 +278,13 @@ void colmajor_to_rowmajor( double *fortran, double **c, int dim1, int dim2 )
     return;
 }
 
-void eval_fields_from_potential( Domain *dom )
+void Domain::eval_fields_from_potential()
 {
-    int nx = dom->spat_mesh.x_n_nodes;
-    int ny = dom->spat_mesh.y_n_nodes;
-    double dx = dom->spat_mesh.x_cell_size;
-    double dy = dom->spat_mesh.y_cell_size;
-    double **phi = dom->spat_mesh.potential;
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    double dx = spat_mesh.x_cell_size;
+    double dy = spat_mesh.y_cell_size;
+    double **phi = spat_mesh.potential;
     double ex[nx][ny], ey[nx][ny];
 
     for ( int j = 0; j < ny; j++ ) {
@@ -345,7 +313,7 @@ void eval_fields_from_potential( Domain *dom )
 
     for ( int i = 0; i < nx; i++ ) {
 	for ( int j = 0; j < ny; j++ ) {
-	    dom->spat_mesh.electric_field[i][j] = vec2d_init( ex[i][j], ey[i][j] );
+	    spat_mesh.electric_field[i][j] = vec2d_init( ex[i][j], ey[i][j] );
 	}
     }
 
@@ -366,24 +334,24 @@ double boundary_difference( double phi1, double phi2, double dx )
 // Push particles
 //
 
-void leap_frog( Domain *dom )
+void Domain::leap_frog()
 {  
-    double dt = dom->time_grid.time_step_size;
+    double dt = time_grid.time_step_size;
 
-    update_momentum( dom, dt );
-    update_position( dom, dt );
+    this->update_momentum( dt );
+    this->update_position( dt );
     return;
 }
 
-void shift_velocities_half_time_step_back( Domain *dom )
+void Domain::shift_velocities_half_time_step_back()
 {
-    double half_dt = dom->time_grid.time_step_size / 2;
+    double half_dt = time_grid.time_step_size / 2;
 
-    update_momentum( dom, -half_dt );
+    this->update_momentum( -half_dt );
     return;    
 }
 
-void update_momentum( Domain *dom, double dt )
+void Domain::update_momentum( double dt )
 {
     // Rewrite:
     // forall particles {
@@ -392,63 +360,63 @@ void update_momentum( Domain *dom, double dt )
     // }
     Vec2d force, dp;
 
-    for ( int i = 0; i < dom->num_of_particles; i++ ) {
-	force = force_on_particle( dom, i );
+    for ( int i = 0; i < num_of_particles; i++ ) {
+	force = this->force_on_particle( i );
 	dp = vec2d_times_scalar( force, dt );
-	dom->particles[i].momentum = vec2d_add( dom->particles[i].momentum, dp );
+	particles[i].momentum = vec2d_add( particles[i].momentum, dp );
     }
     return;
 }
 
-Vec2d force_on_particle( Domain *dom, int particle_number )
+Vec2d Domain::force_on_particle( int particle_number )
 {
-    double dx = dom->spat_mesh.x_cell_size;
-    double dy = dom->spat_mesh.y_cell_size;
+    double dx = spat_mesh.x_cell_size;
+    double dy = spat_mesh.y_cell_size;
     int tr_i, tr_j; // 'tr' = 'top_right'
     double tr_x_weight, tr_y_weight;  
     Vec2d field_from_node, total_field, force;
     //
-    next_node_num_and_weight( vec2d_x( dom->particles[particle_number].position ), dx,
+    next_node_num_and_weight( vec2d_x( particles[particle_number].position ), dx,
 			      &tr_i, &tr_x_weight );
-    next_node_num_and_weight( vec2d_y( dom->particles[particle_number].position ), dy,
+    next_node_num_and_weight( vec2d_y( particles[particle_number].position ), dy,
 			      &tr_j, &tr_y_weight );
     //
     total_field = vec2d_zero();
     field_from_node = vec2d_times_scalar(			
-	dom->spat_mesh.electric_field[tr_i][tr_j],		
+	spat_mesh.electric_field[tr_i][tr_j],		
 	tr_x_weight );
     field_from_node = vec2d_times_scalar( field_from_node, tr_y_weight );
     total_field = vec2d_add( total_field, field_from_node );
     //
     field_from_node = vec2d_times_scalar(		        
-	dom->spat_mesh.electric_field[tr_i-1][tr_j],		
+	spat_mesh.electric_field[tr_i-1][tr_j],		
 	1.0 - tr_x_weight );
     field_from_node = vec2d_times_scalar( field_from_node, tr_y_weight );
     total_field = vec2d_add( total_field, field_from_node );
     //
     field_from_node = vec2d_times_scalar(			
-	dom->spat_mesh.electric_field[tr_i][tr_j - 1],	
+	spat_mesh.electric_field[tr_i][tr_j - 1],	
 	tr_x_weight );
     field_from_node = vec2d_times_scalar( field_from_node, 1.0 - tr_y_weight );
     total_field = vec2d_add( total_field, field_from_node );
     //
     field_from_node = vec2d_times_scalar(			
-	dom->spat_mesh.electric_field[tr_i-1][tr_j-1],	
+	spat_mesh.electric_field[tr_i-1][tr_j-1],	
 	1.0 - tr_x_weight );
     field_from_node = vec2d_times_scalar( field_from_node, 1.0 - tr_y_weight );
     total_field = vec2d_add( total_field, field_from_node );
     //
-    force = vec2d_times_scalar( total_field, dom->particles[particle_number].charge );
+    force = vec2d_times_scalar( total_field, particles[particle_number].charge );
     return force;
 }
 
-void update_position( Domain *dom, double dt )
+void Domain::update_position( double dt )
 {
     Vec2d pos_shift;
 
-    for ( int i = 0; i < dom->num_of_particles; i++ ) {
-	pos_shift = vec2d_times_scalar( dom->particles[i].momentum, dt/dom->particles[i].mass );
-	dom->particles[i].position = vec2d_add( dom->particles[i].position, pos_shift );
+    for ( int i = 0; i < num_of_particles; i++ ) {
+	pos_shift = vec2d_times_scalar( particles[i].momentum, dt/particles[i].mass );
+	particles[i].position = vec2d_add( particles[i].position, pos_shift );
     }
     return;
 }
@@ -458,40 +426,40 @@ void update_position( Domain *dom, double dt )
 // Apply domain constrains
 //
 
-void apply_domain_boundary_conditions( Domain *dom )
+void Domain::apply_domain_boundary_conditions()
 {
     int i = 0;
   
-    while ( i < dom->num_of_particles ) {
-	if ( out_of_bound( dom, dom->particles[i].position ) ) {
-	    remove_particle( &i, dom );
+    while ( i < num_of_particles ) {
+	if ( out_of_bound( particles[i].position ) ) {
+	    this->remove_particle( &i );
 	} else {
-	    proceed_to_next_particle( &i, dom );
+	    this->proceed_to_next_particle( &i );
 	}
     }  
     return;
 }
 
-bool out_of_bound( Domain *dom, Vec2d r )
+bool Domain::out_of_bound( Vec2d r )
 {
     double x = vec2d_x( r );
     double y = vec2d_y( r );
     bool out;
     
     out = 
-	( x >= dom->spat_mesh.x_volume_size ) || ( x <= 0 ) ||
-	( y >= dom->spat_mesh.y_volume_size ) || ( y <= 0 ) ;
+	( x >= spat_mesh.x_volume_size ) || ( x <= 0 ) ||
+	( y >= spat_mesh.y_volume_size ) || ( y <= 0 ) ;
     return out;
 }
 
-void remove_particle( int *i, Domain *dom )
+void Domain::remove_particle( int *i )
 {
-    dom->particles[ *i ] = dom->particles[ dom->num_of_particles - 1 ];
-    dom->num_of_particles--;
+    particles[ *i ] = particles[ num_of_particles - 1 ];
+    num_of_particles--;
     return;
 }
 
-void proceed_to_next_particle( int *i, Domain *dom )
+void Domain::proceed_to_next_particle( int *i )
 {
     (*i)++;	    
     return;
@@ -501,10 +469,10 @@ void proceed_to_next_particle( int *i, Domain *dom )
 // Update time grid
 //
 
-void update_time_grid( Domain *dom )
+void Domain::update_time_grid()
 {
-    dom->time_grid.current_node++;
-    dom->time_grid.current_time += dom->time_grid.time_step_size;
+    time_grid.current_node++;
+    time_grid.current_time += time_grid.time_step_size;
     return;
 }
 
@@ -513,25 +481,25 @@ void update_time_grid( Domain *dom )
 // Write domain to file
 //
 
-void domain_write_step_to_save( Domain *dom, Config *conf )
+void Domain::write_step_to_save( Config *conf )
 {
-    int current_step = dom->time_grid.current_node;
-    int step_to_save = dom->time_grid.node_to_save;
+    int current_step = time_grid.current_node;
+    int step_to_save = time_grid.node_to_save;
     if ( ( current_step % step_to_save ) == 0 ){	
-	domain_write( dom, conf );
+	this->write( conf );
     }
     return;
 }
 
-void domain_write( Domain *dom, Config *conf )
+void Domain::write( Config *conf )
 {
     char *output_filename_prefix = conf->output_filename_prefix;
     char *output_filename_suffix = conf->output_filename_suffix;
-    char *file_name_to_write;
+    const char *file_name_to_write;
     
     file_name_to_write = construct_output_filename( output_filename_prefix, 
-						    dom->time_grid.current_node,
-						    output_filename_suffix  );
+						    time_grid.current_node,
+						    output_filename_suffix  ).c_str();
 			           
     FILE *f = fopen(file_name_to_write, "w");
     if (f == NULL) {
@@ -540,29 +508,22 @@ void domain_write( Domain *dom, Config *conf )
 	printf( "Make sure the directory you want to save to exists.\n" );
 	exit( EXIT_FAILURE );
     }
-    printf ("Writing step %d to file %s\n", dom->time_grid.current_node, file_name_to_write);
+    printf ("Writing step %d to file %s\n", time_grid.current_node, file_name_to_write);
 	    
-    dom->time_grid.write_to_file( f );
-    dom->spat_mesh.write_to_file( f );
-    particles_write_to_file( dom->particles, dom->num_of_particles, f );
+    time_grid.write_to_file( f );
+    spat_mesh.write_to_file( f );
+    particles_write_to_file( particles, num_of_particles, f );
 
-    free( file_name_to_write );
     fclose(f);
     return;
 }
 
-char *construct_output_filename( const char *output_filename_prefix, 
-				 const int current_time_step,
-				 const char *output_filename_suffix )
+std::string construct_output_filename( const std::string output_filename_prefix, 
+				       const int current_time_step,
+				       const std::string output_filename_suffix )
 {    
-    int prefix_len = strlen(output_filename_prefix);
-    int suffix_len = strlen(output_filename_suffix);
-    int number_len = ((CHAR_BIT * sizeof(int) - 1) / 3 + 2); // don't know how this works
-    int ENOUGH = prefix_len + number_len + suffix_len;
-    char *filename;
-    filename = (char *) malloc( ENOUGH * sizeof(char) );
-    snprintf(filename, ENOUGH, "%s%.4d%s", 
-	     output_filename_prefix, current_time_step, output_filename_suffix);
+    std::string filename;
+    filename = output_filename_prefix + std::to_string( current_time_step ) + output_filename_suffix;
     return filename;
 }
 
@@ -570,7 +531,7 @@ char *construct_output_filename( const char *output_filename_prefix,
 // Free domain
 //
 
-void domain_free( Domain *dom )
+Domain::~Domain()
 {
     printf( "TODO: free domain.\n" );
     return;
@@ -581,15 +542,15 @@ void domain_free( Domain *dom )
 // Various functions
 //
 
-void domain_print_particles( Domain *dom )
+void Domain::print_particles() 
 {
-    for ( int i = 0; i < dom->num_of_particles; i++ ) {
+    for ( int i = 0; i < num_of_particles; i++ ) {
     	printf( "%d: (%.2f,%.2f), (%.2f,%.2f) \n", 
 		i, 
-		vec2d_x(dom->particles[i].position),
-		vec2d_y(dom->particles[i].position),
-		vec2d_x(dom->particles[i].momentum),
-		vec2d_y(dom->particles[i].momentum));
+		vec2d_x( particles[i].position ),
+		vec2d_y( particles[i].position ),
+		vec2d_x( particles[i].momentum ),
+		vec2d_y( particles[i].momentum ));
     }
     return;
 }

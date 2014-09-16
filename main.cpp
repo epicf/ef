@@ -26,10 +26,11 @@ int main(int argc, char *argv[])
 void pic_simulation( Config *conf )
 {
   Domain dom( conf );
-
-  domain_write( &dom, conf );
-  domain_run_pic( &dom, conf );
-  domain_free( &dom );
+  
+  // save domain state just after initialisation
+  dom.write( conf );
+  // run simulation
+  dom.run_pic( conf );
 
   return;
 }
