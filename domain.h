@@ -10,6 +10,7 @@
 #include "config.h"
 #include "time_grid.h"
 #include "spatial_mesh.h"
+#include "field_solver.h"
 #include "particles.h"
 #include "vec2d.h"
 
@@ -21,6 +22,7 @@ class Domain {
   public:
     Time_grid time_grid;
     Spatial_mesh spat_mesh;
+    Field_solver field_solver;
     int num_of_particles;
     Particle *particles;
   public:
@@ -48,9 +50,6 @@ class Domain {
     // Eval charge density on grid
     void clear_old_density_values();
     void weight_particles_charge_to_mesh();
-    // Eval fields from charges
-    void solve_poisson_eqn();
-    void eval_fields_from_potential();
     //
     Vec2d force_on_particle( int particle_number );
     // Boundaries and generation

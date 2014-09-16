@@ -2,19 +2,6 @@
 
 // Eval charge density on grid
 void next_node_num_and_weight( const double x, const double grid_step, int *next_node, double *weight );
-// Eval fields from charges
-extern "C" void hwscrt_( double *, double *, int *, int *, double *, double *,
-			 double *, double *, int *, int *, double *, double *,
-			 double *, double *, int *, double *, int *, double * );
-void rowmajor_to_colmajor( double **c, double *fortran, int dim1, int dim2 );
-void colmajor_to_rowmajor( double *fortran, double **c, int dim1, int dim2 );		  
-void hwscrt_init_f( double left, double top, 
-		    double right, double bottom, 
-		    double **charge_density, double **hwscrt_f);
-double **poisson_init_rhs( Spatial_mesh *spm );
-void poisson_free_rhs( double **rhs, int nrow, int ncol );
-double boundary_difference( double phi1, double phi2, double dx );
-double central_difference( double phi1, double phi2, double dx );
 // Domain print
 std::string construct_output_filename( const std::string output_filename_prefix, 
 				       const int current_time_step,
@@ -26,7 +13,8 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 
 Domain::Domain( Config *conf ) :
   time_grid( Time_grid( conf ) ),
-  spat_mesh( Spatial_mesh( conf ) )
+  spat_mesh( Spatial_mesh( conf ) ),
+  field_solver( Field_solver() )
 {
     config_check_correctness( conf );
     //
@@ -47,14 +35,14 @@ void Domain::particles_init( Config *conf )
 void Domain::run_pic( Config *conf )
 {
     int total_time_iterations, current_node;
-    total_time_iterations = this->time_grid.total_nodes - 1;
-    current_node = this->time_grid.current_node;
+    total_time_iterations = time_grid.total_nodes - 1;
+    current_node = time_grid.current_node;
     
-    this->prepare_leap_frog();
+    prepare_leap_frog();
 
     for ( int i = current_node; i < total_time_iterations; i++ ){
-	this->advance_one_time_step();
-	this->write_step_to_save( conf );
+    	advance_one_time_step();
+    	write_step_to_save( conf );
     }
 
     return;
@@ -62,45 +50,45 @@ void Domain::run_pic( Config *conf )
 
 void Domain::prepare_leap_frog()
 {
-    this->eval_charge_density();
-    this->eval_potential_and_fields();
-    this->shift_velocities_half_time_step_back();
+    eval_charge_density();
+    eval_potential_and_fields();
+    shift_velocities_half_time_step_back();
     return;
 }
 
 void Domain::advance_one_time_step()
 {
-    this->push_particles();
-    this->apply_domain_constrains();
-    this->eval_charge_density();
-    this->eval_potential_and_fields();
-    this->update_time_grid();
+    push_particles();
+    apply_domain_constrains();
+    eval_charge_density();
+    eval_potential_and_fields();
+    update_time_grid();
     return;
 }
 
 void Domain::eval_charge_density()
 {
-    this->clear_old_density_values();
-    this->weight_particles_charge_to_mesh();
+    clear_old_density_values();
+    weight_particles_charge_to_mesh();
     return;
 }
 
 void Domain::eval_potential_and_fields()
 {
-    this->solve_poisson_eqn();
-    this->eval_fields_from_potential();
+    field_solver.eval_potential( &spat_mesh );
+    field_solver.eval_fields_from_potential( &spat_mesh );
     return;
 }
 
 void Domain::push_particles()
 {
-    this->leap_frog();
+    leap_frog();
     return;
 }
 
 void Domain::apply_domain_constrains( )
 {
-    this->apply_domain_boundary_conditions( );
+    apply_domain_boundary_conditions( );
     //generate_new_particles();
     return;
 }
@@ -161,174 +149,6 @@ void next_node_num_and_weight( const double x, const double grid_step,
     return;
 }
 
-//
-// Eval potential and fields
-//
-
-void Domain::solve_poisson_eqn()
-{
-    double a = 0.0;
-    double b = spat_mesh.x_volume_size;
-    int nx = spat_mesh.x_n_nodes;
-    int M = nx-1;
-    int MBDCND = 1; // 1st kind boundary conditions
-    //
-    double c = 0.0;
-    double d = spat_mesh.y_volume_size;
-    int ny = spat_mesh.y_n_nodes;
-    int N = ny-1;
-    int NBDCND = 1; // 1st kind boundary conditions
-    //
-    double BDA[ny]; // dummy
-    double BDB[ny]; // dummy
-    double BDC[nx]; // dummy
-    double BDD[nx]; // dummy
-    //
-    double elmbda = 0.0;
-    double **f_rhs = NULL;
-    double hwscrt_f[ nx * ny ];
-    int idimf = nx;
-    //
-    int w_dim = 
-	4 * ( N + 1 ) + ( 13 + (int)( log2( N + 1 ) ) ) * ( M + 1 );
-    double w[w_dim];
-    double pertrb;
-    int ierror;
-
-    f_rhs = poisson_init_rhs( &( spat_mesh ) );
-    rowmajor_to_colmajor( f_rhs, hwscrt_f, nx, ny );
-    hwscrt_( 
-	&a, &b, &M, &MBDCND, BDA, BDB,
-	&c, &d, &N, &NBDCND, BDC, BDD,
-	&elmbda, hwscrt_f, &idimf, &pertrb, &ierror, w);
-    if ( ierror != 0 ){
-	printf( "Error while solving Poisson equation (HWSCRT). \n" );
-	printf( "ierror = %d \n", ierror );
-    	exit( EXIT_FAILURE );
-    }
-    colmajor_to_rowmajor( hwscrt_f, spat_mesh.potential, nx, ny );
-    poisson_free_rhs( f_rhs, nx, ny );
-    return;
-}
-
-
-double **poisson_init_rhs( Spatial_mesh *spm )
-{
-    int nx = spm->x_n_nodes;
-    int ny = spm->y_n_nodes;    
-
-    double **rhs = NULL;
-    rhs = (double **) malloc( nx * sizeof(double *) );
-    if ( rhs == NULL ) {
-	printf( "f_rhs allocate: nx: out of memory ");
-	exit( EXIT_FAILURE );	
-    }
-    for( int i = 0; i < nx; i++) {
-	rhs[i] = (double *) malloc( ny * sizeof(double) );
-	if ( rhs[i] == NULL ) {
-	    printf( "f_rhs allocate: ny: out of memory ");
-	    exit( EXIT_FAILURE );	
-	}
-    }
-    
-    for ( int i = 1; i < nx-1; i++ ) {
-	for ( int j = 1; j < ny-1; j++ ) {
-	    rhs[i][j] = -4.0 * M_PI * spm->charge_density[i][j];
-	}
-    }
-
-    for ( int i = 0; i < nx; i++ ) {
-	rhs[i][0] = spm->potential[i][0];
-	rhs[i][ny-1] = spm->potential[i][ny-1];
-    }
-
-    for ( int j = 0; j < ny; j++ ) {
-	rhs[0][j] = spm->potential[0][j];
-	rhs[nx-1][j] = spm->potential[nx-1][j];
-    }
-    
-    return rhs;
-}
-
-void poisson_free_rhs( double **rhs, int nx, int ny )
-{
-    for( int i = 0; i < nx; i++) {
-	free( rhs[i] );
-    }
-    free( rhs );
-}
-
-void rowmajor_to_colmajor( double **c, double *fortran, int dim1, int dim2 )
-{
-    for ( int j = 0; j < dim2; j++ ) {
-	for ( int i = 0; i < dim1; i++ ) {
-	    *( fortran + i + ( j * dim1 ) ) = c[i][j];
-	}
-    }
-    return;
-}
-
-void colmajor_to_rowmajor( double *fortran, double **c, int dim1, int dim2 )
-{
-    for ( int j = 0; j < dim2; j++ ) {
-	for ( int i = 0; i < dim1; i++ ) {
-	    c[i][j] = *( fortran + i + ( j * dim1 ) );
-	}
-    }
-    return;
-}
-
-void Domain::eval_fields_from_potential()
-{
-    int nx = spat_mesh.x_n_nodes;
-    int ny = spat_mesh.y_n_nodes;
-    double dx = spat_mesh.x_cell_size;
-    double dy = spat_mesh.y_cell_size;
-    double **phi = spat_mesh.potential;
-    double ex[nx][ny], ey[nx][ny];
-
-    for ( int j = 0; j < ny; j++ ) {
-	for ( int i = 0; i < nx; i++ ) {
-	    if ( i == 0 ) {
-		ex[i][j] = - boundary_difference( phi[i][j], phi[i+1][j], dx );
-	    } else if ( i == nx-1 ) {
-		ex[i][j] = - boundary_difference( phi[i-1][j], phi[i][j], dx );
-	    } else {
-		ex[i][j] = - central_difference( phi[i-1][j], phi[i+1][j], dx );
-	    }
-	}
-    }
-
-    for ( int i = 0; i < nx; i++ ) {
-	for ( int j = 0; j < ny; j++ ) {
-	    if ( j == 0 ) {
-		ey[i][j] = - boundary_difference( phi[i][j], phi[i][j+1], dy );
-	    } else if ( j == ny-1 ) {
-		ey[i][j] = - boundary_difference( phi[i][j-1], phi[i][j], dy );
-	    } else {
-		ey[i][j] = - central_difference( phi[i][j-1], phi[i][j+1], dy );
-	    }
-	}
-    }
-
-    for ( int i = 0; i < nx; i++ ) {
-	for ( int j = 0; j < ny; j++ ) {
-	    spat_mesh.electric_field[i][j] = vec2d_init( ex[i][j], ey[i][j] );
-	}
-    }
-
-    return;
-}
-
-double central_difference( double phi1, double phi2, double dx )
-{    
-    return ( (phi2 - phi1) / ( 2.0 * dx ) );
-}
-
-double boundary_difference( double phi1, double phi2, double dx )
-{    
-    return ( (phi2 - phi1) / dx );
-}
 
 //
 // Push particles
@@ -338,8 +158,8 @@ void Domain::leap_frog()
 {  
     double dt = time_grid.time_step_size;
 
-    this->update_momentum( dt );
-    this->update_position( dt );
+    update_momentum( dt );
+    update_position( dt );
     return;
 }
 
@@ -347,7 +167,7 @@ void Domain::shift_velocities_half_time_step_back()
 {
     double half_dt = time_grid.time_step_size / 2;
 
-    this->update_momentum( -half_dt );
+    update_momentum( -half_dt );
     return;    
 }
 
@@ -432,9 +252,9 @@ void Domain::apply_domain_boundary_conditions()
   
     while ( i < num_of_particles ) {
 	if ( out_of_bound( particles[i].position ) ) {
-	    this->remove_particle( &i );
+	    remove_particle( &i );
 	} else {
-	    this->proceed_to_next_particle( &i );
+	    proceed_to_next_particle( &i );
 	}
     }  
     return;
@@ -486,7 +306,7 @@ void Domain::write_step_to_save( Config *conf )
     int current_step = time_grid.current_node;
     int step_to_save = time_grid.node_to_save;
     if ( ( current_step % step_to_save ) == 0 ){	
-	this->write( conf );
+	write( conf );
     }
     return;
 }
