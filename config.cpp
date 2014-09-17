@@ -7,19 +7,6 @@ void config_read_spatial_mesh_part( GKeyFile *keyfile, Config *conf, GError *err
 void config_read_source_part( GKeyFile *keyfile, Config *conf, GError *error );
 void config_read_boundary_conditions_part( GKeyFile *keyfile, Config *conf, GError *error );
 void config_read_output_filename_part( GKeyFile *keyfile, Config *conf, GError *error );
-// Check config
-void check_and_exit_if_not( bool should_be, char *message );
-void particle_source_number_of_particles_gt_zero( Config *conf );
-void particle_source_x_left_ge_zero( Config *conf );
-void particle_source_x_left_le_particle_source_x_right( Config *conf );
-void particle_source_x_right_le_grid_x_size( Config *conf );
-void particle_source_y_bottom_ge_zero( Config *conf );
-void particle_source_y_bottom_le_particle_source_y_top( Config *conf );
-void particle_source_y_top_le_grid_y_size( Config *conf );
-void particle_source_temperature_gt_zero( Config *conf );
-void particle_source_mass_gt_zero( Config *conf );
-
-
 
 //
 // Read config
@@ -136,89 +123,6 @@ void exit_if_error( GError *error )
     }
     return;
 }
-
-
-//
-// Check config correctness
-//
-
-
-void config_check_correctness( Config *conf )
-{
-    particle_source_number_of_particles_gt_zero( conf );
-    particle_source_x_left_ge_zero( conf );
-    particle_source_x_left_le_particle_source_x_right( conf );
-    particle_source_x_right_le_grid_x_size( conf );
-    particle_source_y_bottom_ge_zero( conf );
-    particle_source_y_bottom_le_particle_source_y_top( conf );
-    particle_source_y_top_le_grid_y_size( conf );
-    particle_source_temperature_gt_zero( conf );
-    particle_source_mass_gt_zero( conf );
-}
-
-void particle_source_number_of_particles_gt_zero( Config *conf )
-{
-    check_and_exit_if_not( conf->particle_source_number_of_particles > 0,
-			   "particle_source_number_of_particles <= 0" );
-}
-
-void particle_source_x_left_ge_zero( Config *conf )
-{
-    check_and_exit_if_not( conf->particle_source_x_left >= 0,
-			   "particle_source_x_left < 0" );
-}
-
-void particle_source_x_left_le_particle_source_x_right( Config *conf )
-{
-    check_and_exit_if_not( conf->particle_source_x_left <= conf->particle_source_x_right,
-			   "particle_source_x_left > particle_source_x_right" );
-}
-
-void particle_source_x_right_le_grid_x_size( Config *conf )
-{
-    check_and_exit_if_not( conf->particle_source_x_right <= conf->grid_x_size,
-			   "particle_source_x_right > grid_x_size" );
-}
-
-void particle_source_y_bottom_ge_zero( Config *conf )
-{
-    check_and_exit_if_not( conf->particle_source_y_bottom >= 0,
-			   "particle_source_y_bottom < 0" );
-}
-
-void particle_source_y_bottom_le_particle_source_y_top( Config *conf )
-{
-    check_and_exit_if_not( conf->particle_source_y_bottom <= conf->particle_source_y_top,
-			   "particle_source_y_bottom > particle_source_y_top" );
-}
-
-void particle_source_y_top_le_grid_y_size( Config *conf )
-{
-    check_and_exit_if_not( conf->particle_source_y_top <= conf->grid_y_size,
-			   "particle_source_y_top > grid_y_size" );
-}
-
-void particle_source_temperature_gt_zero( Config *conf )
-{
-    check_and_exit_if_not( conf->particle_source_temperature >= 0,
-			   "particle_source_temperature < 0" );
-}
-
-void particle_source_mass_gt_zero( Config *conf )
-{
-    check_and_exit_if_not( conf->particle_source_mass >= 0,
-			   "particle_source_mass < 0" );
-}
-
-void check_and_exit_if_not( bool should_be, char *message )
-{
-    if( !should_be ){
-	printf( "Error: %s\n", message );
-	exit( EXIT_FAILURE );
-    }
-    return;
-}
-
 
 //
 // Print config

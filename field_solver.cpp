@@ -1,8 +1,8 @@
 #include "field_solver.h"
 
-//
-// Eval potential and fields
-//
+extern "C" void hwscrt_( double *, double *, int *, int *, double *, double *,
+			 double *, double *, int *, int *, double *, double *,
+			 double *, double *, int *, double *, int *, double * );
 
 void Field_solver::eval_potential( Spatial_mesh *spat_mesh )
 {

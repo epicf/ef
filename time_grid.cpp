@@ -2,19 +2,19 @@
 
 Time_grid::Time_grid( Config *conf ) 
 {
-    this->check_correctness_of_related_config_fields( conf );
-    this->get_values_from_config( conf );
-    this->init_total_nodes();
-    this->shrink_time_step_size_if_necessary( conf ); 
-    this->shrink_time_save_step_if_necessary( conf ); 
-    this->set_current_time_and_node( );
+    check_correctness_of_related_config_fields( conf );
+    get_values_from_config( conf );
+    init_total_nodes();
+    shrink_time_step_size_if_necessary( conf ); 
+    shrink_time_save_step_if_necessary( conf ); 
+    set_current_time_and_node();
 }
 
 void Time_grid::check_correctness_of_related_config_fields( Config *conf )
 {
-    this->total_time_gt_zero( conf );
-    this->time_step_size_gt_zero_le_total_time( conf );
-    this->time_save_step_ge_time_step_size( conf );
+    total_time_gt_zero( conf );
+    time_step_size_gt_zero_le_total_time( conf );
+    time_save_step_ge_time_step_size( conf );
 }
 
 void Time_grid::get_values_from_config( Config *conf )
@@ -59,26 +59,26 @@ void Time_grid::set_current_time_and_node()
 void Time_grid::print( )
 {
     printf( "Time grid:\n" );
-    printf( "Total time = %f \n", this->total_time );
-    printf( "Current time = %f \n", this->current_time );
-    printf( "Time step size = %f \n", this->time_step_size );
-    printf( "Time save step = %f \n", this->time_save_step );    
-    printf( "Total nodes = %d \n", this->total_nodes );
-    printf( "Current node = %d \n", this->current_node );
-    printf( "Node to save = %d \n", this->node_to_save );
+    printf( "Total time = %f \n", total_time );
+    printf( "Current time = %f \n", current_time );
+    printf( "Time step size = %f \n", time_step_size );
+    printf( "Time save step = %f \n", time_save_step );    
+    printf( "Total nodes = %d \n", total_nodes );
+    printf( "Current node = %d \n", current_node );
+    printf( "Node to save = %d \n", node_to_save );
     return;
 }
 
 void Time_grid::write_to_file( FILE *f )
 {
     fprintf(f, "### Time grid\n" );
-    fprintf(f, "Total time = %f \n", this->total_time );
-    fprintf(f, "Current time = %f \n", this->current_time );
-    fprintf(f, "Time step size = %f \n", this->time_step_size );
-    fprintf(f, "Time save step = %f \n", this->time_save_step );
-    fprintf(f, "Total nodes = %d \n", this->total_nodes );
-    fprintf(f, "Current node = %d \n", this->current_node );
-    fprintf(f, "Node to save = %d \n", this->node_to_save );
+    fprintf(f, "Total time = %f \n", total_time );
+    fprintf(f, "Current time = %f \n", current_time );
+    fprintf(f, "Time step size = %f \n", time_step_size );
+    fprintf(f, "Time save step = %f \n", time_save_step );
+    fprintf(f, "Total nodes = %d \n", total_nodes );
+    fprintf(f, "Current node = %d \n", current_node );
+    fprintf(f, "Node to save = %d \n", node_to_save );
     return;
 }
 

@@ -21,10 +21,4 @@ class Field_solver {
     double central_difference( double phi1, double phi2, double dx );
 };
 
-extern "C" void hwscrt_( double *, double *, int *, int *, double *, double *,
-			 double *, double *, int *, int *, double *, double *,
-			 double *, double *, int *, double *, int *, double * );
-
-
-
 #endif /* _FIELD_SOLVER_H_ */

@@ -2,20 +2,20 @@
 
 Spatial_mesh::Spatial_mesh( Config *conf )
 {
-    this->check_correctness_of_related_config_fields( conf );
-    this->init_x_grid( conf );
-    this->init_y_grid( conf );
-    this->allocate_ongrid_values();
-    this->set_boundary_conditions( conf );
+    check_correctness_of_related_config_fields( conf );
+    init_x_grid( conf );
+    init_y_grid( conf );
+    allocate_ongrid_values();
+    set_boundary_conditions( conf );
 }
 
 
 void Spatial_mesh::check_correctness_of_related_config_fields( Config *conf )
 {
-    this->grid_x_size_gt_zero( conf );
-    this->grid_x_step_gt_zero_le_grid_x_size( conf );
-    this->grid_y_size_gt_zero( conf );
-    this->grid_y_step_gt_zero_le_grid_y_size( conf );
+    grid_x_size_gt_zero( conf );
+    grid_x_step_gt_zero_le_grid_x_size( conf );
+    grid_y_size_gt_zero( conf );
+    grid_y_step_gt_zero_le_grid_y_size( conf );
 }
 
 void Spatial_mesh::init_x_grid( Config *conf )
@@ -71,8 +71,8 @@ void Spatial_mesh::allocate_ongrid_values( )
 
 void Spatial_mesh::set_boundary_conditions( Config *conf )
 {
-    this->set_boundary_conditions( conf->boundary_phi_left, conf->boundary_phi_right,
-				   conf->boundary_phi_top, conf->boundary_phi_bottom );
+    set_boundary_conditions( conf->boundary_phi_left, conf->boundary_phi_right,
+			     conf->boundary_phi_top, conf->boundary_phi_bottom );
 }
 
 
@@ -95,14 +95,14 @@ void Spatial_mesh::set_boundary_conditions( const double phi_left, const double 
     return;
 }
 
-void Spatial_mesh::print( )
+void Spatial_mesh::print()
 {
-    this->print_grid( );
-    this->print_ongrid_values( );
+    print_grid();
+    print_ongrid_values();
     return;
 }
 
-void Spatial_mesh::print_grid( )
+void Spatial_mesh::print_grid()
 {
     printf( "Grid:\n" );
     printf( "Length: x = %f, y = %f \n", x_volume_size, y_volume_size );
@@ -111,7 +111,7 @@ void Spatial_mesh::print_grid( )
     return;
 }
 
-void Spatial_mesh::print_ongrid_values( )
+void Spatial_mesh::print_ongrid_values()
 {
     int nx = x_n_nodes;
     int ny = y_n_nodes;
@@ -154,26 +154,26 @@ void Spatial_mesh::write_to_file( FILE *f )
 
 void Spatial_mesh::grid_x_size_gt_zero( Config *conf )
 {
-    this->check_and_exit_if_not( conf->grid_x_size > 0,
-				 "grid_x_size < 0" );    
+    check_and_exit_if_not( conf->grid_x_size > 0,
+			   "grid_x_size < 0" );    
 }
 
 void Spatial_mesh::grid_x_step_gt_zero_le_grid_x_size( Config *conf )
 {
-    this->check_and_exit_if_not( conf->grid_x_step > 0 && conf->grid_x_step <= conf->grid_x_size,
-				 "grid_x_step < 0 or grid_x_step >= grid_x_size" );    
+    check_and_exit_if_not( conf->grid_x_step > 0 && conf->grid_x_step <= conf->grid_x_size,
+			   "grid_x_step < 0 or grid_x_step >= grid_x_size" );    
 }
 
 void Spatial_mesh::grid_y_size_gt_zero( Config *conf )
 {
-    this->check_and_exit_if_not( conf->grid_y_size > 0,
-				 "grid_y_size < 0" );    
+    check_and_exit_if_not( conf->grid_y_size > 0,
+			   "grid_y_size < 0" );    
 }
 
 void Spatial_mesh::grid_y_step_gt_zero_le_grid_y_size( Config *conf )
 {
-    this->check_and_exit_if_not( conf->grid_y_step > 0 && conf->grid_y_step <= conf->grid_y_size,
-				 "grid_y_step < 0 or grid_y_step >= grid_y_size" );    
+    check_and_exit_if_not( conf->grid_y_step > 0 && conf->grid_y_step <= conf->grid_y_size,
+			   "grid_y_step < 0 or grid_y_step >= grid_y_size" );    
 }
 
 

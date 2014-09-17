@@ -11,7 +11,7 @@
 #include "time_grid.h"
 #include "spatial_mesh.h"
 #include "field_solver.h"
-#include "particles.h"
+#include "particle_source.h"
 #include "vec2d.h"
 
 //#define M_PI 3.14159265358979323846264338327
@@ -23,14 +23,13 @@ class Domain {
     Time_grid time_grid;
     Spatial_mesh spat_mesh;
     Field_solver field_solver;
-    int num_of_particles;
-    Particle *particles;
+    Particle_source part_src;
   public:
     Domain( Config *conf );
     void run_pic( Config *conf );
     void write_step_to_save( Config *conf );
     void write( Config *conf );
-    ~Domain();
+    virtual ~Domain();
   private:
     // Pic algorithm
     void prepare_leap_frog();
@@ -40,8 +39,6 @@ class Domain {
     void push_particles();
     void apply_domain_constrains();
     void update_time_grid();
-    // Domain initialization
-    void particles_init( Config *conf );
     // Push particles
     void leap_frog();
     void shift_velocities_half_time_step_back();

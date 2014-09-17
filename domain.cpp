@@ -12,19 +12,11 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 //
 
 Domain::Domain( Config *conf ) :
-  time_grid( Time_grid( conf ) ),
-  spat_mesh( Spatial_mesh( conf ) ),
-  field_solver( Field_solver() )
+    time_grid( Time_grid( conf ) ),
+    spat_mesh( Spatial_mesh( conf ) ),
+    field_solver( Field_solver() ),
+    part_src( Particle_source( conf ) )
 {
-    config_check_correctness( conf );
-    //
-    this->particles_init( conf );
-    return;
-}
-
-void Domain::particles_init( Config *conf )
-{
-    particles_test_init( &(this->particles), &(this->num_of_particles), conf );
     return;
 }
 
@@ -122,20 +114,20 @@ void Domain::weight_particles_charge_to_mesh()
     int tr_i, tr_j; // 'tr' = 'top_right'
     double tr_x_weight, tr_y_weight;
 
-    for ( int i = 0; i < num_of_particles; i++ ) {
-	next_node_num_and_weight( vec2d_x( particles[i].position ), dx, 
+    for ( int i = 0; i < part_src.num_of_particles; i++ ) {
+	next_node_num_and_weight( vec2d_x( part_src.particles[i].position ), dx, 
 				  &tr_i, &tr_x_weight );
-	next_node_num_and_weight( vec2d_y( particles[i].position ), dy,
+	next_node_num_and_weight( vec2d_y( part_src.particles[i].position ), dy,
 				  &tr_j, &tr_y_weight );
 	spat_mesh.charge_density[tr_i][tr_j] +=
-	    tr_x_weight * tr_y_weight * particles[i].charge;
+	    tr_x_weight * tr_y_weight * part_src.particles[i].charge;
 	spat_mesh.charge_density[tr_i-1][tr_j] +=
-	    ( 1.0 - tr_x_weight ) * tr_y_weight * particles[i].charge;
+	    ( 1.0 - tr_x_weight ) * tr_y_weight * part_src.particles[i].charge;
 	spat_mesh.charge_density[tr_i][tr_j-1] +=
-	    tr_x_weight * ( 1.0 - tr_y_weight ) * particles[i].charge;
+	    tr_x_weight * ( 1.0 - tr_y_weight ) * part_src.particles[i].charge;
 	spat_mesh.charge_density[tr_i-1][tr_j-1] +=
 	    ( 1.0 - tr_x_weight ) * ( 1.0 - tr_y_weight )
-	    * particles[i].charge;
+	    * part_src.particles[i].charge;
     }
     return;
 }
@@ -180,10 +172,10 @@ void Domain::update_momentum( double dt )
     // }
     Vec2d force, dp;
 
-    for ( int i = 0; i < num_of_particles; i++ ) {
-	force = this->force_on_particle( i );
+    for ( int i = 0; i < part_src.num_of_particles; i++ ) {
+	force = force_on_particle( i );
 	dp = vec2d_times_scalar( force, dt );
-	particles[i].momentum = vec2d_add( particles[i].momentum, dp );
+	part_src.particles[i].momentum = vec2d_add( part_src.particles[i].momentum, dp );
     }
     return;
 }
@@ -196,9 +188,9 @@ Vec2d Domain::force_on_particle( int particle_number )
     double tr_x_weight, tr_y_weight;  
     Vec2d field_from_node, total_field, force;
     //
-    next_node_num_and_weight( vec2d_x( particles[particle_number].position ), dx,
+    next_node_num_and_weight( vec2d_x( part_src.particles[particle_number].position ), dx,
 			      &tr_i, &tr_x_weight );
-    next_node_num_and_weight( vec2d_y( particles[particle_number].position ), dy,
+    next_node_num_and_weight( vec2d_y( part_src.particles[particle_number].position ), dy,
 			      &tr_j, &tr_y_weight );
     //
     total_field = vec2d_zero();
@@ -226,7 +218,7 @@ Vec2d Domain::force_on_particle( int particle_number )
     field_from_node = vec2d_times_scalar( field_from_node, 1.0 - tr_y_weight );
     total_field = vec2d_add( total_field, field_from_node );
     //
-    force = vec2d_times_scalar( total_field, particles[particle_number].charge );
+    force = vec2d_times_scalar( total_field, part_src.particles[particle_number].charge );
     return force;
 }
 
@@ -234,9 +226,9 @@ void Domain::update_position( double dt )
 {
     Vec2d pos_shift;
 
-    for ( int i = 0; i < num_of_particles; i++ ) {
-	pos_shift = vec2d_times_scalar( particles[i].momentum, dt/particles[i].mass );
-	particles[i].position = vec2d_add( particles[i].position, pos_shift );
+    for ( int i = 0; i < part_src.num_of_particles; i++ ) {
+	pos_shift = vec2d_times_scalar( part_src.particles[i].momentum, dt/part_src.particles[i].mass );
+	part_src.particles[i].position = vec2d_add( part_src.particles[i].position, pos_shift );
     }
     return;
 }
@@ -250,8 +242,8 @@ void Domain::apply_domain_boundary_conditions()
 {
     int i = 0;
   
-    while ( i < num_of_particles ) {
-	if ( out_of_bound( particles[i].position ) ) {
+    while ( i < part_src.num_of_particles ) {
+	if ( out_of_bound( part_src.particles[i].position ) ) {
 	    remove_particle( &i );
 	} else {
 	    proceed_to_next_particle( &i );
@@ -274,8 +266,8 @@ bool Domain::out_of_bound( Vec2d r )
 
 void Domain::remove_particle( int *i )
 {
-    particles[ *i ] = particles[ num_of_particles - 1 ];
-    num_of_particles--;
+    part_src.particles[ *i ] = part_src.particles[ part_src.num_of_particles - 1 ];
+    part_src.num_of_particles--;
     return;
 }
 
@@ -332,7 +324,7 @@ void Domain::write( Config *conf )
 	    
     time_grid.write_to_file( f );
     spat_mesh.write_to_file( f );
-    particles_write_to_file( particles, num_of_particles, f );
+    part_src.write_to_file( f );
 
     fclose(f);
     return;
@@ -364,13 +356,13 @@ Domain::~Domain()
 
 void Domain::print_particles() 
 {
-    for ( int i = 0; i < num_of_particles; i++ ) {
+    for ( int i = 0; i < part_src.num_of_particles; i++ ) {
     	printf( "%d: (%.2f,%.2f), (%.2f,%.2f) \n", 
 		i, 
-		vec2d_x( particles[i].position ),
-		vec2d_y( particles[i].position ),
-		vec2d_x( particles[i].momentum ),
-		vec2d_y( particles[i].momentum ));
+		vec2d_x( part_src.particles[i].position ),
+		vec2d_y( part_src.particles[i].position ),
+		vec2d_x( part_src.particles[i].momentum ),
+		vec2d_y( part_src.particles[i].momentum ));
     }
     return;
 }

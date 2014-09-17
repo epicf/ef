@@ -31,7 +31,6 @@ typedef struct {
 } Config;
 
 void config_read( const char *config_file_name, Config *conf );
-void config_check_correctness( Config *conf );
 void config_print( const Config *conf );
 
 #endif /* _CONFIG_H_ */
