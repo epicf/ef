@@ -7,11 +7,15 @@
 #include <stdlib.h>
 #include <string>
 #include <limits.h>
+#include <vector>
+#include <algorithm>
+#include <functional>
 #include "config.h"
 #include "time_grid.h"
 #include "spatial_mesh.h"
 #include "field_solver.h"
 #include "particle_source.h"
+#include "particle.h"
 #include "vec2d.h"
 
 //#define M_PI 3.14159265358979323846264338327
@@ -48,12 +52,11 @@ class Domain {
     void clear_old_density_values();
     void weight_particles_charge_to_mesh();
     //
-    Vec2d force_on_particle( int particle_number );
+    Vec2d force_on_particle( Particle &p );
     // Boundaries and generation
     void apply_domain_boundary_conditions();
-    bool out_of_bound( Vec2d r );
-    void remove_particle( int *i );
-    void proceed_to_next_particle( int *i );
+    bool out_of_bound( const Particle &p );
+    //bool out_of_bound( Vec2d r );
     // Various functions
     void print_particles();
 

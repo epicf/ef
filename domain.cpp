@@ -114,20 +114,17 @@ void Domain::weight_particles_charge_to_mesh()
     int tr_i, tr_j; // 'tr' = 'top_right'
     double tr_x_weight, tr_y_weight;
 
-    for ( int i = 0; i < part_src.num_of_particles; i++ ) {
-	next_node_num_and_weight( vec2d_x( part_src.particles[i].position ), dx, 
-				  &tr_i, &tr_x_weight );
-	next_node_num_and_weight( vec2d_y( part_src.particles[i].position ), dy,
-				  &tr_j, &tr_y_weight );
+    for ( auto& p : part_src.particles ) {
+	next_node_num_and_weight( vec2d_x( p.position ), dx, &tr_i, &tr_x_weight );
+	next_node_num_and_weight( vec2d_y( p.position ), dy, &tr_j, &tr_y_weight );
 	spat_mesh.charge_density[tr_i][tr_j] +=
-	    tr_x_weight * tr_y_weight * part_src.particles[i].charge;
+	    tr_x_weight * tr_y_weight * p.charge;
 	spat_mesh.charge_density[tr_i-1][tr_j] +=
-	    ( 1.0 - tr_x_weight ) * tr_y_weight * part_src.particles[i].charge;
+	    ( 1.0 - tr_x_weight ) * tr_y_weight * p.charge;
 	spat_mesh.charge_density[tr_i][tr_j-1] +=
-	    tr_x_weight * ( 1.0 - tr_y_weight ) * part_src.particles[i].charge;
+	    tr_x_weight * ( 1.0 - tr_y_weight ) * p.charge;
 	spat_mesh.charge_density[tr_i-1][tr_j-1] +=
-	    ( 1.0 - tr_x_weight ) * ( 1.0 - tr_y_weight )
-	    * part_src.particles[i].charge;
+	    ( 1.0 - tr_x_weight ) * ( 1.0 - tr_y_weight ) * p.charge;
     }
     return;
 }
@@ -172,15 +169,15 @@ void Domain::update_momentum( double dt )
     // }
     Vec2d force, dp;
 
-    for ( int i = 0; i < part_src.num_of_particles; i++ ) {
-	force = force_on_particle( i );
+    for ( auto &p : part_src.particles ) {
+	force = force_on_particle( p );
 	dp = vec2d_times_scalar( force, dt );
-	part_src.particles[i].momentum = vec2d_add( part_src.particles[i].momentum, dp );
+	p.momentum = vec2d_add( p.momentum, dp );
     }
     return;
 }
 
-Vec2d Domain::force_on_particle( int particle_number )
+Vec2d Domain::force_on_particle( Particle &p )
 {
     double dx = spat_mesh.x_cell_size;
     double dy = spat_mesh.y_cell_size;
@@ -188,14 +185,12 @@ Vec2d Domain::force_on_particle( int particle_number )
     double tr_x_weight, tr_y_weight;  
     Vec2d field_from_node, total_field, force;
     //
-    next_node_num_and_weight( vec2d_x( part_src.particles[particle_number].position ), dx,
-			      &tr_i, &tr_x_weight );
-    next_node_num_and_weight( vec2d_y( part_src.particles[particle_number].position ), dy,
-			      &tr_j, &tr_y_weight );
+    next_node_num_and_weight( vec2d_x( p.position ), dx, &tr_i, &tr_x_weight );
+    next_node_num_and_weight( vec2d_y( p.position ), dy, &tr_j, &tr_y_weight );
     //
     total_field = vec2d_zero();
-    field_from_node = vec2d_times_scalar(			
-	spat_mesh.electric_field[tr_i][tr_j],		
+    field_from_node = vec2d_times_scalar(
+	spat_mesh.electric_field[tr_i][tr_j],
 	tr_x_weight );
     field_from_node = vec2d_times_scalar( field_from_node, tr_y_weight );
     total_field = vec2d_add( total_field, field_from_node );
@@ -218,7 +213,7 @@ Vec2d Domain::force_on_particle( int particle_number )
     field_from_node = vec2d_times_scalar( field_from_node, 1.0 - tr_y_weight );
     total_field = vec2d_add( total_field, field_from_node );
     //
-    force = vec2d_times_scalar( total_field, part_src.particles[particle_number].charge );
+    force = vec2d_times_scalar( total_field, p.charge );
     return force;
 }
 
@@ -226,9 +221,9 @@ void Domain::update_position( double dt )
 {
     Vec2d pos_shift;
 
-    for ( int i = 0; i < part_src.num_of_particles; i++ ) {
-	pos_shift = vec2d_times_scalar( part_src.particles[i].momentum, dt/part_src.particles[i].mass );
-	part_src.particles[i].position = vec2d_add( part_src.particles[i].position, pos_shift );
+    for ( auto &p : part_src.particles ) {
+	pos_shift = vec2d_times_scalar( p.momentum, dt / p.mass );
+	p.position = vec2d_add( p.position, pos_shift );
     }
     return;
 }
@@ -240,42 +235,42 @@ void Domain::update_position( double dt )
 
 void Domain::apply_domain_boundary_conditions()
 {
-    int i = 0;
+    // auto &v = part_src.particles;
+    // v.erase( std::remove_if( std::begin(v), std::end(v), out_of_bound ), std::end(v) );
+
+    part_src.particles.erase( std::remove_if( std::begin( part_src.particles ), 
+					      std::end( part_src.particles ), 
+					      [&]( Particle &p ){ return out_of_bound(p); } ), 
+			      std::end( part_src.particles ) );
   
-    while ( i < part_src.num_of_particles ) {
-	if ( out_of_bound( part_src.particles[i].position ) ) {
-	    remove_particle( &i );
-	} else {
-	    proceed_to_next_particle( &i );
-	}
-    }  
     return;
 }
 
-bool Domain::out_of_bound( Vec2d r )
+bool Domain::out_of_bound( const Particle &p )
 {
-    double x = vec2d_x( r );
-    double y = vec2d_y( r );
+    //return out_of_bound( p.position );
+    double x = vec2d_x( p.position );
+    double y = vec2d_y( p.position );
     bool out;
     
     out = 
 	( x >= spat_mesh.x_volume_size ) || ( x <= 0 ) ||
 	( y >= spat_mesh.y_volume_size ) || ( y <= 0 ) ;
     return out;
+
 }
 
-void Domain::remove_particle( int *i )
-{
-    part_src.particles[ *i ] = part_src.particles[ part_src.num_of_particles - 1 ];
-    part_src.num_of_particles--;
-    return;
-}
-
-void Domain::proceed_to_next_particle( int *i )
-{
-    (*i)++;	    
-    return;
-}
+// bool Domain::out_of_bound( Vec2d r )
+// {
+//     double x = vec2d_x( r );
+//     double y = vec2d_y( r );
+//     bool out;
+    
+//     out = 
+// 	( x >= spat_mesh.x_volume_size ) || ( x <= 0 ) ||
+// 	( y >= spat_mesh.y_volume_size ) || ( y <= 0 ) ;
+//     return out;
+// }
 
 //
 // Update time grid
@@ -335,7 +330,9 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 				       const std::string output_filename_suffix )
 {    
     std::string filename;
-    filename = output_filename_prefix + std::to_string( current_time_step ) + output_filename_suffix;
+    filename = output_filename_prefix + 
+	std::to_string( current_time_step ) + 
+	output_filename_suffix;
     return filename;
 }
 
@@ -356,13 +353,13 @@ Domain::~Domain()
 
 void Domain::print_particles() 
 {
-    for ( int i = 0; i < part_src.num_of_particles; i++ ) {
+    for ( auto &p : part_src.particles ) {
     	printf( "%d: (%.2f,%.2f), (%.2f,%.2f) \n", 
-		i, 
-		vec2d_x( part_src.particles[i].position ),
-		vec2d_y( part_src.particles[i].position ),
-		vec2d_x( part_src.particles[i].momentum ),
-		vec2d_y( part_src.particles[i].momentum ));
+		p.id, 
+		vec2d_x( p.position ),
+		vec2d_y( p.position ),
+		vec2d_x( p.momentum ),
+		vec2d_y( p.momentum ));
     }
     return;
 }

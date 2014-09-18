@@ -41,12 +41,9 @@ void Particle_source::test_init( Config *conf )
     double charge = conf->particle_source_charge;
     double mass = conf->particle_source_mass;
     Vec2d pos, mom;
-    num_of_particles = conf->particle_source_number_of_particles;
-    particles = (Particle *) malloc( num_of_particles * sizeof( Particle ) );
-    if ( particles == NULL ) {
-	printf( "Failed to allocate memory for particles. Aborting" );
-	exit( EXIT_FAILURE );
-    }
+    // 
+    int num_of_particles = conf->particle_source_number_of_particles;
+    //particles.resize( num_of_particles );
         
     int seed = 0;
     srand( seed );
@@ -58,15 +55,17 @@ void Particle_source::test_init( Config *conf )
 	id = generate_particle_id( i );
 	pos = uniform_position_in_rectangle( xleft, ytop, xright, ybottom );
 	mom = maxwell_momentum_distr( temperature, mass, rng );
-	particles[i] = Particle( id, charge, mass, pos, mom );
+	particles.emplace_back( id, charge, mass, pos, mom );
+	//Particle p = Particle(id, charge, mass, pos, mom);
+	//particles.push_back( p );
     }
 
 }
 
 void Particle_source::print_all()
 {
-    for ( int i = 0; i < num_of_particles; i++ ) {	
-	particles[i].print();
+    for ( auto& p : particles  ) {
+	p.print();
     }
     return;
 }
@@ -109,16 +108,16 @@ Vec2d maxwell_momentum_distr( const double temperature, const double mass,
 
 void Particle_source::write_to_file( FILE *f )
 {
-    printf( "Number of particles  = %d \n", num_of_particles );
+    printf( "Number of particles  = %d \n", particles.size() );
     fprintf( f, "### Particles\n" );
-    fprintf( f, "Total number of particles = %d\n", num_of_particles );    
+    fprintf( f, "Total number of particles = %d\n", particles.size() );    
     fprintf( f, "id \t   charge      mass \t position(x,y) \t\t momentum(px,py) \n");
-    for ( int i = 0; i < num_of_particles; i++ ) {	
+    for ( auto &p : particles ) {	
 	fprintf( f, 
 		 "%-10d %-10.3f %-10.3f %-10.3f %-10.3f  %-10.3f %-10.3f \n", 
-		 particles[i].id, particles[i].charge, particles[i].mass, 
-		 vec2d_x( particles[i].position ), vec2d_y( particles[i].position ), 
-		 vec2d_x( particles[i].momentum ), vec2d_y( particles[i].momentum ) );
+		 p.id, p.charge, p.mass, 
+		 vec2d_x( p.position ), vec2d_y( p.position ), 
+		 vec2d_x( p.momentum ), vec2d_y( p.momentum ) );
     }
     return;
 }

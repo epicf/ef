@@ -7,13 +7,13 @@
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include <iostream>
+#include <vector>
 #include "config.h"
 #include "particle.h"
 
 class Particle_source {
 public:
-    int num_of_particles;
-    Particle *particles;
+    std::vector<Particle> particles;
 public:
     Particle_source( Config *conf );
     void test_init( Config *conf );
