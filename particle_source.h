@@ -4,8 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <gsl/gsl_rng.h>
-#include <gsl/gsl_randist.h>
+#include <random>
 #include <iostream>
 #include <vector>
 #include "config.h"
@@ -21,6 +20,15 @@ public:
     void write_to_file( FILE *f );
     virtual ~Particle_source() {};
 private:
+    // Particle initialization
+    // Todo: replace 'std::default_random_engine' type with something more general.
+    int generate_particle_id( const int number );
+    Vec2d uniform_position_in_rectangle( const double xleft,  const double ytop,
+					 const double xright, const double ybottom,
+					 std::default_random_engine &rnd_gen );
+    double random_in_range( const double low, const double up, std::default_random_engine &rnd_gen );
+    Vec2d maxwell_momentum_distr( const double temperature, const double mass, 
+				  std::default_random_engine &rnd_gen );
     // Check config
     void check_correctness_of_related_config_fields( Config *conf );
     void particle_source_number_of_particles_gt_zero( Config *conf );

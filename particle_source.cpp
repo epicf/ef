@@ -1,11 +1,5 @@
 #include "particle_source.h"
 
-Vec2d uniform_position_in_rectangle( const double xleft,  const double ytop,
-				     const double xright, const double ybottom );
-int generate_particle_id( const int number );
-double random_in_range( const double low, const double up );
-Vec2d maxwell_momentum_distr( const double temperature, const double mass, 
-			      const gsl_rng *rng);
 void check_and_exit_if_not( const bool &should_be, const std::string &message );
 
 Particle_source::Particle_source( Config *conf )
@@ -43,21 +37,16 @@ void Particle_source::test_init( Config *conf )
     Vec2d pos, mom;
     // 
     int num_of_particles = conf->particle_source_number_of_particles;
-    //particles.resize( num_of_particles );
-        
-    int seed = 0;
-    srand( seed );
+            
+    unsigned seed = 0;
+    std::default_random_engine rnd_gen( seed );
     
-    const gsl_rng_type *rng_t = gsl_rng_default;
-    gsl_rng *rng = gsl_rng_alloc( rng_t );
-
+    particles.reserve( num_of_particles );
     for ( int i = 0; i < num_of_particles; i++ ) {
 	id = generate_particle_id( i );
-	pos = uniform_position_in_rectangle( xleft, ytop, xright, ybottom );
-	mom = maxwell_momentum_distr( temperature, mass, rng );
+	pos = uniform_position_in_rectangle( xleft, ytop, xright, ybottom, rnd_gen );
+	mom = maxwell_momentum_distr( temperature, mass, rnd_gen );
 	particles.emplace_back( id, charge, mass, pos, mom );
-	//Particle p = Particle(id, charge, mass, pos, mom);
-	//particles.push_back( p );
     }
 
 }
@@ -70,37 +59,36 @@ void Particle_source::print_all()
     return;
 }
 
-int generate_particle_id( const int number )
+int Particle_source::generate_particle_id( const int number )
 {    
     return number;
 }
 
-
-
-Vec2d uniform_position_in_rectangle( const double xleft,  const double ytop,
-				     const double xright, const double ybottom )
+Vec2d Particle_source::uniform_position_in_rectangle( const double xleft,  const double ytop,
+						      const double xright, const double ybottom,
+						      std::default_random_engine &rnd_gen )
 {
-    // Not really uniform. 
-    // Will do for now.    
-    return vec2d_init( random_in_range( xleft, xright ), 
-		       random_in_range( ybottom, ytop ) );
+    return vec2d_init( random_in_range( xleft, xright, rnd_gen ), 
+		       random_in_range( ybottom, ytop, rnd_gen ) );
 }
 
-double random_in_range( const double low, const double up )
+double Particle_source::random_in_range( const double low, const double up, 
+					 std::default_random_engine &rnd_gen )
 {
-    double r;
-    r = ( (double)rand() / (double)RAND_MAX );
-    r = low + ( up - low ) * r;
-    return r;
+    std::uniform_real_distribution<double> uniform_distr( low, up );
+    return uniform_distr( rnd_gen );
 }
 
-Vec2d maxwell_momentum_distr( const double temperature, const double mass, 
-			      const gsl_rng *rng)
-{
-    double maxwell_gauss_std_div = sqrt( mass * temperature * 1.0 ); // recheck
+Vec2d Particle_source::maxwell_momentum_distr( const double temperature, const double mass, 
+					       std::default_random_engine &rnd_gen )
+{    
+    double maxwell_gauss_std_mean = 0.0;
+    double maxwell_gauss_std_dev = sqrt( mass * temperature );
+    std::normal_distribution<double> normal_distr( maxwell_gauss_std_mean, maxwell_gauss_std_dev );
+
     Vec2d mom;
-    mom = vec2d_init( gsl_ran_gaussian(rng, maxwell_gauss_std_div),
-		      gsl_ran_gaussian(rng, maxwell_gauss_std_div) );		     
+    mom = vec2d_init( normal_distr( rnd_gen ),
+		      normal_distr( rnd_gen ) );		     
     mom = vec2d_times_scalar( mom, 1.0 ); // recheck
     return mom;
 }
