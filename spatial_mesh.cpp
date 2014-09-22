@@ -69,6 +69,19 @@ void Spatial_mesh::allocate_ongrid_values( )
     return;
 }
 
+void Spatial_mesh::clear_old_density_values()
+{
+    int nx = x_n_nodes;
+    int ny = y_n_nodes;    
+    
+    for ( int i = 0; i < nx; i++ ) {
+	for ( int j = 0; j < ny; j++ ) {
+	    charge_density[i][j] = 0;
+	}
+    }
+}
+
+
 void Spatial_mesh::set_boundary_conditions( Config *conf )
 {
     set_boundary_conditions( conf->boundary_phi_left, conf->boundary_phi_right,

@@ -13,6 +13,7 @@
 #include "config.h"
 #include "time_grid.h"
 #include "spatial_mesh.h"
+#include "particle_to_mesh_map.h"
 #include "field_solver.h"
 #include "particle_source.h"
 #include "particle.h"
@@ -26,7 +27,8 @@ class Domain {
   public:
     Time_grid time_grid;
     Spatial_mesh spat_mesh;
-    Field_solver field_solver;
+    Particle_to_mesh_map particle_to_mesh_map;
+    Field_solver field_solver;    
     Particle_source part_src;
   public:
     Domain( Config *conf );
@@ -48,18 +50,11 @@ class Domain {
     void shift_velocities_half_time_step_back();
     void update_momentum( double dt );
     void update_position( double dt );
-    // Eval charge density on grid
-    void clear_old_density_values();
-    void weight_particles_charge_to_mesh();
-    //
-    Vec2d force_on_particle( Particle &p );
     // Boundaries and generation
     void apply_domain_boundary_conditions();
     bool out_of_bound( const Particle &p );
-    //bool out_of_bound( Vec2d r );
     // Various functions
     void print_particles();
-
 };
 
 #endif /* _DOMAIN_H_ */

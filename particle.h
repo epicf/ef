@@ -1,5 +1,5 @@
-#ifndef _PARTICLES_H_
-#define _PARTICLES_H_
+#ifndef _PARTICLE_H_
+#define _PARTICLE_H_
 
 #include <cstdio>
 #include "vec2d.h"
@@ -17,4 +17,4 @@ class Particle {
     virtual ~Particle() {};
 };
 
-#endif /* _PARTICLES_H_ */
+#endif /* _PARTICLE_H_ */

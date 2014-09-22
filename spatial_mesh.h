@@ -18,9 +18,10 @@ class Spatial_mesh {
     Vec2d **electric_field;
   public:
     Spatial_mesh( Config *conf );
-    void print( );
-    void write_to_file( FILE *f );
+    void clear_old_density_values();
     void set_boundary_conditions( Config *conf );
+    void print();
+    void write_to_file( FILE *f );
   private:
     // init
     void check_correctness_of_related_config_fields( Config *conf );
