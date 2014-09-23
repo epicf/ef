@@ -1,21 +1,22 @@
+#include <iostream>
+#include <string>
 #include "config.h"
 #include "domain.h"
-#include "parse_args.h"
+#include "parse_cmd_line.h"
 
 void pic_simulation( Config *conf );
 
 int main(int argc, char *argv[])
 {
-
-    char *config_file = NULL;
+    std::string config_file;
     Config conf;
 
     // prepare everything
     //// Parse command line
-    parse_args( argc, argv, &config_file );
-    printf( "CONFIG = %s \n", config_file );
+    parse_cmd_line( argc, argv, config_file );
+    std::cout << "main: CONFIG = " << config_file << std::endl;
     //// Read config
-    config_read( config_file, &conf );
+    config_read( config_file.c_str(), &conf );
     config_print( &conf );
     // run simulation
     pic_simulation( &conf );

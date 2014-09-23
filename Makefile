@@ -17,7 +17,7 @@ CFLAGS = -O1 -std=c++11 -g -Wall \
 LDFLAGS = -g -fsanitize=address
 
 ### Libraries
-LIBS=-lm -L./fishpack -lfishpack_dbl `pkg-config --libs glib-2.0`
+LIBS=-lm -L./fishpack -lfishpack_dbl -lboost_program_options `pkg-config --libs glib-2.0`
 
 ### Sources and executable
 CPPSOURCES=$(wildcard *.cpp)
