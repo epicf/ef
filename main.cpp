@@ -6,18 +6,16 @@
 
 void pic_simulation( Config *conf );
 
-int main(int argc, char *argv[])
+int main( int argc, char *argv[] )
 {
     std::string config_file;
-    Config conf;
 
     // prepare everything
     //// Parse command line
     parse_cmd_line( argc, argv, config_file );
-    std::cout << "main: CONFIG = " << config_file << std::endl;
     //// Read config
-    config_read( config_file.c_str(), &conf );
-    config_print( &conf );
+    Config conf( config_file );
+    conf.print();
     // run simulation
     pic_simulation( &conf );
     // finalize_whatever_left

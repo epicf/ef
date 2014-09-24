@@ -1,12 +1,9 @@
 #ifndef _DOMAIN_H_
 #define _DOMAIN_H_
 
-#include <stdio.h>
-#include <math.h>
-#include <stdbool.h>
-#include <stdlib.h>
+#include <iostream>
+#include <iomanip>
 #include <string>
-#include <limits.h>
 #include <vector>
 #include <algorithm>
 #include <functional>
@@ -53,6 +50,7 @@ class Domain {
     // Boundaries and generation
     void apply_domain_boundary_conditions();
     bool out_of_bound( const Particle &p );
+    void generate_new_particles();
     // Various functions
     void print_particles();
 };

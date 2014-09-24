@@ -5,12 +5,14 @@ void check_and_exit_if_not( const bool &should_be, const std::string &message );
 Particle_source::Particle_source( Config *conf )
 {
     check_correctness_of_related_config_fields( conf );
-    test_init( conf );
+    set_parameters_from_config( conf );
+    generate_initial_particles();
 }
 
 void Particle_source::check_correctness_of_related_config_fields( Config *conf )
 {
-    particle_source_number_of_particles_gt_zero( conf );
+    particle_source_initial_number_of_particles_gt_zero( conf );
+    particle_source_particles_to_generate_each_step_ge_zero( conf );
     particle_source_x_left_ge_zero( conf );
     particle_source_x_left_le_particle_source_x_right( conf );
     particle_source_x_right_le_grid_x_size( conf );
@@ -21,27 +23,39 @@ void Particle_source::check_correctness_of_related_config_fields( Config *conf )
     particle_source_mass_gt_zero( conf );
 }
 
-void Particle_source::test_init( Config *conf )
+void Particle_source::set_parameters_from_config( Config *conf )
 {
-    // Position
-    double xleft = conf->particle_source_x_left;
-    double xright = conf->particle_source_x_right;
-    double ytop = conf->particle_source_y_top;
-    double ybottom = conf->particle_source_y_bottom;
-    // Momentum
-    double temperature = conf->particle_source_temperature;
-    // Particle characteristics
-    int id = 0;
-    double charge = conf->particle_source_charge;
-    double mass = conf->particle_source_mass;
-    Vec2d pos, mom;
-    // 
-    int num_of_particles = conf->particle_source_number_of_particles;
-            
+    initial_number_of_particles = conf->sources_config_part.at(0).particle_source_initial_number_of_particles;
+    particles_to_generate_each_step = conf->sources_config_part.at(0).particle_source_particles_to_generate_each_step;
+    xleft = conf->sources_config_part.at(0).particle_source_x_left;
+    xright = conf->sources_config_part.at(0).particle_source_x_right;
+    ytop = conf->sources_config_part.at(0).particle_source_y_top;
+    ybottom = conf->sources_config_part.at(0).particle_source_y_bottom;
+    temperature = conf->sources_config_part.at(0).particle_source_temperature;
+    charge = conf->sources_config_part.at(0).particle_source_charge;
+    mass = conf->sources_config_part.at(0).particle_source_mass;    
+    // Random number generator
     unsigned seed = 0;
-    std::default_random_engine rnd_gen( seed );
+    rnd_gen = std::default_random_engine( seed );
+}
+
+void Particle_source::generate_initial_particles()
+{
+    //particles.reserve( initial_number_of_particles );
+    generate_num_of_particles( initial_number_of_particles );
+}
+
+void Particle_source::generate_each_step()
+{
+    //particles.reserve( particles.size() + particles_to_generate_each_step );
+    generate_num_of_particles( particles_to_generate_each_step );
+}
     
-    particles.reserve( num_of_particles );
+void Particle_source::generate_num_of_particles( int num_of_particles )
+{
+    Vec2d pos, mom;
+    int id = 0;
+                
     for ( int i = 0; i < num_of_particles; i++ ) {
 	id = generate_particle_id( i );
 	pos = uniform_position_in_rectangle( xleft, ytop, xright, ybottom, rnd_gen );
@@ -51,17 +65,12 @@ void Particle_source::test_init( Config *conf )
 
 }
 
-void Particle_source::print_all()
-{
-    for ( auto& p : particles  ) {
-	p.print();
-    }
-    return;
-}
-
 int Particle_source::generate_particle_id( const int number )
 {    
-    return number;
+    // Preserve max id between calls to generator.
+    static int last_id = 0;
+    
+    return last_id++;
 }
 
 Vec2d Particle_source::uniform_position_in_rectangle( const double xleft,  const double ytop,
@@ -93,6 +102,13 @@ Vec2d Particle_source::maxwell_momentum_distr( const double temperature, const d
     return mom;
 }
 
+void Particle_source::print_all()
+{
+    for ( auto& p : particles  ) {
+	p.print();
+    }
+    return;
+}
 
 void Particle_source::write_to_file( FILE *f )
 {
@@ -112,58 +128,74 @@ void Particle_source::write_to_file( FILE *f )
 
 
 
-void Particle_source::particle_source_number_of_particles_gt_zero( Config *conf )
+void Particle_source::particle_source_initial_number_of_particles_gt_zero( Config *conf )
 {
-    check_and_exit_if_not( conf->particle_source_number_of_particles > 0,
-			   "particle_source_number_of_particles <= 0" );
+    check_and_exit_if_not( 
+	conf->sources_config_part.at(0).particle_source_initial_number_of_particles > 0,
+	"particle_source_initial_number_of_particles <= 0" );
+}
+
+void Particle_source::particle_source_particles_to_generate_each_step_ge_zero( Config *conf )
+{
+    check_and_exit_if_not( 
+	conf->sources_config_part.at(0).particle_source_particles_to_generate_each_step >= 0,
+	"particle_source_particles_to_generate_each_step < 0" );
 }
 
 void Particle_source::particle_source_x_left_ge_zero( Config *conf )
 {
-    check_and_exit_if_not( conf->particle_source_x_left >= 0,
-			   "particle_source_x_left < 0" );
+    check_and_exit_if_not( 
+	conf->sources_config_part.at(0).particle_source_x_left >= 0,
+	"particle_source_x_left < 0" );
 }
 
 void Particle_source::particle_source_x_left_le_particle_source_x_right( Config *conf )
 {
-    check_and_exit_if_not( conf->particle_source_x_left <= conf->particle_source_x_right,
-			   "particle_source_x_left > particle_source_x_right" );
+    check_and_exit_if_not( 
+	conf->sources_config_part.at(0).particle_source_x_left <= conf->sources_config_part.at(0).particle_source_x_right,
+	"particle_source_x_left > particle_source_x_right" );
 }
 
 void Particle_source::particle_source_x_right_le_grid_x_size( Config *conf )
 {
-    check_and_exit_if_not( conf->particle_source_x_right <= conf->grid_x_size,
-			   "particle_source_x_right > grid_x_size" );
+    check_and_exit_if_not( 
+	conf->sources_config_part.at(0).particle_source_x_right <= conf->mesh_config_part.grid_x_size,
+	"particle_source_x_right > grid_x_size" );
 }
 
 void Particle_source::particle_source_y_bottom_ge_zero( Config *conf )
 {
-    check_and_exit_if_not( conf->particle_source_y_bottom >= 0,
-			   "particle_source_y_bottom < 0" );
+    check_and_exit_if_not( 
+	conf->sources_config_part.at(0).particle_source_y_bottom >= 0,
+	"particle_source_y_bottom < 0" );
 }
 
 void Particle_source::particle_source_y_bottom_le_particle_source_y_top( Config *conf )
 {
-    check_and_exit_if_not( conf->particle_source_y_bottom <= conf->particle_source_y_top,
-			   "particle_source_y_bottom > particle_source_y_top" );
+    check_and_exit_if_not( 
+	conf->sources_config_part.at(0).particle_source_y_bottom <= conf->sources_config_part.at(0).particle_source_y_top,
+	"particle_source_y_bottom > particle_source_y_top" );
 }
 
 void Particle_source::particle_source_y_top_le_grid_y_size( Config *conf )
 {
-    check_and_exit_if_not( conf->particle_source_y_top <= conf->grid_y_size,
-			   "particle_source_y_top > grid_y_size" );
+    check_and_exit_if_not( 
+	conf->sources_config_part.at(0).particle_source_y_top <= conf->mesh_config_part.grid_y_size,
+	"particle_source_y_top > grid_y_size" );
 }
 
 void Particle_source::particle_source_temperature_gt_zero( Config *conf )
 {
-    check_and_exit_if_not( conf->particle_source_temperature >= 0,
-			   "particle_source_temperature < 0" );
+    check_and_exit_if_not( 
+	conf->sources_config_part.at(0).particle_source_temperature >= 0,
+	"particle_source_temperature < 0" );
 }
 
 void Particle_source::particle_source_mass_gt_zero( Config *conf )
 {
-    check_and_exit_if_not( conf->particle_source_mass >= 0,
-			   "particle_source_mass < 0" );
+    check_and_exit_if_not( 
+	conf->sources_config_part.at(0).particle_source_mass >= 0,
+	"particle_source_mass < 0" );
 }
 
 void check_and_exit_if_not( const bool &should_be, const std::string &message )

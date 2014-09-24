@@ -20,24 +20,24 @@ void Spatial_mesh::check_correctness_of_related_config_fields( Config *conf )
 
 void Spatial_mesh::init_x_grid( Config *conf )
 {
-    x_volume_size = conf->grid_x_size;
-    x_n_nodes = ceil( conf->grid_x_size / conf->grid_x_step ) + 1;
+    x_volume_size = conf->mesh_config_part.grid_x_size;
+    x_n_nodes = ceil( conf->mesh_config_part.grid_x_size / conf->mesh_config_part.grid_x_step ) + 1;
     x_cell_size = x_volume_size / ( x_n_nodes - 1 );
-    if ( x_cell_size != conf->grid_x_step ) {
+    if ( x_cell_size != conf->mesh_config_part.grid_x_step ) {
 	std::cout << "X_step was shrinked to " << x_cell_size << " from " 
-		  << conf->grid_x_step << " to fit round number of cells" << std::endl;
+		  << conf->mesh_config_part.grid_x_step << " to fit round number of cells" << std::endl;
     }    
     return;
 }
 
 void Spatial_mesh::init_y_grid( Config *conf )
 {
-    y_volume_size = conf->grid_y_size;
-    y_n_nodes = ceil( conf->grid_y_size / conf->grid_y_step) + 1;
+    y_volume_size = conf->mesh_config_part.grid_y_size;
+    y_n_nodes = ceil( conf->mesh_config_part.grid_y_size / conf->mesh_config_part.grid_y_step) + 1;
     y_cell_size = y_volume_size / ( y_n_nodes -1 );
-    if ( y_cell_size != conf->grid_y_step ) {
+    if ( y_cell_size != conf->mesh_config_part.grid_y_step ) {
 	std::cout << "Y_step was shrinked to " << y_cell_size << " from " 
-		  << conf->grid_y_step << " to fit round number of cells." << std::endl;
+		  << conf->mesh_config_part.grid_y_step << " to fit round number of cells." << std::endl;
     }    
     return;
 }
@@ -52,7 +52,7 @@ void Spatial_mesh::allocate_ongrid_values( )
     if ( ( charge_density == NULL ) || 
 	 ( potential == NULL ) || 
 	 ( electric_field == NULL ) ) {
-	printf( "allocate_arrays_for_ongrid_values: rows: out of memory ");
+	std::cout << "allocate_arrays_for_ongrid_values: rows: out of memory " << std::endl;
 	exit( EXIT_FAILURE );	
     }
     for( int i = 0; i < nx; i++) {
@@ -62,7 +62,7 @@ void Spatial_mesh::allocate_ongrid_values( )
 	if ( ( charge_density[i] == NULL ) || 
 	     ( potential[i] == NULL ) || 
 	     ( electric_field[i] == NULL ) ) {
-	    printf( "allocate_arrays_for_ongrid_values: cols: out of memory ");
+	    std::cout << "allocate_arrays_for_ongrid_values: cols: out of memory " << std::endl;
 	    exit( EXIT_FAILURE );	
 	}
     }
@@ -84,8 +84,10 @@ void Spatial_mesh::clear_old_density_values()
 
 void Spatial_mesh::set_boundary_conditions( Config *conf )
 {
-    set_boundary_conditions( conf->boundary_phi_left, conf->boundary_phi_right,
-			     conf->boundary_phi_top, conf->boundary_phi_bottom );
+    set_boundary_conditions( conf->boundary_config_part.boundary_phi_left, 
+			     conf->boundary_config_part.boundary_phi_right,
+			     conf->boundary_config_part.boundary_phi_top, 
+			     conf->boundary_config_part.boundary_phi_bottom );
 }
 
 
@@ -167,25 +169,27 @@ void Spatial_mesh::write_to_file( FILE *f )
 
 void Spatial_mesh::grid_x_size_gt_zero( Config *conf )
 {
-    check_and_exit_if_not( conf->grid_x_size > 0,
+    check_and_exit_if_not( conf->mesh_config_part.grid_x_size > 0,
 			   "grid_x_size < 0" );    
 }
 
 void Spatial_mesh::grid_x_step_gt_zero_le_grid_x_size( Config *conf )
 {
-    check_and_exit_if_not( conf->grid_x_step > 0 && conf->grid_x_step <= conf->grid_x_size,
+    check_and_exit_if_not( ( conf->mesh_config_part.grid_x_step > 0 ) && 
+			   ( conf->mesh_config_part.grid_x_step <= conf->mesh_config_part.grid_x_size ),
 			   "grid_x_step < 0 or grid_x_step >= grid_x_size" );    
 }
 
 void Spatial_mesh::grid_y_size_gt_zero( Config *conf )
 {
-    check_and_exit_if_not( conf->grid_y_size > 0,
+    check_and_exit_if_not( conf->mesh_config_part.grid_y_size > 0,
 			   "grid_y_size < 0" );    
 }
 
 void Spatial_mesh::grid_y_step_gt_zero_le_grid_y_size( Config *conf )
 {
-    check_and_exit_if_not( conf->grid_y_step > 0 && conf->grid_y_step <= conf->grid_y_size,
+    check_and_exit_if_not( ( conf->mesh_config_part.grid_y_step > 0 ) && 
+			   ( conf->mesh_config_part.grid_y_step <= conf->mesh_config_part.grid_y_size ),
 			   "grid_y_step < 0 or grid_y_step >= grid_y_size" );    
 }
 
@@ -193,7 +197,7 @@ void Spatial_mesh::grid_y_step_gt_zero_le_grid_y_size( Config *conf )
 void Spatial_mesh::check_and_exit_if_not( const bool &should_be, const std::string &message )
 {
     if( !should_be ){
-	std::cout << "Error: " + message << std::endl;
+	std::cout << "Error: " << message << std::endl;
 	exit( EXIT_FAILURE );
     }
     return;

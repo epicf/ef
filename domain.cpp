@@ -77,10 +77,10 @@ void Domain::push_particles()
     return;
 }
 
-void Domain::apply_domain_constrains( )
+void Domain::apply_domain_constrains()
 {
-    apply_domain_boundary_conditions( );
-    //generate_new_particles();
+    apply_domain_boundary_conditions();
+    generate_new_particles();
     return;
 }
 
@@ -157,6 +157,13 @@ bool Domain::out_of_bound( const Particle &p )
 
 }
 
+void Domain::generate_new_particles()
+{
+    part_src.generate_each_step();
+    return;
+}
+
+
 //
 // Update time grid
 //
@@ -184,22 +191,24 @@ void Domain::write_step_to_save( Config *conf )
 
 void Domain::write( Config *conf )
 {
-    char *output_filename_prefix = conf->output_filename_prefix;
-    char *output_filename_suffix = conf->output_filename_suffix;
-    const char *file_name_to_write;
+    std::string output_filename_prefix = conf->output_filename_config_part.output_filename_prefix;
+    std::string output_filename_suffix = conf->output_filename_config_part.output_filename_suffix;
+    std::string file_name_to_write;
     
     file_name_to_write = construct_output_filename( output_filename_prefix, 
 						    time_grid.current_node,
-						    output_filename_suffix  ).c_str();
+						    output_filename_suffix  );
 			           
-    FILE *f = fopen(file_name_to_write, "w");
+    FILE *f = fopen(file_name_to_write.c_str(), "w");
     if (f == NULL) {
-	printf( "Error: can't open file \'%s\' to save results of simulation!\n", file_name_to_write );
-	printf( "Recheck 'output_filename_prefix' key in config file.\n" );
-	printf( "Make sure the directory you want to save to exists.\n" );
+	std::cout << "Error: can't open file \'" << file_name_to_write << "\' to save results of simulation!" 
+		  << std::endl;
+	std::cout << "Recheck \'output_filename_prefix\' key in config file." << std::endl;
+	std::cout << "Make sure the directory you want to save to exists." << std::endl;
 	exit( EXIT_FAILURE );
     }
-    printf ("Writing step %d to file %s\n", time_grid.current_node, file_name_to_write);
+    std::cout << "Writing step " << time_grid.current_node 
+	      << " to file " << file_name_to_write << std::endl;
 	    
     time_grid.write_to_file( f );
     spat_mesh.write_to_file( f );
@@ -213,9 +222,12 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 				       const int current_time_step,
 				       const std::string output_filename_suffix )
 {    
+    std::stringstream step_string;
+    step_string << std::setfill('0') << std::setw(5) <<  current_time_step;
+
     std::string filename;
     filename = output_filename_prefix + 
-	std::to_string( current_time_step ) + 
+	step_string.str() + 
 	output_filename_suffix;
     return filename;
 }
@@ -226,7 +238,7 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 
 Domain::~Domain()
 {
-    printf( "TODO: free domain.\n" );
+    std::cout << "TODO: free domain.\n";
     return;
 }
 
