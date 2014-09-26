@@ -2,7 +2,7 @@
 
 // Eval charge density on grid
 void Particle_to_mesh_map::weight_particles_charge_to_mesh( 
-    Spatial_mesh &spat_mesh, Particle_source &part_src  )
+    Spatial_mesh &spat_mesh, Particle_sources &particle_sources  )
 {
     // Rewrite:
     // forall particles {
@@ -14,17 +14,19 @@ void Particle_to_mesh_map::weight_particles_charge_to_mesh(
     int tr_i, tr_j; // 'tr' = 'top_right'
     double tr_x_weight, tr_y_weight;
 
-    for ( auto& p : part_src.particles ) {
-	next_node_num_and_weight( vec2d_x( p.position ), dx, &tr_i, &tr_x_weight );
-	next_node_num_and_weight( vec2d_y( p.position ), dy, &tr_j, &tr_y_weight );
-	spat_mesh.charge_density[tr_i][tr_j] +=
-	    tr_x_weight * tr_y_weight * p.charge;
-	spat_mesh.charge_density[tr_i-1][tr_j] +=
-	    ( 1.0 - tr_x_weight ) * tr_y_weight * p.charge;
-	spat_mesh.charge_density[tr_i][tr_j-1] +=
-	    tr_x_weight * ( 1.0 - tr_y_weight ) * p.charge;
-	spat_mesh.charge_density[tr_i-1][tr_j-1] +=
-	    ( 1.0 - tr_x_weight ) * ( 1.0 - tr_y_weight ) * p.charge;
+    for( auto& part_src: particle_sources.sources ) {
+	for( auto& p : part_src.particles ) {
+	    next_node_num_and_weight( vec2d_x( p.position ), dx, &tr_i, &tr_x_weight );
+	    next_node_num_and_weight( vec2d_y( p.position ), dy, &tr_j, &tr_y_weight );
+	    spat_mesh.charge_density[tr_i][tr_j] +=
+		tr_x_weight * tr_y_weight * p.charge;
+	    spat_mesh.charge_density[tr_i-1][tr_j] +=
+		( 1.0 - tr_x_weight ) * tr_y_weight * p.charge;
+	    spat_mesh.charge_density[tr_i][tr_j-1] +=
+		tr_x_weight * ( 1.0 - tr_y_weight ) * p.charge;
+	    spat_mesh.charge_density[tr_i-1][tr_j-1] +=
+		( 1.0 - tr_x_weight ) * ( 1.0 - tr_y_weight ) * p.charge;
+	}		
     }
     return;
 }

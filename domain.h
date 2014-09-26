@@ -26,7 +26,7 @@ class Domain {
     Spatial_mesh spat_mesh;
     Particle_to_mesh_map particle_to_mesh_map;
     Field_solver field_solver;    
-    Particle_source part_src;
+    Particle_sources particle_sources;
   public:
     Domain( Config *conf );
     void run_pic( Config *conf );

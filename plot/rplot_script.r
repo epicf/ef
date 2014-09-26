@@ -165,13 +165,18 @@ plot_density <- function( dataframe_to_plot, domain_properties, filename ) {
 
 extract_data_for_particles_coords_plot <- function( data ){
   particles_start <- grep( "^### Particles", data )
-  particles_header <- 2
+  particles_end <- c( particles_start[-1]-1, length(data) )
+  particles_header <- 3
   cols_to_read <- c( "NULL", "NULL", "NULL", "numeric", "numeric", "numeric", "numeric" )
   col_names <- c(NA, NA, NA, "x", "y", "px", "py" )
-  particles_data <-
-    read.table( textConnection( tail( data, -( particles_start + particles_header ) ) ),
-                colClasses = cols_to_read, 
-                col.names = col_names )               
+  particles_data <- list()
+  for ( i in seq_along( particles_start ) ) {
+      particles_data[[i]] <-
+          read.table(
+              textConnection( data[ ( particles_start[i] + particles_header ) : particles_end[i] ] ),
+              colClasses = cols_to_read, 
+              col.names = col_names )
+  }
   return( particles_data )
 }
 
@@ -198,18 +203,23 @@ plot_particles_coords <- function( particles_data, domain_properties, outfile ) 
          xlab = "X", ylab = "Y"
          )
 
-    points( particles_data$x, particles_data$y,
-            pch = 20, col = "black")
+    for ( i in seq_along( particles_data ) ) {        
+        #points( particles_data[[i]]$x, particles_data[[i]]$y,
+        #pch = i, col = "black")
+        points( particles_data[[i]]$x, particles_data[[i]]$y,
+               pch = i, col = "black" )
 
-    mean_p <- mean( sqrt( particles_data$px^2 + particles_data$py^2 ) )
-    max_p <- max( sqrt( particles_data$px^2 + particles_data$py^2 ) )
-    arrows( particles_data$x,
-            particles_data$y,
-            particles_data$x + particles_data$px/mean_p,
-            particles_data$y + particles_data$py/mean_p,
-            length = 0.05, angle = 20, 
-            col = "red" )
-    
+
+        mean_p <- mean( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
+        max_p <- max( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
+        arrows( particles_data[[i]]$x,
+               particles_data[[i]]$y,
+               particles_data[[i]]$x + particles_data[[i]]$px/mean_p,
+               particles_data[[i]]$y + particles_data[[i]]$py/mean_p,
+               length = 0.05, angle = 20, 
+               col = "red" )
+    }
+
     box()
     axis( 1, las = 1, lwd.ticks=2, at = xticks, labels = xtickslabels )
     axis( 2, las = 1, lwd.ticks=2, at = yticks, labels = ytickslabels )         
