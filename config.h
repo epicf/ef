@@ -62,6 +62,8 @@ public:
     double particle_source_x_right;
     double particle_source_y_bottom;
     double particle_source_y_top;
+    double particle_source_mean_momentum_x;
+    double particle_source_mean_momentum_y;
     double particle_source_temperature;
     double particle_source_charge;
     double particle_source_mass;
@@ -75,6 +77,8 @@ public:
 	particle_source_x_right( ptree.get<double>("particle_source_x_right") ),
         particle_source_y_bottom( ptree.get<double>("particle_source_y_bottom") ),
 	particle_source_y_top( ptree.get<double>("particle_source_y_top") ),
+	particle_source_mean_momentum_x( ptree.get<double>("particle_source_mean_momentum_x") ),
+	particle_source_mean_momentum_y( ptree.get<double>("particle_source_mean_momentum_y") ),
 	particle_source_temperature( ptree.get<double>("particle_source_temperature") ),
         particle_source_charge( ptree.get<double>("particle_source_charge") ),
 	particle_source_mass( ptree.get<double>("particle_source_mass") )
@@ -90,6 +94,8 @@ public:
 	std::cout << "particle_source_x_right = " << particle_source_x_right << std::endl;
 	std::cout << "particle_source_y_bottom = " << particle_source_y_bottom << std::endl;
 	std::cout << "particle_source_y_top = " << particle_source_y_top << std::endl;
+	std::cout << "particle_source_mean_momentum_x = " << particle_source_mean_momentum_x << std::endl;
+	std::cout << "particle_source_mean_momentum_y = " << particle_source_mean_momentum_y << std::endl;
 	std::cout << "particle_source_temperature = " << particle_source_temperature << std::endl;
 	std::cout << "particle_source_charge = " << particle_source_charge << std::endl;
 	std::cout << "particle_source_mass = " << particle_source_mass << std::endl;

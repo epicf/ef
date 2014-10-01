@@ -1,6 +1,6 @@
 #include "spatial_mesh.h"
 
-Spatial_mesh::Spatial_mesh( Config *conf )
+Spatial_mesh::Spatial_mesh( Config &conf )
 {
     check_correctness_of_related_config_fields( conf );
     init_x_grid( conf );
@@ -10,7 +10,7 @@ Spatial_mesh::Spatial_mesh( Config *conf )
 }
 
 
-void Spatial_mesh::check_correctness_of_related_config_fields( Config *conf )
+void Spatial_mesh::check_correctness_of_related_config_fields( Config &conf )
 {
     grid_x_size_gt_zero( conf );
     grid_x_step_gt_zero_le_grid_x_size( conf );
@@ -18,26 +18,32 @@ void Spatial_mesh::check_correctness_of_related_config_fields( Config *conf )
     grid_y_step_gt_zero_le_grid_y_size( conf );
 }
 
-void Spatial_mesh::init_x_grid( Config *conf )
+void Spatial_mesh::init_x_grid( Config &conf )
 {
-    x_volume_size = conf->mesh_config_part.grid_x_size;
-    x_n_nodes = ceil( conf->mesh_config_part.grid_x_size / conf->mesh_config_part.grid_x_step ) + 1;
+    x_volume_size = conf.mesh_config_part.grid_x_size;
+    x_n_nodes = 
+	ceil( conf.mesh_config_part.grid_x_size / conf.mesh_config_part.grid_x_step ) + 1;
     x_cell_size = x_volume_size / ( x_n_nodes - 1 );
-    if ( x_cell_size != conf->mesh_config_part.grid_x_step ) {
-	std::cout << "X_step was shrinked to " << x_cell_size << " from " 
-		  << conf->mesh_config_part.grid_x_step << " to fit round number of cells" << std::endl;
+    if ( x_cell_size != conf.mesh_config_part.grid_x_step ) {
+	std::cout.precision(3);
+	std::cout << "X_step was shrinked to " << x_cell_size 
+		  << " from " << conf.mesh_config_part.grid_x_step 
+		  << " to fit round number of cells" << std::endl;
     }    
     return;
 }
 
-void Spatial_mesh::init_y_grid( Config *conf )
+void Spatial_mesh::init_y_grid( Config &conf )
 {
-    y_volume_size = conf->mesh_config_part.grid_y_size;
-    y_n_nodes = ceil( conf->mesh_config_part.grid_y_size / conf->mesh_config_part.grid_y_step) + 1;
+    y_volume_size = conf.mesh_config_part.grid_y_size;
+    y_n_nodes = 
+	ceil( conf.mesh_config_part.grid_y_size / conf.mesh_config_part.grid_y_step) + 1;
     y_cell_size = y_volume_size / ( y_n_nodes -1 );
-    if ( y_cell_size != conf->mesh_config_part.grid_y_step ) {
-	std::cout << "Y_step was shrinked to " << y_cell_size << " from " 
-		  << conf->mesh_config_part.grid_y_step << " to fit round number of cells." << std::endl;
+    if ( y_cell_size != conf.mesh_config_part.grid_y_step ) {
+	std::cout.precision(3);
+	std::cout << "Y_step was shrinked to " << y_cell_size 
+		  << " from " << conf.mesh_config_part.grid_y_step 
+		  << " to fit round number of cells." << std::endl;
     }    
     return;
 }
@@ -52,7 +58,8 @@ void Spatial_mesh::allocate_ongrid_values( )
     if ( ( charge_density == NULL ) || 
 	 ( potential == NULL ) || 
 	 ( electric_field == NULL ) ) {
-	std::cout << "allocate_arrays_for_ongrid_values: rows: out of memory " << std::endl;
+	std::cout << "allocate_arrays_for_ongrid_values: rows: out of memory " 
+		  << std::endl;
 	exit( EXIT_FAILURE );	
     }
     for( int i = 0; i < nx; i++) {
@@ -62,7 +69,8 @@ void Spatial_mesh::allocate_ongrid_values( )
 	if ( ( charge_density[i] == NULL ) || 
 	     ( potential[i] == NULL ) || 
 	     ( electric_field[i] == NULL ) ) {
-	    std::cout << "allocate_arrays_for_ongrid_values: cols: out of memory " << std::endl;
+	    std::cout << "allocate_arrays_for_ongrid_values: cols: out of memory " 
+		      << std::endl;
 	    exit( EXIT_FAILURE );	
 	}
     }
@@ -82,12 +90,12 @@ void Spatial_mesh::clear_old_density_values()
 }
 
 
-void Spatial_mesh::set_boundary_conditions( Config *conf )
+void Spatial_mesh::set_boundary_conditions( Config &conf )
 {
-    set_boundary_conditions( conf->boundary_config_part.boundary_phi_left, 
-			     conf->boundary_config_part.boundary_phi_right,
-			     conf->boundary_config_part.boundary_phi_top, 
-			     conf->boundary_config_part.boundary_phi_bottom );
+    set_boundary_conditions( conf.boundary_config_part.boundary_phi_left, 
+			     conf.boundary_config_part.boundary_phi_right,
+			     conf.boundary_config_part.boundary_phi_top, 
+			     conf.boundary_config_part.boundary_phi_bottom );
 }
 
 
@@ -119,10 +127,13 @@ void Spatial_mesh::print()
 
 void Spatial_mesh::print_grid()
 {
-    printf( "Grid:\n" );
-    printf( "Length: x = %f, y = %f \n", x_volume_size, y_volume_size );
-    printf( "Cell size: x = %f, y = %f \n", x_cell_size, y_cell_size );
-    printf( "Total nodes: x = %d, y = %d \n", x_n_nodes, y_n_nodes );
+    std::cout << "Grid:" << std::endl;
+    std::cout << "Length: x = " << x_volume_size << ", "
+	      << "y = " << y_volume_size << std::endl;
+    std::cout << "Cell size: x = " << x_cell_size << ", "
+	      << "y = " << y_cell_size << std::endl;
+    std::cout << "Total nodes: x = " << x_n_nodes << ", "
+	      << "y = " << y_n_nodes << std::endl;
     return;
 }
 
@@ -130,66 +141,79 @@ void Spatial_mesh::print_ongrid_values()
 {
     int nx = x_n_nodes;
     int ny = y_n_nodes;
-    printf( "(row, col): \t charge_density \t potential \t electric_field(x,y) \n");
+    std::cout << "x_node \t\t y_node  charge_density   potential \t electric_field(x,y)" << std::endl;
+    std::cout.precision( 3 );
+    std::cout.setf( std::ios::fixed );
+    std::cout.fill(' ');
     for ( int i = 0; i < nx; i++ ) {
 	for ( int j = 0; j < ny; j++ ) {
-	    printf( "(%d,%d): \t %.3f \t %.3f \t (%.3f,%.3f) \n",
-		    i, j, 
-		    charge_density[i][j], potential[i][j], 
-		    vec2d_x( electric_field[i][j] ), vec2d_y( electric_field[i][j] ) );
+	    std::cout << std::setw(8) << i 
+			<< std::setw(8) << j 
+			<< std::setw(14) << charge_density[i][j]
+			<< std::setw(14) << potential[i][j]
+			<< std::setw(14) << vec2d_x( electric_field[i][j] ) 
+			<< std::setw(14) << vec2d_y( electric_field[i][j] ) 
+			<< std::endl;
 	}
     }
     return;
 }
 
-void Spatial_mesh::write_to_file( FILE *f )
+void Spatial_mesh::write_to_file( std::ofstream &output_file )
 {
     int nx = x_n_nodes;
     int ny = y_n_nodes;
 
-    fprintf( f, "### Grid:\n" );
-    fprintf( f, "X volume size = %f \n", x_volume_size );
-    fprintf( f, "Y volume size = %f \n", y_volume_size );
-    fprintf( f, "X cell size = %f \n", x_cell_size );
-    fprintf( f, "Y cell size = %f \n", y_cell_size );
-    fprintf( f, "X nodes = %d \n", x_n_nodes );
-    fprintf( f, "Y nodes = %d \n", y_n_nodes );
-    fprintf( f, "x_node  y_node  charge_density   potential \t electric_field(x,y) \n");
+    output_file << "### Grid" << std::endl;
+    output_file << "X volume size = " << x_volume_size << std::endl;
+    output_file << "Y volume size = " << y_volume_size << std::endl;
+    output_file << "X cell size = " << x_cell_size << std::endl;
+    output_file << "Y cell size = " << y_cell_size << std::endl;
+    output_file << "X nodes = " << x_n_nodes << std::endl;
+    output_file << "Y nodes = " << y_n_nodes << std::endl;
+    output_file << "x_node \t\t y_node  charge_density   potential \t electric_field(x,y)" << std::endl;
+    output_file.precision( 3 );
+    output_file.setf( std::ios::fixed );
+    output_file.fill(' ');
     for ( int i = 0; i < nx; i++ ) {
 	for ( int j = 0; j < ny; j++ ) {
-	    fprintf( f, "%-8d %-8d %-14.3f %-14.3f %-14.3f %-14.3f \n",
-		    i, j, 
-		    charge_density[i][j], 
-		    potential[i][j], 
-		    vec2d_x( electric_field[i][j] ), vec2d_y( electric_field[i][j] ) );
+	    output_file << std::setw(8) << i 
+			<< std::setw(8) << j 
+			<< std::setw(14) << charge_density[i][j]
+			<< std::setw(14) << potential[i][j]
+			<< std::setw(14) << vec2d_x( electric_field[i][j] ) 
+			<< std::setw(14) << vec2d_y( electric_field[i][j] ) 
+			<< std::endl;
 	}
     }
     return;
 }
 
-void Spatial_mesh::grid_x_size_gt_zero( Config *conf )
+void Spatial_mesh::grid_x_size_gt_zero( Config &conf )
 {
-    check_and_exit_if_not( conf->mesh_config_part.grid_x_size > 0,
+    check_and_exit_if_not( conf.mesh_config_part.grid_x_size > 0,
 			   "grid_x_size < 0" );    
 }
 
-void Spatial_mesh::grid_x_step_gt_zero_le_grid_x_size( Config *conf )
+void Spatial_mesh::grid_x_step_gt_zero_le_grid_x_size( Config &conf )
 {
-    check_and_exit_if_not( ( conf->mesh_config_part.grid_x_step > 0 ) && 
-			   ( conf->mesh_config_part.grid_x_step <= conf->mesh_config_part.grid_x_size ),
+    check_and_exit_if_not( 
+	( conf.mesh_config_part.grid_x_step > 0 ) && 
+	( conf.mesh_config_part.grid_x_step <= conf.mesh_config_part.grid_x_size ),
 			   "grid_x_step < 0 or grid_x_step >= grid_x_size" );    
 }
 
-void Spatial_mesh::grid_y_size_gt_zero( Config *conf )
+void Spatial_mesh::grid_y_size_gt_zero( Config &conf )
 {
-    check_and_exit_if_not( conf->mesh_config_part.grid_y_size > 0,
+    check_and_exit_if_not( conf.mesh_config_part.grid_y_size > 0,
 			   "grid_y_size < 0" );    
 }
 
-void Spatial_mesh::grid_y_step_gt_zero_le_grid_y_size( Config *conf )
+void Spatial_mesh::grid_y_step_gt_zero_le_grid_y_size( Config &conf )
 {
-    check_and_exit_if_not( ( conf->mesh_config_part.grid_y_step > 0 ) && 
-			   ( conf->mesh_config_part.grid_y_step <= conf->mesh_config_part.grid_y_size ),
+    check_and_exit_if_not( 
+	( conf.mesh_config_part.grid_y_step > 0 ) && 
+	( conf.mesh_config_part.grid_y_step <= conf.mesh_config_part.grid_y_size ),
 			   "grid_y_step < 0 or grid_y_step >= grid_y_size" );    
 }
 
@@ -200,5 +224,19 @@ void Spatial_mesh::check_and_exit_if_not( const bool &should_be, const std::stri
 	std::cout << "Error: " << message << std::endl;
 	exit( EXIT_FAILURE );
     }
+    return;
+}
+
+Spatial_mesh::~Spatial_mesh()
+{
+    int nx = x_n_nodes;
+    for( int i = 0; i < nx; i++) {
+	free( charge_density[i] );
+	free( potential[i] );
+	free( electric_field[i] );
+    }
+    free( charge_density );
+    free( potential );
+    free( electric_field );    
     return;
 }

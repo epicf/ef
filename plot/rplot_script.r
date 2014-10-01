@@ -26,7 +26,8 @@ extract_domain_properties <- function( file ){
                            "y_cell_size",
                            "x_nodes",
                            "y_nodes" )
-    particles_subsections <- c( "total_number_of_particles" )
+    particles_subsections <- c("source_name",
+                               "total_number_of_particles" )
 
     domain_properties$time <- vector( "list", length( time_subsections ) )
     domain_properties$grid <- vector( "list", length( grid_subsections ) )
@@ -45,11 +46,15 @@ extract_domain_properties <- function( file ){
     }
 
     search_pattern_in_file <- function( pattern, file ) {
-        return( grep( pattern, file, value=T ) )
+      return( grep( pattern, file, value=T ) )        
     }
 
     extract_values_from_found_pattern <- function( s ) {
-        return( as.numeric( strsplit( s, "=")[[c(1,2)]] ) )
+      if( !( grepl( "Source name", s )[1] ) ) {
+        return( as.numeric( sapply( strsplit( s, "="), function(x){ x[2] } ) ) )
+      } else {
+        return( sapply( strsplit( s, "="), function(x){ x[2] } ) )
+      }
     }
     
     for ( i in seq_along( domain_properties ) ) {
@@ -164,18 +169,19 @@ plot_density <- function( dataframe_to_plot, domain_properties, filename ) {
 
 
 extract_data_for_particles_coords_plot <- function( data ){
-  particles_start <- grep( "^### Particles", data )
+  particles_start <- grep( "^Source name", data )
   particles_end <- c( particles_start[-1]-1, length(data) )
   particles_header <- 3
   cols_to_read <- c( "NULL", "NULL", "NULL", "numeric", "numeric", "numeric", "numeric" )
   col_names <- c(NA, NA, NA, "x", "y", "px", "py" )
   particles_data <- list()
   for ( i in seq_along( particles_start ) ) {
-      particles_data[[i]] <-
-          read.table(
-              textConnection( data[ ( particles_start[i] + particles_header ) : particles_end[i] ] ),
-              colClasses = cols_to_read, 
-              col.names = col_names )
+    particles_data[[i]] <-
+      read.table(
+        textConnection(
+          data[ ( particles_start[i] + particles_header ) : particles_end[i] ] ),
+        colClasses = cols_to_read, 
+        col.names = col_names )
   }
   return( particles_data )
 }
@@ -204,26 +210,33 @@ plot_particles_coords <- function( particles_data, domain_properties, outfile ) 
          )
 
     for ( i in seq_along( particles_data ) ) {        
-        #points( particles_data[[i]]$x, particles_data[[i]]$y,
-        #pch = i, col = "black")
-        points( particles_data[[i]]$x, particles_data[[i]]$y,
-               pch = i, col = "black" )
+      points(particles_data[[i]]$x, particles_data[[i]]$y,
+             pch = i, col = i )
 
-
-        mean_p <- mean( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
-        max_p <- max( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
-        arrows( particles_data[[i]]$x,
-               particles_data[[i]]$y,
-               particles_data[[i]]$x + particles_data[[i]]$px/mean_p,
-               particles_data[[i]]$y + particles_data[[i]]$py/mean_p,
-               length = 0.05, angle = 20, 
-               col = "red" )
+      mean_p <- mean( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
+      max_p <- max( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
+      arrows(particles_data[[i]]$x,
+             particles_data[[i]]$y,
+             particles_data[[i]]$x + particles_data[[i]]$px/mean_p,
+             particles_data[[i]]$y + particles_data[[i]]$py/mean_p,
+             length = 0.05, angle = 20, 
+             col = i )
     }
 
     box()
     axis( 1, las = 1, lwd.ticks=2, at = xticks, labels = xtickslabels )
     axis( 2, las = 1, lwd.ticks=2, at = yticks, labels = ytickslabels )         
 
+    legentries <- domain_properties$particles$source_name
+    legpch <- seq_along( legentries )
+    legend(x="topright",
+           legend = legentries,
+           bty = "n",
+           pch = legpch,
+           seg.len = 2.7,
+           col = seq_along( legentries ) ,
+           cex = 1.5)
+    
     dev.off()
 }
 

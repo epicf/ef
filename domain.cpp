@@ -9,7 +9,7 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 // Domain initialization
 //
 
-Domain::Domain( Config *conf ) :
+Domain::Domain( Config &conf ) :
     time_grid( Time_grid( conf ) ),
     spat_mesh( Spatial_mesh( conf ) ),
     particle_to_mesh_map( Particle_to_mesh_map() ),
@@ -23,7 +23,7 @@ Domain::Domain( Config *conf ) :
 // Pic simulation 
 //
 
-void Domain::run_pic( Config *conf )
+void Domain::run_pic( Config &conf )
 {
     int total_time_iterations, current_node;
     total_time_iterations = time_grid.total_nodes - 1;
@@ -121,14 +121,7 @@ void Domain::update_momentum( double dt )
 
 void Domain::update_position( double dt )
 {
-    Vec2d pos_shift;
-
-    for( auto &src : particle_sources.sources ) {
-	for ( auto &p : src.particles ) {
-	    pos_shift = vec2d_times_scalar( p.momentum, dt / p.mass );
-	    p.position = vec2d_add( p.position, pos_shift );
-	}
-    }
+    particle_sources.update_particles_position( dt );
     return;
 }
 
@@ -164,9 +157,7 @@ bool Domain::out_of_bound( const Particle &p )
 
 void Domain::generate_new_particles()
 {
-    for( auto &src : particle_sources.sources ) {
-	src.generate_each_step();
-    }
+    particle_sources.generate_each_step();
     return;
 }
 
@@ -177,8 +168,7 @@ void Domain::generate_new_particles()
 
 void Domain::update_time_grid()
 {
-    time_grid.current_node++;
-    time_grid.current_time += time_grid.time_step_size;
+    time_grid.update_to_next_step();
     return;
 }
 
@@ -186,7 +176,7 @@ void Domain::update_time_grid()
 // Write domain to file
 //
 
-void Domain::write_step_to_save( Config *conf )
+void Domain::write_step_to_save( Config &conf )
 {
     int current_step = time_grid.current_node;
     int step_to_save = time_grid.node_to_save;
@@ -196,34 +186,38 @@ void Domain::write_step_to_save( Config *conf )
     return;
 }
 
-void Domain::write( Config *conf )
+void Domain::write( Config &conf )
 {
-    std::string output_filename_prefix = conf->output_filename_config_part.output_filename_prefix;
-    std::string output_filename_suffix = conf->output_filename_config_part.output_filename_suffix;
+    std::string output_filename_prefix = 
+	conf.output_filename_config_part.output_filename_prefix;
+    std::string output_filename_suffix = 
+	conf.output_filename_config_part.output_filename_suffix;
     std::string file_name_to_write;
     
     file_name_to_write = construct_output_filename( output_filename_prefix, 
 						    time_grid.current_node,
 						    output_filename_suffix  );
 			           
-    FILE *f = fopen(file_name_to_write.c_str(), "w");
-    if (f == NULL) {
-	std::cout << "Error: can't open file \'" << file_name_to_write << "\' to save results of simulation!" 
+    std::ofstream output_file( file_name_to_write );
+    if ( !output_file.is_open() ) {
+	std::cout << "Error: can't open file \'" 
+		  << file_name_to_write 
+		  << "\' to save results of simulation!" 
 		  << std::endl;
-	std::cout << "Recheck \'output_filename_prefix\' key in config file." << std::endl;
-	std::cout << "Make sure the directory you want to save to exists." << std::endl;
+	std::cout << "Recheck \'output_filename_prefix\' key in config file." 
+		  << std::endl;
+	std::cout << "Make sure the directory you want to save to exists." 
+		  << std::endl;
 	exit( EXIT_FAILURE );
     }
     std::cout << "Writing step " << time_grid.current_node 
 	      << " to file " << file_name_to_write << std::endl;
 	    
-    time_grid.write_to_file( f );
-    spat_mesh.write_to_file( f );
-    for( auto &src : particle_sources.sources ) {
-	src.write_to_file( f );
-    }
+    time_grid.write_to_file( output_file );
+    spat_mesh.write_to_file( output_file );
+    particle_sources.write_to_file( output_file );
 
-    fclose(f);
+    output_file.close();
     return;
 }
 
@@ -257,15 +251,6 @@ Domain::~Domain()
 
 void Domain::print_particles() 
 {
-    for( auto &src : particle_sources.sources ) {
-	for ( auto &p : src.particles ) {
-	    printf( "%d: (%.2f,%.2f), (%.2f,%.2f) \n", 
-		    p.id, 
-		    vec2d_x( p.position ),
-		    vec2d_y( p.position ),
-		    vec2d_x( p.momentum ),
-		    vec2d_y( p.momentum ));
-	}
-    }
+    particle_sources.print_particles();
     return;
 }

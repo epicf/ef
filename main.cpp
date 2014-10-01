@@ -4,7 +4,7 @@
 #include "domain.h"
 #include "parse_cmd_line.h"
 
-void pic_simulation( Config *conf );
+void pic_simulation( Config &conf );
 
 int main( int argc, char *argv[] )
 {
@@ -17,12 +17,12 @@ int main( int argc, char *argv[] )
     Config conf( config_file );
     conf.print();
     // run simulation
-    pic_simulation( &conf );
+    pic_simulation( conf );
     // finalize_whatever_left
     return 0;
 }
 
-void pic_simulation( Config *conf )
+void pic_simulation( Config &conf )
 {
   Domain dom( conf );
   

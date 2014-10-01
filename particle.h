@@ -1,7 +1,8 @@
 #ifndef _PARTICLE_H_
 #define _PARTICLE_H_
 
-#include <cstdio>
+#include "iostream"
+#include "iomanip"
 #include "vec2d.h"
 
 class Particle {
@@ -14,6 +15,8 @@ class Particle {
   public:
     Particle( int id, double charge, double mass, Vec2d position, Vec2d momentum );
     void print();
+    void print_short();
+    void update_position( double dt );
     virtual ~Particle() {};
 };
 
