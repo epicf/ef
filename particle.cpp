@@ -16,6 +16,13 @@ void Particle::update_position( double dt )
     position = vec2d_add( position, pos_shift );
 }
 
+bool Particle::point_inside( const dealii::Point<2> &p ) const
+{
+    double particle_radius = 1.0/std::pow(2,6);
+    dealii::Point<2> particle_center( vec2d_x( position ), vec2d_y( position ) );    
+    return particle_center.distance( p ) < particle_radius;
+}
+
 void Particle::print()
 {
     std::cout.setf( std::ios::fixed );

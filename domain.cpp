@@ -10,12 +10,11 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 //
 
 Domain::Domain( Config &conf ) :
-    time_grid( Time_grid( conf ) ),
-    spat_mesh( Spatial_mesh( conf ) ),
-    particle_to_mesh_map( Particle_to_mesh_map() ),
-    field_solver( Field_solver() ),
-    particle_sources( Particle_sources( conf ) )
-{
+    time_grid( conf ),
+    domain_geometry( conf ),
+    particle_sources( conf ),
+    field_solver( conf, domain_geometry, particle_sources )
+{    
     return;
 }
 
@@ -41,7 +40,7 @@ void Domain::run_pic( Config &conf )
 
 void Domain::prepare_leap_frog()
 {
-    eval_charge_density();
+    //eval_charge_density();
     eval_potential_and_fields();
     shift_velocities_half_time_step_back();
     return;
@@ -51,23 +50,22 @@ void Domain::advance_one_time_step()
 {
     push_particles();
     apply_domain_constrains();
-    eval_charge_density();
+    //eval_charge_density();
     eval_potential_and_fields();
     update_time_grid();
     return;
 }
 
-void Domain::eval_charge_density()
-{
-    spat_mesh.clear_old_density_values();
-    particle_to_mesh_map.weight_particles_charge_to_mesh( spat_mesh, particle_sources );
-    return;
-}
+// void Domain::eval_charge_density()
+// {
+//     spat_mesh.clear_old_density_values();
+//     particle_to_mesh_map.weight_particles_charge_to_mesh( spat_mesh, particle_sources );
+//     return;
+// }
 
 void Domain::eval_potential_and_fields()
 {
-    field_solver.eval_potential( &spat_mesh );
-    field_solver.eval_fields_from_potential( &spat_mesh );
+    field_solver.eval_potential_and_fields();
     return;
 }
 
@@ -111,7 +109,7 @@ void Domain::update_momentum( double dt )
 
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
-	    force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
+	    force = field_solver.force_on_particle( p );
 	    dp = vec2d_times_scalar( force, dt );
 	    p.momentum = vec2d_add( p.momentum, dp );
 	}
@@ -149,8 +147,8 @@ bool Domain::out_of_bound( const Particle &p )
     bool out;
     
     out = 
-	( x >= spat_mesh.x_volume_size ) || ( x <= 0 ) ||
-	( y >= spat_mesh.y_volume_size ) || ( y <= 0 ) ;
+	( x >= domain_geometry.x_volume_size ) || ( x <= 0 ) ||
+	( y >= domain_geometry.y_volume_size ) || ( y <= 0 ) ;
     return out;
 
 }
@@ -214,7 +212,7 @@ void Domain::write( Config &conf )
 	      << " to file " << file_name_to_write << std::endl;
 	    
     time_grid.write_to_file( output_file );
-    spat_mesh.write_to_file( output_file );
+    domain_geometry.write_to_file( output_file );
     particle_sources.write_to_file( output_file );
 
     output_file.close();

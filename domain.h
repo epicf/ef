@@ -9,24 +9,20 @@
 #include <functional>
 #include "config.h"
 #include "time_grid.h"
-#include "spatial_mesh.h"
-#include "particle_to_mesh_map.h"
+#include "domain_geometry.h"
 #include "field_solver.h"
 #include "particle_source.h"
 #include "particle.h"
 #include "vec2d.h"
-
-//#define M_PI 3.14159265358979323846264338327
 
 class Domain {
   private:
     //Domain() {};
   public:
     Time_grid time_grid;
-    Spatial_mesh spat_mesh;
-    Particle_to_mesh_map particle_to_mesh_map;
-    Field_solver field_solver;    
+    Domain_geometry domain_geometry;
     Particle_sources particle_sources;
+    Field_solver<2> field_solver;    
   public:
     Domain( Config &conf );
     void run_pic( Config &conf );

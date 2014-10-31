@@ -1,22 +1,24 @@
 #ifndef _PARTICLE_H_
 #define _PARTICLE_H_
 
-#include "iostream"
-#include "iomanip"
+#include <deal.II/base/point.h>
+#include <iostream>
+#include <iomanip>
 #include "vec2d.h"
 
 class Particle {
-  public:
+public:
     int id;
     double charge;
     double mass;
     Vec2d position;
     Vec2d momentum;
-  public:
+public:
     Particle( int id, double charge, double mass, Vec2d position, Vec2d momentum );
     void print();
     void print_short();
     void update_position( double dt );
+    bool point_inside( const dealii::Point<2> &p ) const;
     virtual ~Particle() {};
 };
 
