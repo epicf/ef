@@ -105,13 +105,13 @@ void Domain::shift_velocities_half_time_step_back()
 
 void Domain::update_momentum( double dt )
 {
-    Vec2d force, dp;
+    dealii::Point<2> force, dp;
 
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
 	    force = field_solver.force_on_particle( p );
-	    dp = vec2d_times_scalar( force, dt );
-	    p.momentum = vec2d_add( p.momentum, dp );
+	    dp = force * dt;
+	    p.momentum += dp;
 	}
     }
     return;
@@ -134,16 +134,16 @@ void Domain::apply_domain_boundary_conditions()
 	    std::remove_if( 
 		std::begin( src.particles ), 
 		std::end( src.particles ), 
-		[this]( Particle &p ){ return out_of_bound(p); } ), 
+		[this]( Particle<2> &p ){ return out_of_bound(p); } ), 
 	    std::end( src.particles ) );
     }
     return;
 }
 
-bool Domain::out_of_bound( const Particle &p )
+bool Domain::out_of_bound( const Particle<2> &p )
 {
-    double x = vec2d_x( p.position );
-    double y = vec2d_y( p.position );
+    double x = p.position[0];
+    double y = p.position[1];
     bool out;
     
     out = 

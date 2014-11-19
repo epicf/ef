@@ -54,7 +54,6 @@
 #include "config.h"
 #include "particle.h"
 #include "particle_source.h"
-#include "vec2d.h"
 
 using namespace dealii;
 
@@ -66,7 +65,7 @@ public:
 		  Domain_geometry &domain_geometry,
 		  Particle_sources &particle_sources );
     void eval_potential_and_fields();    
-    Vec2d force_on_particle( Particle &p );
+    Point<dim> force_on_particle( Particle<dim> &p );
     virtual ~Field_solver() {};
 
 private:
@@ -310,29 +309,24 @@ void Field_solver<dim>::solution_gradient_at_vertices_near_point(
 
 
 template <int dim>
-Vec2d Field_solver<dim>::force_on_particle( Particle &p )
+Point<dim> Field_solver<dim>::force_on_particle( Particle<dim> &p )
 {
-    const Point<2> pos = Point<2>( vec2d_x( p.position ), vec2d_y( p.position ) );
-    std::vector< Tensor< 1, 2 > > solution_gradient_at_vertices;
+    const Point<dim> pos = p.position;
+    std::vector< Tensor< 1, dim > > solution_gradient_at_vertices;
     std::vector< double > vertices_weights;
 
     solution_gradient_at_vertices_near_point( 
 	pos, solution_gradient_at_vertices, vertices_weights );
     
-    Vec2d field_from_node, total_field, force;
-    total_field = vec2d_zero();
+    bool initilize = true; // init with zeros
+    Point<dim> field_from_node( initilize ), total_field( initilize ), force( initilize );
 
     for( int i = 0; i < solution_gradient_at_vertices.size(); i++ ){
-	field_from_node = vec2d_init( 
-	    solution_gradient_at_vertices[i][0],
-	    solution_gradient_at_vertices[i][1] );
-	field_from_node = vec2d_times_scalar( 
-	    field_from_node,
-	    vertices_weights[i] );
-	total_field = vec2d_add( total_field, field_from_node );
-    }    
-    //
-    force = vec2d_times_scalar( total_field, p.charge );
+	field_from_node = solution_gradient_at_vertices[i] * vertices_weights[i];
+	total_field += field_from_node;
+    }
+
+    force = total_field * p.charge;
     return force;
 }
 

@@ -7,13 +7,13 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
+#include <deal.II/base/point.h>
 #include "config.h"
 #include "time_grid.h"
 #include "domain_geometry.h"
 #include "field_solver.h"
 #include "particle_source.h"
 #include "particle.h"
-#include "vec2d.h"
 
 class Domain {
   private:
@@ -45,7 +45,7 @@ class Domain {
     void update_position( double dt );
     // Boundaries and generation
     void apply_domain_boundary_conditions();
-    bool out_of_bound( const Particle &p );
+    bool out_of_bound( const Particle<2> &p );
     void generate_new_particles();
     // Various functions
     void print_particles();
