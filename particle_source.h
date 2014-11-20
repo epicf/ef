@@ -6,9 +6,9 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <deal.II/base/point.h>
 #include "config.h"
 #include "particle.h"
-#include "vec2d.h"
 
 class Single_particle_source{
 private:
@@ -22,7 +22,7 @@ private:
     double ytop;
     double ybottom;
     // Momentum
-    Vec2d mean_momentum;
+    dealii::Point<2> mean_momentum;
     double temperature;
     // Particle characteristics
     double charge;
@@ -30,7 +30,7 @@ private:
     // Random number generator
     std::default_random_engine rnd_gen;
 public:
-    std::vector<Particle> particles;
+    std::vector< Particle<2> > particles;
 public:
     Single_particle_source( Config &conf, Source_config_part &src_conf  );
     void generate_each_step();
@@ -45,12 +45,13 @@ private:
     // Todo: replace 'std::default_random_engine' type with something more general.
     void generate_num_of_particles( int num_of_particles );
     int generate_particle_id( const int number );
-    Vec2d uniform_position_in_rectangle( const double xleft,  const double ytop,
-					 const double xright, const double ybottom,
-					 std::default_random_engine &rnd_gen );
+    dealii::Point<2> uniform_position_in_rectangle( const double xleft,  const double ytop,
+						    const double xright, const double ybottom,
+						    std::default_random_engine &rnd_gen );
     double random_in_range( const double low, const double up, std::default_random_engine &rnd_gen );
-    Vec2d maxwell_momentum_distr( const Vec2d mean_momentum, const double temperature, const double mass, 
-				  std::default_random_engine &rnd_gen );
+    dealii::Point<2> maxwell_momentum_distr( const dealii::Point<2> mean_momentum, 
+					     const double temperature, const double mass, 
+					     std::default_random_engine &rnd_gen );
     // Check config
     void check_correctness_of_related_config_fields( 
 	Config &conf, Source_config_part &src_conf );
@@ -83,17 +84,20 @@ public:
 public:
     Particle_sources( Config &conf );
     virtual ~Particle_sources() {};
+
     void write_to_file( std::ofstream &output_file ) 
     {
 	output_file << "### Particles" << std::endl;
 	for( auto &src : sources )
 	    src.write_to_file( output_file );
     }
+
     void generate_each_step()
     {
 	for( auto &src : sources )
 	    src.generate_each_step();
     }
+
     void print_particles()
     {
 	for( auto &src : sources )
