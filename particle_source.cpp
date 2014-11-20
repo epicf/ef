@@ -37,8 +37,8 @@ void Single_particle_source::set_parameters_from_config( Source_config_part &src
     xright = src_conf.particle_source_x_right;
     ytop = src_conf.particle_source_y_top;
     ybottom = src_conf.particle_source_y_bottom;
-    mean_momentum = vec2d_init( src_conf.particle_source_mean_momentum_x, 
-				src_conf.particle_source_mean_momentum_y );
+    mean_momentum = dealii::Point<2>( src_conf.particle_source_mean_momentum_x, 
+				      src_conf.particle_source_mean_momentum_y );
     temperature = src_conf.particle_source_temperature;
     charge = src_conf.particle_source_charge;
     mass = src_conf.particle_source_mass;    
@@ -61,7 +61,7 @@ void Single_particle_source::generate_each_step()
     
 void Single_particle_source::generate_num_of_particles( int num_of_particles )
 {
-    Vec2d pos, mom;
+    dealii::Point<2> pos, mom;
     int id = 0;
                 
     for ( int i = 0; i < num_of_particles; i++ ) {
@@ -70,7 +70,6 @@ void Single_particle_source::generate_num_of_particles( int num_of_particles )
 	mom = maxwell_momentum_distr( mean_momentum, temperature, mass, rnd_gen );
 	particles.emplace_back( id, charge, mass, pos, mom );
     }
-
 }
 
 int Single_particle_source::generate_particle_id( const int number )
@@ -81,13 +80,13 @@ int Single_particle_source::generate_particle_id( const int number )
     return last_id++;
 }
 
-Vec2d Single_particle_source::uniform_position_in_rectangle( 
+dealii::Point<2> Single_particle_source::uniform_position_in_rectangle( 
     const double xleft,  const double ytop,
     const double xright, const double ybottom,
     std::default_random_engine &rnd_gen )
 {
-    return vec2d_init( random_in_range( xleft, xright, rnd_gen ), 
-		       random_in_range( ybottom, ytop, rnd_gen ) );
+    return dealii::Point<2>( random_in_range( xleft, xright, rnd_gen ), 
+			     random_in_range( ybottom, ytop, rnd_gen ) );
 }
 
 double Single_particle_source::random_in_range( 
@@ -98,22 +97,23 @@ double Single_particle_source::random_in_range(
     return uniform_distr( rnd_gen );
 }
 
-Vec2d Single_particle_source::maxwell_momentum_distr(
-    const Vec2d mean_momentum, const double temperature, const double mass, 
+dealii::Point<2> Single_particle_source::maxwell_momentum_distr(
+    const dealii::Point<2> mean_momentum, 
+    const double temperature, const double mass, 
     std::default_random_engine &rnd_gen )
 {    
-    double maxwell_gauss_std_mean_x = vec2d_x( mean_momentum );
-    double maxwell_gauss_std_mean_y = vec2d_y( mean_momentum );
+    double maxwell_gauss_std_mean_x = mean_momentum[0]; // recheck
+    double maxwell_gauss_std_mean_y = mean_momentum[1]; // recheck
     double maxwell_gauss_std_dev = sqrt( mass * temperature );
     std::normal_distribution<double> 
 	normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
     std::normal_distribution<double> 
 	normal_distr_y( maxwell_gauss_std_mean_y, maxwell_gauss_std_dev );
 
-    Vec2d mom;
-    mom = vec2d_init( normal_distr_x( rnd_gen ),
-		      normal_distr_y( rnd_gen ) );		     
-    mom = vec2d_times_scalar( mom, 1.0 ); // recheck
+    dealii::Point<2> mom;
+    mom = dealii::Point<2>( normal_distr_x( rnd_gen ),
+			    normal_distr_y( rnd_gen ) );
+    mom *= 1.0; // recheck
     return mom;
 }
 
@@ -149,10 +149,10 @@ void Single_particle_source::write_to_file( std::ofstream &output_file )
 	output_file << std::setw(10) << p.id
 		    << std::setw(10) << p.charge
 		    << std::setw(10) << p.mass
-		    << std::setw(10) << vec2d_x( p.position )
-		    << std::setw(10) << vec2d_y( p.position )
-		    << std::setw(10) << vec2d_x( p.momentum )
-		    << std::setw(10) << vec2d_y( p.momentum )
+		    << std::setw(10) << p.position[0] // recheck
+		    << std::setw(10) << p.position[1] // and 
+		    << std::setw(10) << p.momentum[0] // redo
+		    << std::setw(10) << p.momentum[1] //
 		    << std::endl;
     }
     return;
