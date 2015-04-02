@@ -13,11 +13,11 @@ SHELL:=/bin/bash -O extglob
 ##### Clang
 CC = clang++
 CFLAGS = -O1 -std=c++11 -g -Wall \
-	-fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls `pkg-config --cflags glib-2.0`
+	-fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls
 LDFLAGS = -g -fsanitize=address
 
 ### Libraries
-LIBS=-lm -L./fishpack -lfishpack_dbl -lboost_program_options `pkg-config --libs glib-2.0`
+LIBS=-lm -L./fishpack -lfishpack_dbl -lboost_program_options
 
 ### Sources and executable
 CPPSOURCES=$(wildcard *.cpp)
