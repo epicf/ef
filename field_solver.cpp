@@ -11,7 +11,7 @@ Field_solver::Field_solver( Spatial_mesh &spat_mesh )
     a = construct_equation_matrix( nx, ny, dx, dy );    
     rhs = gsl_vector_alloc( nrow );
     phi_vec = gsl_vector_alloc( nrow );
-
+    
     pmt = gsl_permutation_alloc( nrow );    
     gsl_linalg_LU_decomp( a, pmt, &perm_sign );    
 }
@@ -127,13 +127,13 @@ void Field_solver::init_rhs_vector( Spatial_mesh &spat_mesh )
 	    // left and right boundary
 	    rhs_at_node = rhs_at_node
 		- dy * dy *
-		( kronecker_delta(i,1) * spat_mesh.charge_density[0][j] +
-		  kronecker_delta(i,nx-2) * spat_mesh.charge_density[nx-1][j] );
+		( kronecker_delta(i,1) * spat_mesh.potential[0][j] +
+		  kronecker_delta(i,nx-2) * spat_mesh.potential[nx-1][j] );
 	    // top and bottom boundary
 	    rhs_at_node = rhs_at_node
 		- dx * dx *
-		( kronecker_delta(j,1) * spat_mesh.charge_density[i][0] +
-		  kronecker_delta(j,ny-2) * spat_mesh.charge_density[i][ny-1] );
+		( kronecker_delta(j,1) * spat_mesh.potential[i][0] +
+		  kronecker_delta(j,ny-2) * spat_mesh.potential[i][ny-1] );
 	    // set rhs vector values
 	    // todo: separate function for: (i - 1) + ( ( ny - 2 ) - j ) * (nx-2)
 	    gsl_vector_set( rhs, (i - 1) + ( ( ny - 2 ) - j ) * (nx-2), rhs_at_node );
