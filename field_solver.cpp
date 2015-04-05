@@ -1,134 +1,177 @@
 #include "field_solver.h"
 
-extern "C" void hwscrt_( double *, double *, int *, int *, double *, double *,
-			 double *, double *, int *, int *, double *, double *,
-			 double *, double *, int *, double *, int *, double * );
+Field_solver::Field_solver( Spatial_mesh &spat_mesh )
+{
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    double dx = spat_mesh.x_cell_size;
+    double dy = spat_mesh.y_cell_size;
+    int nrow = (nx-2)*(ny-2);
+    
+    a = construct_equation_matrix( nx, ny, dx, dy );    
+    rhs = gsl_vector_alloc( nrow );
+    phi_vec = gsl_vector_alloc( nrow );
 
-void Field_solver::eval_potential( Spatial_mesh *spat_mesh )
+    pmt = gsl_permutation_alloc( nrow );    
+    gsl_linalg_LU_decomp( a, pmt, &perm_sign );    
+}
+
+gsl_matrix* Field_solver::construct_equation_matrix( int nx, int ny, double dx, double dy )
+{
+    gsl_matrix *a = construct_d2dx2_in_2d( nx, ny );
+    gsl_matrix_scale( a, dy * dy );
+
+    gsl_matrix *d2dy2 = construct_d2dy2_in_2d( nx, ny );
+    gsl_matrix_scale( d2dy2, dx * dx ); 
+    
+    gsl_matrix_add( a, d2dy2 );
+    gsl_matrix_free( d2dy2 );
+
+    return a;
+}
+
+gsl_matrix* Field_solver::construct_d2dx2_in_2d( int nx, int ny )
+{
+  int nrow = ( nx - 2 ) * ( ny - 2 );
+  int ncol = nrow;
+  gsl_matrix *d2dx2 = gsl_matrix_alloc( nrow, ncol );
+  gsl_matrix_set_zero( d2dx2 );
+  
+  // first construct tridiagonal matrix, then set some
+  // boundary elements to zero
+
+  for( int i = 0; i < nrow; i++ ) {
+    for( int j = 0; j < ncol; j++ ){
+      if ( i == j ){
+	gsl_matrix_set( d2dx2, i, j, -2.0 );
+      } else if ( j + 1 == i || j - 1 == i ) {
+	gsl_matrix_set( d2dx2, i, j, 1.0 );
+      }
+    }
+  }
+  
+  for( int i = 0; i < nrow; i++ ) {
+      for( int j = 0; j < ncol; j++ ){
+  	  if ( ( j - 1 == i ) && ( j % ( nx - 2 ) == 0 ) ){
+  	      gsl_matrix_set( d2dx2, i, j, 0 );
+  	  } else if ( j + 1 == i && ( ( j + 1 ) % ( nx - 2 ) == 0 ) ) {
+  	      gsl_matrix_set( d2dx2, i, j, 0 );
+  	  }
+      }
+  }
+  
+  return d2dx2;
+}
+
+
+gsl_matrix* Field_solver::construct_d2dy2_in_2d( int nx, int ny )
+{
+  int nrow = ( nx - 2 ) * ( ny - 2 );
+  int ncol = nrow;
+  gsl_matrix *d2dy2 = gsl_matrix_alloc( nrow, ncol );
+  gsl_matrix_set_zero( d2dy2 );
+  
+  for( int i = 0; i < nrow; i++ ) {
+    for( int j = 0; j < ncol; j++ ){
+      if ( i == j ){
+	gsl_matrix_set( d2dy2, i, j, -2.0 );
+      } else if ( j + (nx - 2) == i || j - (nx - 2) == i ) {
+	gsl_matrix_set( d2dy2, i, j, 1.0 );
+      }
+    }
+  }
+          
+  return d2dy2;
+}
+
+
+void Field_solver::eval_potential( Spatial_mesh &spat_mesh )
 {
     solve_poisson_eqn( spat_mesh );
 }
 
-void Field_solver::solve_poisson_eqn( Spatial_mesh *spat_mesh )
+void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh )
 {
-    double a = 0.0;
-    double b = spat_mesh->x_volume_size;
-    int nx = spat_mesh->x_n_nodes;
-    int M = nx-1;
-    int MBDCND = 1; // 1st kind boundary conditions
-    //
-    double c = 0.0;
-    double d = spat_mesh->y_volume_size;
-    int ny = spat_mesh->y_n_nodes;
-    int N = ny-1;
-    int NBDCND = 1; // 1st kind boundary conditions
-    //
-    double BDA[ny]; // dummy
-    double BDB[ny]; // dummy
-    double BDC[nx]; // dummy
-    double BDD[nx]; // dummy
-    //
-    double elmbda = 0.0;
-    double **f_rhs = NULL;
-    double hwscrt_f[ nx * ny ];
-    int idimf = nx;
-    //
-    int w_dim = 
-	4 * ( N + 1 ) + ( 13 + (int)( log2( N + 1 ) ) ) * ( M + 1 );
-    double w[w_dim];
-    double pertrb;
     int ierror;
+    init_rhs_vector( spat_mesh );
 
-    f_rhs = poisson_init_rhs( spat_mesh );
-    rowmajor_to_colmajor( f_rhs, hwscrt_f, nx, ny );
-    hwscrt_( 
-	&a, &b, &M, &MBDCND, BDA, BDB,
-	&c, &d, &N, &NBDCND, BDC, BDD,
-	&elmbda, hwscrt_f, &idimf, &pertrb, &ierror, w);
-    if ( ierror != 0 ){
-	printf( "Error while solving Poisson equation (HWSCRT). \n" );
+    ierror = gsl_linalg_LU_solve( a, pmt, rhs, phi_vec );	    
+    if ( ierror ){
+	printf( "Error while solving Poisson equation (gsl_linalg_LU_solve). \n" );
 	printf( "ierror = %d \n", ierror );
     	exit( EXIT_FAILURE );
     }
-    colmajor_to_rowmajor( hwscrt_f, spat_mesh->potential, nx, ny );
-    poisson_free_rhs( f_rhs, nx, ny );
-    return;
-}
 
-
-double **Field_solver::poisson_init_rhs( Spatial_mesh *spat_mesh )
-{
-    int nx = spat_mesh->x_n_nodes;
-    int ny = spat_mesh->y_n_nodes;    
-
-    double **rhs = NULL;
-    rhs = (double **) malloc( nx * sizeof(double *) );
-    if ( rhs == NULL ) {
-	printf( "f_rhs allocate: nx: out of memory ");
-	exit( EXIT_FAILURE );	
-    }
-    for( int i = 0; i < nx; i++) {
-	rhs[i] = (double *) malloc( ny * sizeof(double) );
-	if ( rhs[i] == NULL ) {
-	    printf( "f_rhs allocate: ny: out of memory ");
-	    exit( EXIT_FAILURE );	
-	}
-    }
+    transfer_solution_to_spat_mesh( spat_mesh );
     
-    for ( int i = 1; i < nx-1; i++ ) {
-	for ( int j = 1; j < ny-1; j++ ) {
-	    rhs[i][j] = -4.0 * M_PI * spat_mesh->charge_density[i][j];
+    return;
+}
+
+
+void Field_solver::init_rhs_vector( Spatial_mesh &spat_mesh )
+{
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    //int nrow = (nx-2)*(ny-2);
+    double dx = spat_mesh.x_cell_size;
+    double dy = spat_mesh.y_cell_size;    
+    double rhs_at_node;
+
+    // todo: split into separate functions
+    // start processing rho from the top left corner
+    for ( int j = ny-2; j >= 1; j-- ) { 
+	for ( int i = 1; i <= nx-2; i++ ) {
+	    // - 4 * pi * rho * dx^2 * dy^2
+	    rhs_at_node = -4.0 * M_PI * spat_mesh.charge_density[i][j];
+	    rhs_at_node = rhs_at_node * dx * dx * dy * dy;
+	    // left and right boundary
+	    rhs_at_node = rhs_at_node
+		- dy * dy *
+		( kronecker_delta(i,1) * spat_mesh.charge_density[0][j] +
+		  kronecker_delta(i,nx-2) * spat_mesh.charge_density[nx-1][j] );
+	    // top and bottom boundary
+	    rhs_at_node = rhs_at_node
+		- dx * dx *
+		( kronecker_delta(j,1) * spat_mesh.charge_density[i][0] +
+		  kronecker_delta(j,ny-2) * spat_mesh.charge_density[i][ny-1] );
+	    // set rhs vector values
+	    // todo: separate function for: (i - 1) + ( ( ny - 2 ) - j ) * (nx-2)
+	    gsl_vector_set( rhs, (i - 1) + ( ( ny - 2 ) - j ) * (nx-2), rhs_at_node );
 	}
-    }
+    }    
+}
 
-    for ( int i = 0; i < nx; i++ ) {
-	rhs[i][0] = spat_mesh->potential[i][0];
-	rhs[i][ny-1] = spat_mesh->potential[i][ny-1];
+int Field_solver::kronecker_delta( int i,  int j )
+{
+    if ( i == j ) {
+	return 1;
+    } else {
+	return 0;
     }
+}
 
-    for ( int j = 0; j < ny; j++ ) {
-	rhs[0][j] = spat_mesh->potential[0][j];
-	rhs[nx-1][j] = spat_mesh->potential[nx-1][j];
-    }
+void Field_solver::transfer_solution_to_spat_mesh( Spatial_mesh &spat_mesh )
+{
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    //int nrow = (nx-2)*(ny-2);
     
-    return rhs;
-}
-
-void Field_solver::poisson_free_rhs( double **rhs, int nx, int ny )
-{
-    for( int i = 0; i < nx; i++) {
-	free( rhs[i] );
-    }
-    free( rhs );
-}
-
-void Field_solver::rowmajor_to_colmajor( double **c, double *fortran, int dim1, int dim2 )
-{
-    for ( int j = 0; j < dim2; j++ ) {
-	for ( int i = 0; i < dim1; i++ ) {
-	    *( fortran + i + ( j * dim1 ) ) = c[i][j];
+    for ( int j = ny-2; j >= 1; j-- ) { 
+	for ( int i = 1; i <= nx-2; i++ ) {
+	    spat_mesh.potential[i][j] =
+		gsl_vector_get( phi_vec, (i - 1) + ( ( ny - 2 ) - j ) * (nx-2) );
 	}
-    }
-    return;
+    }    
 }
 
-void Field_solver::colmajor_to_rowmajor( double *fortran, double **c, int dim1, int dim2 )
-{
-    for ( int j = 0; j < dim2; j++ ) {
-	for ( int i = 0; i < dim1; i++ ) {
-	    c[i][j] = *( fortran + i + ( j * dim1 ) );
-	}
-    }
-    return;
-}
 
-void Field_solver::eval_fields_from_potential( Spatial_mesh *spat_mesh )
+void Field_solver::eval_fields_from_potential( Spatial_mesh &spat_mesh )
 {
-    int nx = spat_mesh->x_n_nodes;
-    int ny = spat_mesh->y_n_nodes;
-    double dx = spat_mesh->x_cell_size;
-    double dy = spat_mesh->y_cell_size;
-    double **phi = spat_mesh->potential;
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    double dx = spat_mesh.x_cell_size;
+    double dy = spat_mesh.y_cell_size;
+    double **phi = spat_mesh.potential;
     double ex[nx][ny], ey[nx][ny];
 
     for ( int j = 0; j < ny; j++ ) {
@@ -157,7 +200,7 @@ void Field_solver::eval_fields_from_potential( Spatial_mesh *spat_mesh )
 
     for ( int i = 0; i < nx; i++ ) {
 	for ( int j = 0; j < ny; j++ ) {
-	    spat_mesh->electric_field[i][j] = vec2d_init( ex[i][j], ey[i][j] );
+	    spat_mesh.electric_field[i][j] = vec2d_init( ex[i][j], ey[i][j] );
 	}
     }
 
@@ -172,4 +215,13 @@ double Field_solver::central_difference( double phi1, double phi2, double dx )
 double Field_solver::boundary_difference( double phi1, double phi2, double dx )
 {    
     return ( (phi2 - phi1) / dx );
+}
+
+
+Field_solver::~Field_solver()
+{    
+    gsl_permutation_free( pmt );
+    gsl_matrix_free( a );
+    gsl_vector_free( rhs );
+    gsl_vector_free( phi_vec );
 }

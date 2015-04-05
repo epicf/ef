@@ -8,6 +8,7 @@
 #include "config.h"
 #include "vec2d.h"
 
+
 class Spatial_mesh {
   public:
     double x_volume_size, y_volume_size;

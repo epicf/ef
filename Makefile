@@ -2,22 +2,20 @@
 SHELL:=/bin/bash -O extglob
 
 ##### Compilers
-##### GNU
-##CC = g++
-## Detect errors:
-##CFLAGS = -O2 -std=c++11 -Wall -fbounds-check -Warray-bounds -fsanitize=address `pkg-config --cflags glib-2.0`
-##LDFLAGS = -fsanitize=address
-### Usual flags
-#CFLAGS = -std=c99 -O2
+##### GNU debug
+# CC = g++
+# CFLAGS = -O2 -std=c++11 -Wall -fbounds-check -Warray-bounds -fsanitize=address
+# LDFLAGS = -fsanitize=address
+### GNU run
+#CFLAGS = -std=c++11 -O2
 #LDFLAGS =
 ##### Clang
 CC = clang++
-CFLAGS = -O1 -std=c++11 -g -Wall \
-	-fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls
+CFLAGS = -O1 -std=c++11 -g -Wall -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls
 LDFLAGS = -g -fsanitize=address
 
 ### Libraries
-LIBS=-lm -L./fishpack -lfishpack_dbl -lboost_program_options
+LIBS=-lm -lgsl -lgslcblas -lboost_program_options
 
 ### Sources and executable
 CPPSOURCES=$(wildcard *.cpp)
@@ -25,7 +23,7 @@ CPPHEADERS=$(wildcard *.h)
 OBJECTS=$(CPPSOURCES:%.cpp=%.o)
 EXECUTABLE=epicf.out
 MAKE=make
-SUBDIRS=fishpack
+SUBDIRS=
 
 all: $(EXECUTABLE)
 

@@ -13,7 +13,7 @@ Domain::Domain( Config &conf ) :
     time_grid( Time_grid( conf ) ),
     spat_mesh( Spatial_mesh( conf ) ),
     particle_to_mesh_map( Particle_to_mesh_map() ),
-    field_solver( Field_solver() ),
+    field_solver( Field_solver( spat_mesh ) ),
     particle_sources( Particle_sources( conf ) )
 {
     return;
@@ -66,8 +66,8 @@ void Domain::eval_charge_density()
 
 void Domain::eval_potential_and_fields()
 {
-    field_solver.eval_potential( &spat_mesh );
-    field_solver.eval_fields_from_potential( &spat_mesh );
+    field_solver.eval_potential( spat_mesh );
+    field_solver.eval_fields_from_potential( spat_mesh );
     return;
 }
 

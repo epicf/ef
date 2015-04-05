@@ -1,21 +1,29 @@
 #ifndef _FIELD_SOLVER_H_
 #define _FIELD_SOLVER_H_
 
+#include <gsl/gsl_linalg.h>
 #include "spatial_mesh.h"
 
 class Field_solver {
   public:
-    Field_solver() {};
-    void eval_potential( Spatial_mesh *spat_mesh );
-    void eval_fields_from_potential( Spatial_mesh *spat_mesh );
-    virtual ~Field_solver() {};
+    Field_solver( Spatial_mesh &spat_mesh );
+    void eval_potential( Spatial_mesh &spat_mesh );
+    void eval_fields_from_potential( Spatial_mesh &spat_mesh );
+    virtual ~Field_solver();
   private:
+    gsl_matrix *a;
+    gsl_vector *rhs;
+    gsl_vector *phi_vec;
+    gsl_permutation *pmt;
+    int perm_sign;
+    gsl_matrix* construct_equation_matrix( int nx, int ny, double dx, double dy );
+    gsl_matrix* construct_d2dx2_in_2d( int nx, int ny );
+    gsl_matrix* construct_d2dy2_in_2d( int nx, int ny );
     // Solve potential
-    void solve_poisson_eqn( Spatial_mesh *spat_mesh );
-    double **poisson_init_rhs( Spatial_mesh *spat_mesh );
-    void rowmajor_to_colmajor( double **c, double *fortran, int dim1, int dim2 );
-    void colmajor_to_rowmajor( double *fortran, double **c, int dim1, int dim2 );
-    void poisson_free_rhs( double **rhs, int nrow, int ncol );
+    void solve_poisson_eqn( Spatial_mesh &spat_mesh );
+    void init_rhs_vector( Spatial_mesh &spat_mesh );
+    int kronecker_delta( int i,  int j );
+    void transfer_solution_to_spat_mesh( Spatial_mesh &spat_mesh );
     // Eval fields from potential
     double boundary_difference( double phi1, double phi2, double dx );
     double central_difference( double phi1, double phi2, double dx );
