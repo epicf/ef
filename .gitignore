@@ -11,5 +11,5 @@
 *.zip
 *.a
 *.png
+!doc/figs/*
 *.pdf
-*.plt
