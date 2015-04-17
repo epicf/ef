@@ -18,7 +18,7 @@ void Particle::update_position( double dt )
 
 void Particle::print()
 {
-    std::cout.setf( std::ios::fixed );
+    std::cout.setf( std::ios::scientific );
     std::cout.precision( 3 );    
     std::cout << "Particle: ";
     std::cout << "id: " << id << ", ";
@@ -32,7 +32,7 @@ void Particle::print()
 
 void Particle::print_short()
 {    
-    std::cout.setf( std::ios::fixed );
+    std::cout.setf( std::ios::scientific );
     std::cout.precision( 2 );    
     std::cout << "id: " << id << " "
 	      << "x = " << vec2d_x( position ) << " "

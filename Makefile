@@ -23,22 +23,22 @@ CPPHEADERS=$(wildcard *.h)
 OBJECTS=$(CPPSOURCES:%.cpp=%.o)
 EXECUTABLE=epicf.out
 MAKE=make
-SUBDIRS=
+SUBDIRS=doc
 
-all: $(EXECUTABLE)
-
-$(EXECUTABLE): $(OBJECTS) subdirs
+$(EXECUTABLE): $(OBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
 
-$(OBJECTS):%.o:%.cpp $(CHEADERS)
+$(OBJECTS):%.o:%.cpp $(CPPHEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-.PHONY: subdirs $(SUBDIRS) clean cleansubdirs cleanall
+.PHONY: allsubdirs $(SUBDIRS) clean cleansubdirs cleanall
 
-subdirs: $(SUBDIRS)
+allsubdirs: $(SUBDIRS)
 
 $(SUBDIRS):
 	$(MAKE) -C $@
+
+all: $(EXECUTABLE) doc
 
 clean: 
 	rm -f *.o *.out *.mod *.zip
@@ -47,3 +47,4 @@ cleansubdirs:
 	for X in $(SUBDIRS); do $(MAKE) clean -C $$X; done 
 
 cleanall: clean cleansubdirs
+

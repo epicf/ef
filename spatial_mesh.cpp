@@ -143,8 +143,9 @@ void Spatial_mesh::print_ongrid_values()
     int ny = y_n_nodes;
     std::cout << "x_node \t\t y_node  charge_density   potential \t electric_field(x,y)" << std::endl;
     std::cout.precision( 3 );
-    std::cout.setf( std::ios::fixed );
+    std::cout.setf( std::ios::scientific );
     std::cout.fill(' ');
+    std::cout.setf( std::ios::right );
     for ( int i = 0; i < nx; i++ ) {
 	for ( int j = 0; j < ny; j++ ) {
 	    std::cout << std::setw(8) << i 
@@ -172,13 +173,14 @@ void Spatial_mesh::write_to_file( std::ofstream &output_file )
     output_file << "X nodes = " << x_n_nodes << std::endl;
     output_file << "Y nodes = " << y_n_nodes << std::endl;
     output_file << "x_node \t\t y_node  charge_density   potential \t electric_field(x,y)" << std::endl;
-    output_file.precision( 3 );
-    output_file.setf( std::ios::fixed );
     output_file.fill(' ');
+    output_file.setf( std::ios::scientific );
+    output_file.precision( 2 );
+    output_file.setf( std::ios::right );
     for ( int i = 0; i < nx; i++ ) {
 	for ( int j = 0; j < ny; j++ ) {
-	    output_file << std::setw(8) << i 
-			<< std::setw(8) << j 
+	    output_file << std::setw(8) << std::left << i 
+			<< std::setw(8) << std::left << j 
 			<< std::setw(14) << charge_density[i][j]
 			<< std::setw(14) << potential[i][j]
 			<< std::setw(14) << vec2d_x( electric_field[i][j] ) 

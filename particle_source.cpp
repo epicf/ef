@@ -142,17 +142,17 @@ void Single_particle_source::write_to_file( std::ofstream &output_file )
     output_file << "Total number of particles = " << particles.size() << std::endl;
     output_file << "id \t   charge      mass \t position(x,y) \t\t momentum(px,py)" << std::endl;
     output_file.fill(' ');
-    output_file.setf( std::ios::fixed );
+    output_file.setf( std::ios::scientific );
     output_file.precision( 3 );    
-    output_file.setf( std::ios::left );
+    output_file.setf( std::ios::right );
     for ( auto &p : particles ) {	
-	output_file << std::setw(10) << p.id
-		    << std::setw(10) << p.charge
-		    << std::setw(10) << p.mass
-		    << std::setw(10) << vec2d_x( p.position )
-		    << std::setw(10) << vec2d_y( p.position )
-		    << std::setw(10) << vec2d_x( p.momentum )
-		    << std::setw(10) << vec2d_y( p.momentum )
+	output_file << std::setw(10) << std::left << p.id
+		    << std::setw(12) << p.charge
+		    << std::setw(12) << p.mass
+		    << std::setw(12) << vec2d_x( p.position )
+		    << std::setw(12) << vec2d_y( p.position )
+		    << std::setw(12) << vec2d_x( p.momentum )
+		    << std::setw(12) << vec2d_y( p.momentum )
 		    << std::endl;
     }
     return;
