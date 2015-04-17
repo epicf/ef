@@ -10,11 +10,11 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 //
 
 Domain::Domain( Config &conf ) :
-    time_grid( Time_grid( conf ) ),
-    spat_mesh( Spatial_mesh( conf ) ),
-    particle_to_mesh_map( Particle_to_mesh_map() ),
-    field_solver( Field_solver( spat_mesh ) ),
-    particle_sources( Particle_sources( conf ) )
+    time_grid( conf ),
+    spat_mesh( conf ),
+    particle_to_mesh_map( ),
+    field_solver( spat_mesh ),
+    particle_sources( conf )
 {
     return;
 }
