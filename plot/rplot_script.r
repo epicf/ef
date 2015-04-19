@@ -215,12 +215,12 @@ plot_particles_coords <- function( particles_data, domain_properties, outfile ) 
 
       mean_p <- mean( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
       max_p <- max( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
-      arrows(particles_data[[i]]$x,
-             particles_data[[i]]$y,
-             particles_data[[i]]$x + particles_data[[i]]$px/mean_p,
-             particles_data[[i]]$y + particles_data[[i]]$py/mean_p,
-             length = 0.05, angle = 20, 
-             col = i )
+##      arrows(particles_data[[i]]$x,
+##             particles_data[[i]]$y,
+##             particles_data[[i]]$x + particles_data[[i]]$px/mean_p,
+##             particles_data[[i]]$y + particles_data[[i]]$py/mean_p,
+##             length = 0.05, angle = 20, 
+##             col = i )
     }
 
     box()

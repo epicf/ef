@@ -8,7 +8,7 @@
 #include <vector>
 #include "config.h"
 #include "particle.h"
-#include "vec2d.h"
+#include "vec3d.h"
 
 class Single_particle_source{
 private:
@@ -21,8 +21,10 @@ private:
     double xright;
     double ytop;
     double ybottom;
+    double znear;
+    double zfar;
     // Momentum
-    Vec2d mean_momentum;
+    Vec3d mean_momentum;
     double temperature;
     // Particle characteristics
     double charge;
@@ -45,11 +47,11 @@ private:
     // Todo: replace 'std::default_random_engine' type with something more general.
     void generate_num_of_particles( int num_of_particles );
     int generate_particle_id( const int number );
-    Vec2d uniform_position_in_rectangle( const double xleft,  const double ytop,
-					 const double xright, const double ybottom,
-					 std::default_random_engine &rnd_gen );
+    Vec3d uniform_position_in_cube( const double xleft, const double ytop, const double znear,
+				    const double xright, const double ybottom, const double zfar,
+				    std::default_random_engine &rnd_gen );
     double random_in_range( const double low, const double up, std::default_random_engine &rnd_gen );
-    Vec2d maxwell_momentum_distr( const Vec2d mean_momentum, const double temperature, const double mass, 
+    Vec3d maxwell_momentum_distr( const Vec3d mean_momentum, const double temperature, const double mass, 
 				  std::default_random_engine &rnd_gen );
     // Check config
     void check_correctness_of_related_config_fields( 
@@ -69,6 +71,12 @@ private:
     void particle_source_y_bottom_le_particle_source_y_top( 
 	Config &conf, Source_config_part &src_conf );
     void particle_source_y_top_le_grid_y_size( 
+	Config &conf, Source_config_part &src_conf );
+    void particle_source_z_near_ge_zero( 
+	Config &conf, Source_config_part &src_conf );
+    void particle_source_z_near_le_particle_source_z_far( 
+	Config &conf, Source_config_part &src_conf );
+    void particle_source_z_far_le_grid_z_size( 
 	Config &conf, Source_config_part &src_conf );
     void particle_source_temperature_gt_zero( 
 	Config &conf, Source_config_part &src_conf );

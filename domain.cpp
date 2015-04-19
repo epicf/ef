@@ -28,7 +28,7 @@ void Domain::run_pic( Config &conf )
     int total_time_iterations, current_node;
     total_time_iterations = time_grid.total_nodes - 1;
     current_node = time_grid.current_node;
-    
+
     prepare_leap_frog();
 
     for ( int i = current_node; i < total_time_iterations; i++ ){
@@ -41,7 +41,9 @@ void Domain::run_pic( Config &conf )
 
 void Domain::prepare_leap_frog()
 {
+    printf( "leap_frog, before eval_charge_dns\n");
     eval_charge_density();
+    printf( "leap_frog, after eval_charge_dns\n");
     eval_potential_and_fields();
     shift_velocities_half_time_step_back();
     return;
@@ -107,13 +109,13 @@ void Domain::shift_velocities_half_time_step_back()
 
 void Domain::update_momentum( double dt )
 {
-    Vec2d force, dp;
+    Vec3d force, dp;
 
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
 	    force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
-	    dp = vec2d_times_scalar( force, dt );
-	    p.momentum = vec2d_add( p.momentum, dp );
+	    dp = vec3d_times_scalar( force, dt );
+	    p.momentum = vec3d_add( p.momentum, dp );
 	}
     }
     return;
@@ -144,13 +146,15 @@ void Domain::apply_domain_boundary_conditions()
 
 bool Domain::out_of_bound( const Particle &p )
 {
-    double x = vec2d_x( p.position );
-    double y = vec2d_y( p.position );
+    double x = vec3d_x( p.position );
+    double y = vec3d_y( p.position );
+    double z = vec3d_z( p.position );
     bool out;
     
     out = 
 	( x >= spat_mesh.x_volume_size ) || ( x <= 0 ) ||
-	( y >= spat_mesh.y_volume_size ) || ( y <= 0 ) ;
+	( y >= spat_mesh.y_volume_size ) || ( y <= 0 ) ||
+	( z >= spat_mesh.z_volume_size ) || ( z <= 0 ) ;
     return out;
 
 }
