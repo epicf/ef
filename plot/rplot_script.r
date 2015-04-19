@@ -1,7 +1,7 @@
 #!/usr/bin/Rscript 
 rm( list=ls() )
 
-necessary_packages <- c("optparse")
+necessary_packages <- c("optparse", "scatterplot3d")
 packages_to_intsall <-
   necessary_packages[ !( necessary_packages %in% installed.packages()[,"Package"] ) ]
 if( length( packages_to_intsall ) ) {
@@ -22,10 +22,13 @@ extract_domain_properties <- function( file ){
                            "current_node" )
     grid_subsections <- c( "x_volume_size",
                            "y_volume_size",
+                           "z_volume_size",
                            "x_cell_size",
                            "y_cell_size",
+                           "z_cell_size",
                            "x_nodes",
-                           "y_nodes" )
+                           "y_nodes",
+                           "z_nodes" )
     particles_subsections <- c("source_name",
                                "total_number_of_particles" )
 
@@ -82,15 +85,18 @@ grid_nodes_to_real_coords <- function( on_grid_values, domain_properties ) {
     on_grid_values$x <- x_starting_value + on_grid_values$nx * domain_properties$grid$x_cell_size
     y_starting_value <- 0
     on_grid_values$y <- y_starting_value + on_grid_values$ny * domain_properties$grid$y_cell_size
+    z_starting_value <- 0
+    on_grid_values$z <- z_starting_value + on_grid_values$nz * domain_properties$grid$z_cell_size
+
     return( on_grid_values )    
 }
 
 extract_data_for_potential_plot <- function( data ){
   grid_start <- grep( "^### Grid", data )
-  grid_header <- 8
+  grid_header <- 10
   grid_end <- grep( "^### Particles", data ) - 1
-  cols_to_read <- c( "numeric", "numeric", "NULL", "numeric", "NULL", "NULL" )
-  col_names=c("nx", "ny", NA, "phi", NA, NA )
+  cols_to_read <- c( "numeric", "numeric", "NULL", "NULL", "numeric", "NULL", "NULL", "NULL" )
+  col_names=c("nx", "ny", NA, NA, "phi", NA, NA, NA )
   potential_data <- read.table(
                       textConnection( data[ (grid_start+grid_header) : grid_end ] ),
                       colClasses = cols_to_read, 
@@ -128,10 +134,10 @@ plot_potential <- function( dataframe_to_plot, domain_properties, filename ) {
 
 extract_data_for_density_plot <- function( data ){
   grid_start <- grep( "^### Grid", data )
-  grid_header <- 8
+  grid_header <- 10
   grid_end <- grep( "^### Particles", data ) - 1
-  cols_to_read <- c( "numeric", "numeric", "numeric", "NULL", "NULL", "NULL" )
-  col_names=c("nx", "ny", "charge_density", NA, NA, NA )
+  cols_to_read <- c( "numeric", "numeric", "NULL", "numeric", "NULL", "NULL", "NULL", "NULL" )
+  col_names=c("nx", "ny", NA, "charge_density", NA, NA, NA, NA )
   density_data <- read.table(
                       textConnection( data[ (grid_start+grid_header) : grid_end ] ),
                       colClasses = cols_to_read, 
@@ -172,8 +178,10 @@ extract_data_for_particles_coords_plot <- function( data ){
   particles_start <- grep( "^Source name", data )
   particles_end <- c( particles_start[-1]-1, length(data) )
   particles_header <- 3
-  cols_to_read <- c( "NULL", "NULL", "NULL", "numeric", "numeric", "numeric", "numeric" )
-  col_names <- c(NA, NA, NA, "x", "y", "px", "py" )
+  cols_to_read <- c( "NULL", "NULL", "NULL",
+                    "numeric", "numeric", "numeric",
+                    "numeric", "numeric", "numeric" )
+  col_names <- c(NA, NA, NA, "x", "y", "z", "px", "py", "pz" )
   particles_data <- list()
   for ( i in seq_along( particles_start ) ) {
     particles_data[[i]] <-
@@ -198,44 +206,61 @@ plot_particles_coords <- function( particles_data, domain_properties, outfile ) 
     ylim <- c( ymin, ymax )    
     yticks <- pretty( ylim )
     ytickslabels <- format( yticks, nsmall=1 )
+    zmin <- 0
+    zmax <- domain_properties$grid$z_volume_size  
+    zlim <- c( zmin, zmax )    
+    zticks <- pretty( zlim )
+    ztickslabels <- format( zticks, nsmall=1 )
 
-    plot(NA, NA,
-         xaxs="i", yaxs="i", axes = F,
-         xlim = xlim,
-         ylim = ylim,
-         ##         las = 1,
-         ##         cex.lab=2.5, cex.axis=1.5,
-         main = "Particles", 
-         xlab = "X", ylab = "Y"
-         )
+    s3d <- scatterplot3d(NA, NA, NA,
+                         angle=10,
+                         xlim=xlim, ylim=ylim, zlim=zlim,
+                         xlab = "X", ylab = "Y", zlab = "Z",
+                         main = "Particles" )
 
-    for ( i in seq_along( particles_data ) ) {        
-      points(particles_data[[i]]$x, particles_data[[i]]$y,
-             pch = i, col = i )
-
-      mean_p <- mean( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
-      max_p <- max( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
-##      arrows(particles_data[[i]]$x,
-##             particles_data[[i]]$y,
-##             particles_data[[i]]$x + particles_data[[i]]$px/mean_p,
-##             particles_data[[i]]$y + particles_data[[i]]$py/mean_p,
-##             length = 0.05, angle = 20, 
-##             col = i )
+    for ( i in seq_along( particles_data ) ) {
+        s3d$points3d(particles_data[[i]]$x,
+                     particles_data[[i]]$y,
+                     particles_data[[i]]$z,
+                     pch = i, col = i )
     }
 
-    box()
-    axis( 1, las = 1, lwd.ticks=2, at = xticks, labels = xtickslabels )
-    axis( 2, las = 1, lwd.ticks=2, at = yticks, labels = ytickslabels )         
+    ## plot(NA, NA,
+    ##      xaxs="i", yaxs="i", axes = F,
+    ##      xlim = xlim,
+    ##      ylim = ylim,
+    ##      ##         las = 1,
+    ##      ##         cex.lab=2.5, cex.axis=1.5,
+    ##      main = "Particles", 
+    ##      xlab = "X", ylab = "Y"
+    ##      )
+    
+    ## for ( i in seq_along( particles_data ) ) {        
+    ##     points(particles_data[[i]]$x, particles_data[[i]]$y,
+    ##            pch = i, col = i )      
+    ##   mean_p <- mean( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
+    ## max_p <- max( sqrt( particles_data[[i]]$px^2 + particles_data[[i]]$py^2 ) )
+    ##      arrows(particles_data[[i]]$x,
+    ##             particles_data[[i]]$y,
+    ##             particles_data[[i]]$x + particles_data[[i]]$px/mean_p,
+    ##             particles_data[[i]]$y + particles_data[[i]]$py/mean_p,
+    ##             length = 0.05, angle = 20, 
+    ##             col = i )
+    ## }
 
-    legentries <- domain_properties$particles$source_name
-    legpch <- seq_along( legentries )
-    legend(x="topright",
-           legend = legentries,
-           bty = "n",
-           pch = legpch,
-           seg.len = 2.7,
-           col = seq_along( legentries ) ,
-           cex = 1.5)
+    ## box()
+    ## axis( 1, las = 1, lwd.ticks=2, at = xticks, labels = xtickslabels )
+    ## axis( 2, las = 1, lwd.ticks=2, at = yticks, labels = ytickslabels )         
+
+    ## legentries <- domain_properties$particles$source_name
+    ## legpch <- seq_along( legentries )
+    ## legend(x="topright",
+    ##        legend = legentries,
+    ##        bty = "n",
+    ##        pch = legpch,
+    ##        seg.len = 2.7,
+    ##        col = seq_along( legentries ) ,
+    ##        cex = 1.5)
     
     dev.off()
 }
