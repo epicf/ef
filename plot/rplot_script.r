@@ -53,11 +53,12 @@ extract_domain_properties <- function( file ){
     }
 
     extract_values_from_found_pattern <- function( s ) {
-      if( !( grepl( "Source name", s )[1] ) ) {
-        return( as.numeric( sapply( strsplit( s, "="), function(x){ x[2] } ) ) )
-      } else {
-        return( sapply( strsplit( s, "="), function(x){ x[2] } ) )
-      }
+        is_source_name_pattern <- any( grepl( "Source name", s ) )
+        if( is_source_name_pattern ) {
+            return( sapply( strsplit( s, "="), function(x){ x[2] } ) )
+        } else {
+            return( as.numeric( sapply( strsplit( s, "="), function(x){ x[2] } ) ) )
+        }
     }
     
     for ( i in seq_along( domain_properties ) ) {

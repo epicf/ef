@@ -43,7 +43,8 @@ gsl_matrix* Field_solver::construct_d2dx2_in_3d( int nx, int ny, int nz )
 {
     gsl_matrix *d2dx2_2d = construct_d2dx2_in_2d( nx, ny );
     gsl_matrix *d2dx2_3d = multiply_pattern_along_diagonal( d2dx2_2d, (nx-2)*(ny-2), nz-2 );
-      
+    gsl_matrix_free( d2dx2_2d );
+    
     return d2dx2_3d;
 }
 
@@ -51,7 +52,8 @@ gsl_matrix* Field_solver::construct_d2dy2_in_3d( int nx, int ny, int nz )
 {
     gsl_matrix *d2dy2_2d = construct_d2dy2_in_2d( nx, ny );
     gsl_matrix *d2dy2_3d = multiply_pattern_along_diagonal( d2dy2_2d, (nx-2)*(ny-2), nz-2 );
-      
+    gsl_matrix_free( d2dy2_2d );
+    
     return d2dy2_3d;
 }
 
