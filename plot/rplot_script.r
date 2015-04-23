@@ -214,7 +214,7 @@ plot_particles_coords <- function( particles_data, domain_properties, outfile ) 
     ztickslabels <- format( zticks, nsmall=1 )
 
     s3d <- scatterplot3d(NA, NA, NA,
-                         angle=10,
+                         angle=30,
                          xlim=xlim, ylim=ylim, zlim=zlim,
                          xlab = "X", ylab = "Y", zlab = "Z",
                          main = "Particles" )

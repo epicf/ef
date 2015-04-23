@@ -14,7 +14,8 @@ Domain::Domain( Config &conf ) :
     spat_mesh( conf ),
     particle_to_mesh_map( ),
     field_solver( spat_mesh ),
-    particle_sources( conf )
+    particle_sources( conf ),
+    external_magnetic_field( conf )
 {
     return;
 }
@@ -41,9 +42,7 @@ void Domain::run_pic( Config &conf )
 
 void Domain::prepare_leap_frog()
 {
-    printf( "leap_frog, before eval_charge_dns\n");
     eval_charge_density();
-    printf( "leap_frog, after eval_charge_dns\n");
     eval_potential_and_fields();
     shift_velocities_half_time_step_back();
     return;
@@ -109,12 +108,14 @@ void Domain::shift_velocities_half_time_step_back()
 
 void Domain::update_momentum( double dt )
 {
-    Vec3d force, dp;
+    Vec3d el_field_force, mgn_field_force, total_force, dp;
 
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
-	    force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
-	    dp = vec3d_times_scalar( force, dt );
+	    el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
+	    mgn_field_force = external_magnetic_field.force_on_particle( p );
+	    total_force = vec3d_add( el_field_force, mgn_field_force );
+	    dp = vec3d_times_scalar( total_force, dt );
 	    p.momentum = vec3d_add( p.momentum, dp );
 	}
     }
@@ -219,6 +220,7 @@ void Domain::write( Config &conf )
 	    
     time_grid.write_to_file( output_file );
     spat_mesh.write_to_file( output_file );
+    external_magnetic_field.write_to_file( output_file );
     particle_sources.write_to_file( output_file );
 
     output_file.close();

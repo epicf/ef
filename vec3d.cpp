@@ -54,6 +54,15 @@ double vec3d_dot_product( Vec3d v1, Vec3d v2 )
 	     vec3d_z(v1) * vec3d_z(v2) );
 }
 
+Vec3d vec3d_cross_product( Vec3d v1, Vec3d v2 )
+{
+    double prod_x = vec3d_y( v1 ) * vec3d_z( v2 ) - vec3d_z( v1 ) * vec3d_y( v2 );
+    double prod_y = vec3d_z( v1 ) * vec3d_x( v2 ) - vec3d_x( v1 ) * vec3d_z( v2 );
+    double prod_z = vec3d_x( v1 ) * vec3d_y( v2 ) - vec3d_y( v1 ) * vec3d_x( v2 );
+    
+    return vec3d_init( prod_x, prod_y, prod_z );
+}
+
 Vec3d vec3d_times_scalar( Vec3d v, double a )
 {
     return vec3d_init( a * vec3d_x(v), 
