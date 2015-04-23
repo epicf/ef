@@ -12,9 +12,9 @@
 #include "spatial_mesh.h"
 #include "particle_to_mesh_map.h"
 #include "field_solver.h"
-#include "particle_source.h"
-#include "particle.h"
-#include "vec2d.h"
+#include "Particle_source.hpp"
+#include "Particle.hpp"
+#include "VecNd.hpp"
 
 //#define M_PI 3.14159265358979323846264338327
 
@@ -26,7 +26,7 @@ class Domain {
     Spatial_mesh spat_mesh;
     Particle_to_mesh_map particle_to_mesh_map;
     Field_solver field_solver;    
-    Particle_sources particle_sources;
+    Particle_sources<2> particle_sources;
   public:
     Domain( Config &conf );
     void run_pic( Config &conf );
@@ -49,7 +49,7 @@ class Domain {
     void update_position( double dt );
     // Boundaries and generation
     void apply_domain_boundary_conditions();
-    bool out_of_bound( const Particle &p );
+    bool out_of_bound( const Particle<2> &p );
     void generate_new_particles();
     // Various functions
     void print_particles();

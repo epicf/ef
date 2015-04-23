@@ -36,6 +36,8 @@ public:
     double grid_x_step;
     double grid_y_size;
     double grid_y_step;
+    double grid_z_size;
+    double grid_z_step;
 public:
     Mesh_config_part(){};
     Mesh_config_part( boost::property_tree::ptree &ptree ) :
@@ -62,8 +64,11 @@ public:
     double particle_source_x_right;
     double particle_source_y_bottom;
     double particle_source_y_top;
+    double particle_source_z_near;
+    double particle_source_z_far;
     double particle_source_mean_momentum_x;
     double particle_source_mean_momentum_y;
+    double particle_source_mean_momentum_z;
     double particle_source_temperature;
     double particle_source_charge;
     double particle_source_mass;

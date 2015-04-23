@@ -200,7 +200,7 @@ void Field_solver::eval_fields_from_potential( Spatial_mesh &spat_mesh )
 
     for ( int i = 0; i < nx; i++ ) {
 	for ( int j = 0; j < ny; j++ ) {
-	    spat_mesh.electric_field[i][j] = vec2d_init( ex[i][j], ey[i][j] );
+	    spat_mesh.electric_field[i][j] = VecNd<2>( ex[i][j], ey[i][j] );
 	}
     }
 
