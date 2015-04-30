@@ -2,7 +2,7 @@
 #define _FIELD_SOLVER_H_
 
 #include <gsl/gsl_linalg.h>
-#include "spatial_mesh.h"
+#include "Spatial_mesh.hpp"
 
 class Field_solver {
   public:

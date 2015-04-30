@@ -1,4 +1,4 @@
-#include "spatial_mesh.h"
+#include "Spatial_mesh.hpp"
 #include "Particle_source.hpp"
 #include "Particle.hpp"
 #include "VecNd.hpp"

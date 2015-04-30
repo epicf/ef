@@ -214,7 +214,7 @@ void Domain::write( Config &conf )
 	      << " to file " << file_name_to_write << std::endl;
 	    
     time_grid.write_to_file( output_file );
-    spat_mesh.write_to_file( output_file );
+    spat_mesh.print( output_file );
     particle_sources.write_to_file( output_file );
 
     output_file.close();

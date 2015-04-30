@@ -7,9 +7,9 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
-#include "config.h"
+#include "Config.hpp"
 #include "time_grid.h"
-#include "spatial_mesh.h"
+#include "Spatial_mesh.hpp"
 #include "particle_to_mesh_map.h"
 #include "field_solver.h"
 #include "Particle_source.hpp"
@@ -18,15 +18,16 @@
 
 //#define M_PI 3.14159265358979323846264338327
 
+template< int dim >
 class Domain {
   private:
     //Domain() {};
   public:
     Time_grid time_grid;
-    Spatial_mesh spat_mesh;
-    Particle_to_mesh_map particle_to_mesh_map;
-    Field_solver field_solver;    
-    Particle_sources<2> particle_sources;
+    Spatial_mesh<dim> spat_mesh;
+    Particle_to_mesh_map<dim> particle_to_mesh_map;
+    Field_solver<dim> field_solver;    
+    Particle_sources<dim> particle_sources;
   public:
     Domain( Config &conf );
     void run_pic( Config &conf );
@@ -49,7 +50,7 @@ class Domain {
     void update_position( double dt );
     // Boundaries and generation
     void apply_domain_boundary_conditions();
-    bool out_of_bound( const Particle<2> &p );
+    bool out_of_bound( const Particle<dim> &p );
     void generate_new_particles();
     // Various functions
     void print_particles();

@@ -265,22 +265,28 @@ VecNd<dim> Single_particle_source<dim>::maxwell_momentum_distr(
     // todo: way too much repetition
     if( dim == 1 ){
 	maxwell_gauss_std_mean_x = mean_momentum.x();
-	std::normal_distribution<double> normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
+	std::normal_distribution<double>
+	    normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
 	//mom = VecNd<1>( normal_distr_x( rnd_gen ) );
     } else if( dim == 2 ) {
 	maxwell_gauss_std_mean_x = mean_momentum.x();
 	maxwell_gauss_std_mean_y = mean_momentum.y();
-	std::normal_distribution<double> normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
-	std::normal_distribution<double> normal_distr_y( maxwell_gauss_std_mean_y, maxwell_gauss_std_dev );
+	std::normal_distribution<double>
+	    normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
+	std::normal_distribution<double>
+	    normal_distr_y( maxwell_gauss_std_mean_y, maxwell_gauss_std_dev );
 	mom = VecNd<2>( normal_distr_x( rnd_gen ),
 			normal_distr_y( rnd_gen ) );		     
     } else if( dim == 3 ) {
 	maxwell_gauss_std_mean_x = mean_momentum.x();
 	maxwell_gauss_std_mean_y = mean_momentum.y();
 	maxwell_gauss_std_mean_z = mean_momentum.z();
-	std::normal_distribution<double> normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
-	std::normal_distribution<double> normal_distr_y( maxwell_gauss_std_mean_y, maxwell_gauss_std_dev );
-	std::normal_distribution<double> normal_distr_z( maxwell_gauss_std_mean_z, maxwell_gauss_std_dev );
+	std::normal_distribution<double>
+	    normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
+	std::normal_distribution<double>
+	    normal_distr_y( maxwell_gauss_std_mean_y, maxwell_gauss_std_dev );
+	std::normal_distribution<double>
+	    normal_distr_z( maxwell_gauss_std_mean_z, maxwell_gauss_std_dev );
 	// mom = VecNd<3>( normal_distr_x( rnd_gen ),
 	// 		normal_distr_y( rnd_gen ),
 	// 		normal_distr_z( rnd_gen ) );

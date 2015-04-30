@@ -1,12 +1,13 @@
 #include "parse_cmd_line.h"
 namespace po = boost::program_options;
 
-void parse_cmd_line( int argc, char *argv[], std::string &config_file )
+void parse_cmd_line( int argc, char *argv[], int &dim, std::string &config_file )
 {
     try {
         po::options_description cmd_line_options("Allowed options");
         cmd_line_options.add_options()
-            ("help,h", "produce help message");
+            ("help,h", "produce help message")
+	    ("dimension,d", po::value<int>, "specify dimension. 1, 2, and 3 are supported.");
 	
 	po::options_description positional_parameters;
 	positional_parameters.add_options()
@@ -31,6 +32,14 @@ void parse_cmd_line( int argc, char *argv[], std::string &config_file )
 	    std::cout << "Usage: ./epicf [OPTIONS] config-file" << std::endl;
             std::cout << visible_options << "\n";
             exit( EXIT_FAILURE );
+        }
+	if ( vm.count("dimension") ) {
+	    dim = vm["dimension"].as< int >();	    
+            std::cout << "Dimension is " << dim << std::endl;
+	    if( dim < 1 || dim > 3 ){
+		std::cout << "Unsupported dimension" << std::endl;
+		exit( EXIT_FAILURE );
+	    }
         }
         if ( vm.count("config" ) ) {
 	    std::vector<std::string> all_positional_args = vm["config"].as< std::vector<std::string> >();
