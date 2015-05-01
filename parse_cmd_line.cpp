@@ -7,7 +7,7 @@ void parse_cmd_line( int argc, char *argv[], int &dim, std::string &config_file 
         po::options_description cmd_line_options("Allowed options");
         cmd_line_options.add_options()
             ("help,h", "produce help message")
-	    ("dimension,d", po::value<int>, "specify dimension. 1, 2, and 3 are supported.");
+	    ("dimension,d", po::value<int>(), "specify dimension. 1, 2, and 3 are supported.");
 	
 	po::options_description positional_parameters;
 	positional_parameters.add_options()
@@ -37,12 +37,14 @@ void parse_cmd_line( int argc, char *argv[], int &dim, std::string &config_file 
 	    dim = vm["dimension"].as< int >();	    
             std::cout << "Dimension is " << dim << std::endl;
 	    if( dim < 1 || dim > 3 ){
-		std::cout << "Unsupported dimension" << std::endl;
+		std::cout << "Unsupported dimension. Aborting." << std::endl;
+		std::cout << "Supported dimensions are 1,2, and 3." << std::endl;
 		exit( EXIT_FAILURE );
 	    }
         }
         if ( vm.count("config" ) ) {
-	    std::vector<std::string> all_positional_args = vm["config"].as< std::vector<std::string> >();
+	    std::vector<std::string> all_positional_args =
+		vm["config"].as< std::vector<std::string> >();
 	    if ( all_positional_args.size() > 1 ) {
 		std::cout << "Single config file is expected. \n";
 		exit( EXIT_FAILURE );

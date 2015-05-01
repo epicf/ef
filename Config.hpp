@@ -37,6 +37,7 @@ public:
     Mesh_config_part(){};
     Mesh_config_part( boost::property_tree::ptree &ptree ){
 	std::cout << "Unsupported dimensionality. Aborting" << std::endl;
+	exit( EXIT_FAILURE );
     };
     virtual ~Mesh_config_part() {};
     void print() {};
@@ -123,6 +124,7 @@ public:
     Source_config_part(){};
     Source_config_part( std::string name, boost::property_tree::ptree &ptree ){
 	std::cout << "Unsupported dimensionality. Aborting" << std::endl;
+	exit( EXIT_FAILURE );
     };
     virtual ~Source_config_part() {};
     void print() {};
@@ -144,8 +146,10 @@ public:
     Source_config_part(){};
     Source_config_part( std::string name, boost::property_tree::ptree &ptree ) :
 	particle_source_name( name ),
-	particle_source_initial_number_of_particles( ptree.get<int>("particle_source_initial_number_of_particles") ),
-	particle_source_particles_to_generate_each_step( ptree.get<int>("particle_source_particles_to_generate_each_step") ),
+	particle_source_initial_number_of_particles(
+	    ptree.get<int>("particle_source_initial_number_of_particles") ),
+	particle_source_particles_to_generate_each_step(
+	    ptree.get<int>("particle_source_particles_to_generate_each_step") ),
 	particle_source_x_left( ptree.get<double>("particle_source_x_left") ),
 	particle_source_x_right( ptree.get<double>("particle_source_x_right") ),
 	particle_source_mean_momentum_x( ptree.get<double>("particle_source_mean_momentum_x") ),
@@ -162,7 +166,8 @@ public:
 	    particle_source_particles_to_generate_each_step << std::endl; 
 	std::cout << "particle_source_x_left = " << particle_source_x_left << std::endl;
 	std::cout << "particle_source_x_right = " << particle_source_x_right << std::endl;
-	std::cout << "particle_source_mean_momentum_x = " << particle_source_mean_momentum_x << std::endl;
+	std::cout << "particle_source_mean_momentum_x = "
+		  << particle_source_mean_momentum_x << std::endl;
 	std::cout << "particle_source_temperature = " << particle_source_temperature << std::endl;
 	std::cout << "particle_source_charge = " << particle_source_charge << std::endl;
 	std::cout << "particle_source_mass = " << particle_source_mass << std::endl;
@@ -188,8 +193,10 @@ public:
     Source_config_part(){};
     Source_config_part( std::string name, boost::property_tree::ptree &ptree ) :
 	particle_source_name( name ),
-	particle_source_initial_number_of_particles( ptree.get<int>("particle_source_initial_number_of_particles") ),
-	particle_source_particles_to_generate_each_step( ptree.get<int>("particle_source_particles_to_generate_each_step") ),
+	particle_source_initial_number_of_particles(
+	    ptree.get<int>("particle_source_initial_number_of_particles") ),
+	particle_source_particles_to_generate_each_step(
+	    ptree.get<int>("particle_source_particles_to_generate_each_step") ),
 	particle_source_x_left( ptree.get<double>("particle_source_x_left") ),
 	particle_source_x_right( ptree.get<double>("particle_source_x_right") ),
         particle_source_y_bottom( ptree.get<double>("particle_source_y_bottom") ),
@@ -211,8 +218,10 @@ public:
 	std::cout << "particle_source_x_right = " << particle_source_x_right << std::endl;
 	std::cout << "particle_source_y_bottom = " << particle_source_y_bottom << std::endl;
 	std::cout << "particle_source_y_top = " << particle_source_y_top << std::endl;
-	std::cout << "particle_source_mean_momentum_x = " << particle_source_mean_momentum_x << std::endl;
-	std::cout << "particle_source_mean_momentum_y = " << particle_source_mean_momentum_y << std::endl;
+	std::cout << "particle_source_mean_momentum_x = "
+		  << particle_source_mean_momentum_x << std::endl;
+	std::cout << "particle_source_mean_momentum_y = "
+		  << particle_source_mean_momentum_y << std::endl;
 	std::cout << "particle_source_temperature = " << particle_source_temperature << std::endl;
 	std::cout << "particle_source_charge = " << particle_source_charge << std::endl;
 	std::cout << "particle_source_mass = " << particle_source_mass << std::endl;
@@ -241,8 +250,10 @@ public:
     Source_config_part(){};
     Source_config_part( std::string name, boost::property_tree::ptree &ptree ) :
 	particle_source_name( name ),
-	particle_source_initial_number_of_particles( ptree.get<int>("particle_source_initial_number_of_particles") ),
-	particle_source_particles_to_generate_each_step( ptree.get<int>("particle_source_particles_to_generate_each_step") ),
+	particle_source_initial_number_of_particles(
+	    ptree.get<int>("particle_source_initial_number_of_particles") ),
+	particle_source_particles_to_generate_each_step(
+	    ptree.get<int>("particle_source_particles_to_generate_each_step") ),
 	particle_source_x_left( ptree.get<double>("particle_source_x_left") ),
 	particle_source_x_right( ptree.get<double>("particle_source_x_right") ),
         particle_source_y_bottom( ptree.get<double>("particle_source_y_bottom") ),
@@ -269,9 +280,12 @@ public:
 	std::cout << "particle_source_y_top = " << particle_source_y_top << std::endl;
 	std::cout << "particle_source_z_near = " << particle_source_z_near << std::endl;
 	std::cout << "particle_source_z_far = " << particle_source_z_far << std::endl;
-	std::cout << "particle_source_mean_momentum_x = " << particle_source_mean_momentum_x << std::endl;
-	std::cout << "particle_source_mean_momentum_y = " << particle_source_mean_momentum_y << std::endl;
-	std::cout << "particle_source_mean_momentum_z = " << particle_source_mean_momentum_z << std::endl;
+	std::cout << "particle_source_mean_momentum_x = "
+		  << particle_source_mean_momentum_x << std::endl;
+	std::cout << "particle_source_mean_momentum_y = "
+		  << particle_source_mean_momentum_y << std::endl;
+	std::cout << "particle_source_mean_momentum_z = "
+		  << particle_source_mean_momentum_z << std::endl;
 	std::cout << "particle_source_temperature = " << particle_source_temperature << std::endl;
 	std::cout << "particle_source_charge = " << particle_source_charge << std::endl;
 	std::cout << "particle_source_mass = " << particle_source_mass << std::endl;
@@ -281,6 +295,44 @@ public:
 
 template< int dim >
 class Inner_region_config_part{
+public:
+    Inner_region_config_part(){};
+    Inner_region_config_part( std::string name, boost::property_tree::ptree &ptree ){
+	std::cout << "Unsupported dimensionality. Aborting" << std::endl;
+	exit( EXIT_FAILURE );
+    };
+    virtual ~Inner_region_config_part() {};
+    void print() {};
+};
+
+template<>
+class Inner_region_config_part<1>{
+public:
+    std::string inner_region_name;
+    double inner_region_x_left;
+    double inner_region_x_right;
+    double inner_region_boundary_potential;
+public:
+    Inner_region_config_part(){};
+    Inner_region_config_part( std::string name, boost::property_tree::ptree &ptree ) :
+	inner_region_name( name ),
+	inner_region_x_left( ptree.get<double>("inner_region_x_left") ),
+	inner_region_x_right( ptree.get<double>("inner_region_x_right") ),
+	inner_region_boundary_potential( ptree.get<double>("inner_region_boundary_potential") )
+	{};
+    virtual ~Inner_region_config_part() {};
+    void print() { 
+	std::cout << "Inner region: name = " << inner_region_name << std::endl;
+	std::cout << "inner_region_x_left = " << inner_region_x_left << std::endl;
+	std::cout << "inner_region_x_right = " << inner_region_x_right << std::endl;
+	std::cout << "inner_region_boundary_potential = "
+		  << inner_region_boundary_potential << std::endl;
+    }
+};
+
+
+template<>
+class Inner_region_config_part<2>{
 public:
     std::string inner_region_name;
     double inner_region_x_left;
@@ -305,12 +357,81 @@ public:
 	std::cout << "inner_region_x_right = " << inner_region_x_right << std::endl;
 	std::cout << "inner_region_y_bottom = " << inner_region_y_bottom << std::endl;
 	std::cout << "inner_region_y_top = " << inner_region_y_top << std::endl;
-	std::cout << "inner_region_boundary_potential = " << inner_region_boundary_potential << std::endl;
+	std::cout << "inner_region_boundary_potential = "
+		  << inner_region_boundary_potential << std::endl;
     }
 };
 
+template<>
+class Inner_region_config_part<3>{
+public:
+    std::string inner_region_name;
+    double inner_region_x_left;
+    double inner_region_x_right;
+    double inner_region_y_bottom;
+    double inner_region_y_top;
+    double inner_region_z_near;
+    double inner_region_z_far;
+    double inner_region_boundary_potential;
+public:
+    Inner_region_config_part(){};
+    Inner_region_config_part( std::string name, boost::property_tree::ptree &ptree ) :
+	inner_region_name( name ),
+	inner_region_x_left( ptree.get<double>("inner_region_x_left") ),
+	inner_region_x_right( ptree.get<double>("inner_region_x_right") ),
+        inner_region_y_bottom( ptree.get<double>("inner_region_y_bottom") ),
+	inner_region_y_top( ptree.get<double>("inner_region_y_top") ),
+	inner_region_z_near( ptree.get<double>("inner_region_z_near") ),
+	inner_region_z_far( ptree.get<double>("inner_region_z_far") ),
+	inner_region_boundary_potential( ptree.get<double>("inner_region_boundary_potential") )
+	{};
+    virtual ~Inner_region_config_part() {};
+    void print() { 
+	std::cout << "Inner region: name = " << inner_region_name << std::endl;
+	std::cout << "inner_region_x_left = " << inner_region_x_left << std::endl;
+	std::cout << "inner_region_x_right = " << inner_region_x_right << std::endl;
+	std::cout << "inner_region_y_bottom = " << inner_region_y_bottom << std::endl;
+	std::cout << "inner_region_y_top = " << inner_region_y_top << std::endl;
+	std::cout << "inner_region_z_near = " << inner_region_z_near << std::endl;
+	std::cout << "inner_region_z_far = " << inner_region_z_far << std::endl;
+	std::cout << "inner_region_boundary_potential = "
+		  << inner_region_boundary_potential << std::endl;
+    }
+};
+
+
 template< int dim >
 class Boundary_config_part {
+public:
+    Boundary_config_part(){};
+    Boundary_config_part( boost::property_tree::ptree &ptree ){
+	std::cout << "Unsupported dimensionality. Aborting" << std::endl;
+	exit( EXIT_FAILURE );
+    };
+    virtual ~Boundary_config_part() {};
+    void print() {};
+};
+
+template<>
+class Boundary_config_part<1> {
+public:
+    double boundary_phi_left;
+    double boundary_phi_right;
+public:
+    Boundary_config_part(){};
+    Boundary_config_part( boost::property_tree::ptree &ptree ) :
+	boundary_phi_left( ptree.get<double>("boundary_phi_left") ),
+	boundary_phi_right( ptree.get<double>("boundary_phi_right") )
+	{} ;
+    virtual ~Boundary_config_part() {};
+    void print() {
+	std::cout << "boundary_phi_left = " << boundary_phi_left << std::endl;
+	std::cout << "boundary_phi_right = " << boundary_phi_right << std::endl;
+    }
+};
+
+template<>
+class Boundary_config_part<2> {
 public:
     double boundary_phi_left;
     double boundary_phi_right;
@@ -330,6 +451,36 @@ public:
 	std::cout << "boundary_phi_right = " << boundary_phi_right << std::endl;
 	std::cout << "boundary_phi_bottom = " << boundary_phi_bottom << std::endl;
 	std::cout << "boundary_phi_top = " << boundary_phi_top << std::endl;
+    }
+};
+
+template<>
+class Boundary_config_part<3> {
+public:
+    double boundary_phi_left;
+    double boundary_phi_right;
+    double boundary_phi_bottom;
+    double boundary_phi_top;
+    double boundary_phi_near;
+    double boundary_phi_far;
+public:
+    Boundary_config_part(){};
+    Boundary_config_part( boost::property_tree::ptree &ptree ) :
+	boundary_phi_left( ptree.get<double>("boundary_phi_left") ),
+	boundary_phi_right( ptree.get<double>("boundary_phi_right") ),
+        boundary_phi_bottom( ptree.get<double>("boundary_phi_bottom") ),
+	boundary_phi_top( ptree.get<double>("boundary_phi_top") ),
+	boundary_phi_near( ptree.get<double>("boundary_phi_near") ),
+	boundary_phi_far( ptree.get<double>("boundary_phi_far") )
+	{} ;
+    virtual ~Boundary_config_part() {};
+    void print() {
+	std::cout << "boundary_phi_left = " << boundary_phi_left << std::endl;
+	std::cout << "boundary_phi_right = " << boundary_phi_right << std::endl;
+	std::cout << "boundary_phi_bottom = " << boundary_phi_bottom << std::endl;
+	std::cout << "boundary_phi_top = " << boundary_phi_top << std::endl;
+	std::cout << "boundary_phi_near = " << boundary_phi_near << std::endl;
+	std::cout << "boundary_phi_far = " << boundary_phi_far << std::endl;
     }
 };
 

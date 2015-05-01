@@ -4,7 +4,8 @@
 #include <boost/program_options.hpp>
 #include <iostream>
 #include <string>
-    
+
+//todo: create a structure for command line parameters?
 void parse_cmd_line( int argc, char *argv[], std::string &config_file );
 
 #endif /* _PARSE_CMD_LINE_H_ */
