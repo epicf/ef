@@ -55,52 +55,73 @@ class Spatial_mesh {
 template< int dim >
 Spatial_mesh<dim>::Spatial_mesh( Config &conf )
 {
+    std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
+    exit( EXIT_FAILURE );
+}
+
+template<>
+Spatial_mesh<1>::Spatial_mesh( Config &conf )
+{
     check_correctness_of_related_config_fields( conf );
-
-    // todo: make it a separate function?
-    // put else first, then 3 separate ifs?
-    if( dim == 1 )
-	init_x_grid( conf );
-    } else if( dim == 2 ) {
-	init_x_grid( conf );
-	init_y_grid( conf );
-    } else if( dim == 3 ) {
-	init_x_grid( conf );
-	init_y_grid( conf );
-	init_z_grid( conf );
-    } else {
-	std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
-	exit( EXIT_FAILURE );
-    }
-
+    init_x_grid( conf );
     allocate_ongrid_values();
     set_boundary_conditions( conf );
 }
 
+template<>
+Spatial_mesh<2>::Spatial_mesh( Config &conf )
+{
+    check_correctness_of_related_config_fields( conf );
+    init_x_grid( conf );
+    init_y_grid( conf );
+    allocate_ongrid_values();
+    set_boundary_conditions( conf );
+}
+
+template<>
+Spatial_mesh<3>::Spatial_mesh( Config &conf )
+{
+    check_correctness_of_related_config_fields( conf );
+    init_x_grid( conf );
+    init_y_grid( conf );
+    init_z_grid( conf );
+    allocate_ongrid_values();
+    set_boundary_conditions( conf );
+}
+
+
 template< int dim >
 void Spatial_mesh<dim>::check_correctness_of_related_config_fields( Config &conf )
 {
-    // put dim < 1 && dim > 3 check first and
-    // then 3 separate if's?
-    if( dim == 1 ){
-	grid_x_size_gt_zero( conf );
-	grid_x_step_gt_zero_le_grid_x_size( conf );
-    } else if( dim == 2 ) {
-	grid_x_size_gt_zero( conf );
-	grid_x_step_gt_zero_le_grid_x_size( conf );
-	grid_y_size_gt_zero( conf );
-	grid_y_step_gt_zero_le_grid_y_size( conf );
-    } else if( dim == 3 ) {
-	grid_x_size_gt_zero( conf );
-	grid_x_step_gt_zero_le_grid_x_size( conf );
-	grid_y_size_gt_zero( conf );
-	grid_y_step_gt_zero_le_grid_y_size( conf );
-	grid_z_size_gt_zero( conf );
-	grid_z_step_gt_zero_le_grid_z_size( conf );
-    } else {
-	std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
-	exit( EXIT_FAILURE );
-    }
+    std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
+    exit( EXIT_FAILURE );
+}
+
+template<>
+void Spatial_mesh<1>::check_correctness_of_related_config_fields( Config &conf )
+{
+    grid_x_size_gt_zero( conf );
+    grid_x_step_gt_zero_le_grid_x_size( conf );
+}
+
+template<>
+void Spatial_mesh<2>::check_correctness_of_related_config_fields( Config &conf )
+{
+    grid_x_size_gt_zero( conf );
+    grid_x_step_gt_zero_le_grid_x_size( conf );
+    grid_y_size_gt_zero( conf );
+    grid_y_step_gt_zero_le_grid_y_size( conf );
+}
+
+template<>
+void Spatial_mesh<3>::check_correctness_of_related_config_fields( Config &conf )
+{
+    grid_x_size_gt_zero( conf );
+    grid_x_step_gt_zero_le_grid_x_size( conf );
+    grid_y_size_gt_zero( conf );
+    grid_y_step_gt_zero_le_grid_y_size( conf );
+    grid_z_size_gt_zero( conf );
+    grid_z_step_gt_zero_le_grid_z_size( conf );
 }
 
 // todo: merge init_{x,y,z}_grid into single function
@@ -160,25 +181,41 @@ void Spatial_mesh<dim>::init_z_grid( Config &conf )
 template< int dim >
 void Spatial_mesh<dim>::allocate_ongrid_values()
 {
-    if( dim == 1 ){
-	// is it necessary to zero-fill the arrays?
-	charge_density.allocate( x_n_nodes );
-	potential.allocate( x_n_nodes );
-	electric_field.allocate( x_n_nodes );
-    } else if( dim == 2 ) {
-	charge_density.allocate( x_n_nodes, y_n_nodes );
-	potential.allocate( x_n_nodes, y_n_nodes );
-	electric_field.allocate( x_n_nodes, y_n_nodes );
-    } else if( dim == 3 ) {
-	charge_density.allocate( x_n_nodes, y_n_nodes, z_n_nodes );
-	potential.allocate( x_n_nodes, y_n_nodes, z_n_nodes );
-	electric_field.allocate( x_n_nodes, y_n_nodes, z_n_nodes );
-    } else {
-	std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
-	exit( EXIT_FAILURE );
-    }
+    std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
+    exit( EXIT_FAILURE );
     return;
 }
+
+template<>
+void Spatial_mesh<1>::allocate_ongrid_values()
+{
+    // is it necessary to zero-fill the arrays?
+    charge_density.allocate( x_n_nodes );
+    potential.allocate( x_n_nodes );
+    electric_field.allocate( x_n_nodes );
+    return;
+}
+
+template<>
+void Spatial_mesh<2>::allocate_ongrid_values()
+{
+    // is it necessary to zero-fill the arrays?
+    charge_density.allocate( x_n_nodes, y_n_nodes );
+    potential.allocate( x_n_nodes, y_n_nodes );
+    electric_field.allocate( x_n_nodes, y_n_nodes );
+    return;
+}
+
+template<>
+void Spatial_mesh<3>::allocate_ongrid_values()
+{
+    // is it necessary to zero-fill the arrays?
+    charge_density.allocate( x_n_nodes, y_n_nodes, z_n_nodes );
+    potential.allocate( x_n_nodes, y_n_nodes, z_n_nodes );
+    electric_field.allocate( x_n_nodes, y_n_nodes, z_n_nodes );
+    return;
+}
+
 
 
 template< int dim >
@@ -192,28 +229,39 @@ void Spatial_mesh<dim>::clear_old_density_values()
 template< int dim >
 void Spatial_mesh<dim>::set_boundary_conditions( Config &conf )
 {
-    if( dim == 1 ){
-	set_boundary_conditions_1d( conf.boundary_config_part.boundary_phi_left, 
-				    conf.boundary_config_part.boundary_phi_right );
-    } else if( dim == 2 ){
-	set_boundary_conditions_2d( conf.boundary_config_part.boundary_phi_left, 
-				    conf.boundary_config_part.boundary_phi_right,
-				    conf.boundary_config_part.boundary_phi_top, 
-				    conf.boundary_config_part.boundary_phi_bottom );
-    } else if( dim == 3 ){
-	set_boundary_conditions_3d( conf.boundary_config_part.boundary_phi_left, 
-				    conf.boundary_config_part.boundary_phi_right,
-				    conf.boundary_config_part.boundary_phi_top, 
-				    conf.boundary_config_part.boundary_phi_bottom,
-				    conf.boundary_config_part.boundary_phi_near, 
-				    conf.boundary_config_part.boundary_phi_far );
-    } else {
-	std::cout << "Unsupported dim = " << dim
-		  << " in Spatial_mesh<dim>::print_ongrid_values. Aborting.";
-	exit( EXIT_FAILURE );
-    }
-    return;
+    std::cout << "Unsupported dim = " << dim
+	      << " in Spatial_mesh<dim>::print_ongrid_values. Aborting.";
+    exit( EXIT_FAILURE );
+}
 
+template<>
+void Spatial_mesh<1>::set_boundary_conditions( Config &conf )
+{
+    set_boundary_conditions_1d( conf.boundary_config_part.boundary_phi_left, 
+				conf.boundary_config_part.boundary_phi_right );
+    return;
+}
+
+template<>
+void Spatial_mesh<2>::set_boundary_conditions( Config &conf )
+{
+    set_boundary_conditions_2d( conf.boundary_config_part.boundary_phi_left, 
+				conf.boundary_config_part.boundary_phi_right,
+				conf.boundary_config_part.boundary_phi_top, 
+				conf.boundary_config_part.boundary_phi_bottom );
+    return;
+}
+
+template<>
+void Spatial_mesh<3>::set_boundary_conditions( Config &conf )
+{
+    set_boundary_conditions_3d( conf.boundary_config_part.boundary_phi_left, 
+				conf.boundary_config_part.boundary_phi_right,
+				conf.boundary_config_part.boundary_phi_top, 
+				conf.boundary_config_part.boundary_phi_bottom,
+				conf.boundary_config_part.boundary_phi_near, 
+				conf.boundary_config_part.boundary_phi_far );
+    return;
 }
 
 template< int dim >
@@ -284,17 +332,30 @@ void Spatial_mesh<dim>::set_boundary_conditions_3d( const double phi_left, const
 template< int dim >
 void Spatial_mesh<dim>::print( std::ofstream &out_stream )
 {
-    if( dim == 1 ){
-	print_1d( out_stream );
-    } else if( dim == 2 ){
-	print_2d( out_stream );
-    } else if( dim == 3 ){
-	print_3d( out_stream );
-    } else {
-	std::cout << "Unsupported dim = " << dim
-		  << " in Spatial_mesh<dim>::print_ongrid_values. Aborting.";
-	exit( EXIT_FAILURE );
-    }
+    std::cout << "Unsupported dim = " << dim
+	      << " in Spatial_mesh<dim>::print_ongrid_values. Aborting.";
+    exit( EXIT_FAILURE );
+    return;
+}
+
+template<>
+void Spatial_mesh<1>::print( std::ofstream &out_stream )
+{
+    print_1d( out_stream );
+    return;
+}
+
+template<>
+void Spatial_mesh<2>::print( std::ofstream &out_stream )
+{
+    print_2d( out_stream );
+    return;
+}
+
+template<>
+void Spatial_mesh<3>::print( std::ofstream &out_stream )
+{
+    print_3d( out_stream );
     return;
 }
 
