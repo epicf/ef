@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
-#include "config.h"
-#include "domain.h"
+#include "Config.hpp"
+#include "Domain.hpp"
 #include "parse_cmd_line.h"
 
 void pic_simulation( Config &conf );

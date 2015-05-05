@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
-#include "config.h"
+#include "Config.hpp"
 #include "VecNd.hpp"
 
 template< int dim >
@@ -18,19 +18,19 @@ class Spatial_mesh {
     ArrayNd< dim, double > potential;
     ArrayNd< dim, VecNd< dim > > electric_field;
   public:
-    Spatial_mesh( Config &conf );
+    Spatial_mesh( Config<dim> &conf );
     void clear_old_density_values();
-    void set_boundary_conditions( Config &conf );
+    void set_boundary_conditions( Config<dim> &conf );
     void print( std::ofstream &out_stream );
     virtual ~Spatial_mesh();
   private:
     // init
-    void check_correctness_of_related_config_fields( Config &conf );
-    void init_x_grid( Config &conf );
-    void init_y_grid( Config &conf );
-    void init_z_grid( Config &conf );
+    void check_correctness_of_related_config_fields( Config<dim> &conf );
+    void init_x_grid( Config<dim> &conf );
+    void init_y_grid( Config<dim> &conf );
+    void init_z_grid( Config<dim> &conf );
     void allocate_ongrid_values();
-    void set_boundary_conditions( Config &conf );
+    void set_boundary_conditions( Config<dim> &conf );
     void set_boundary_conditions_1d( const double phi_left, const double phi_right );
     void set_boundary_conditions_2d( const double phi_left, const double phi_right,
 				     const double phi_top, const double phi_bottom );
@@ -43,24 +43,24 @@ class Spatial_mesh {
     void print_2d( std::ofstream &out_stream );
     void print_3d( std::ofstream &out_stream );
     // config check
-    void grid_x_size_gt_zero( Config &conf );
-    void grid_x_step_gt_zero_le_grid_x_size( Config &conf );
-    void grid_y_size_gt_zero( Config &conf );
-    void grid_y_step_gt_zero_le_grid_y_size( Config &conf );
-    void grid_z_size_gt_zero( Config &conf );
-    void grid_z_step_gt_zero_le_grid_y_size( Config &conf );
+    void grid_x_size_gt_zero( Config<dim> &conf );
+    void grid_x_step_gt_zero_le_grid_x_size( Config<dim> &conf );
+    void grid_y_size_gt_zero( Config<dim> &conf );
+    void grid_y_step_gt_zero_le_grid_y_size( Config<dim> &conf );
+    void grid_z_size_gt_zero( Config<dim> &conf );
+    void grid_z_step_gt_zero_le_grid_y_size( Config<dim> &conf );
     void check_and_exit_if_not( const bool &should_be, const std::string &message );
 };
 
 template< int dim >
-Spatial_mesh<dim>::Spatial_mesh( Config &conf )
+Spatial_mesh<dim>::Spatial_mesh( Config<dim> &conf )
 {
     std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
     exit( EXIT_FAILURE );
 }
 
 template<>
-Spatial_mesh<1>::Spatial_mesh( Config &conf )
+Spatial_mesh<1>::Spatial_mesh( Config<1> &conf )
 {
     check_correctness_of_related_config_fields( conf );
     init_x_grid( conf );
@@ -69,7 +69,7 @@ Spatial_mesh<1>::Spatial_mesh( Config &conf )
 }
 
 template<>
-Spatial_mesh<2>::Spatial_mesh( Config &conf )
+Spatial_mesh<2>::Spatial_mesh( Config<2> &conf )
 {
     check_correctness_of_related_config_fields( conf );
     init_x_grid( conf );
@@ -79,7 +79,7 @@ Spatial_mesh<2>::Spatial_mesh( Config &conf )
 }
 
 template<>
-Spatial_mesh<3>::Spatial_mesh( Config &conf )
+Spatial_mesh<3>::Spatial_mesh( Config<3> &conf )
 {
     check_correctness_of_related_config_fields( conf );
     init_x_grid( conf );
@@ -91,21 +91,21 @@ Spatial_mesh<3>::Spatial_mesh( Config &conf )
 
 
 template< int dim >
-void Spatial_mesh<dim>::check_correctness_of_related_config_fields( Config &conf )
+void Spatial_mesh<dim>::check_correctness_of_related_config_fields( Config<dim> &conf )
 {
     std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
     exit( EXIT_FAILURE );
 }
 
 template<>
-void Spatial_mesh<1>::check_correctness_of_related_config_fields( Config &conf )
+void Spatial_mesh<1>::check_correctness_of_related_config_fields( Config<1> &conf )
 {
     grid_x_size_gt_zero( conf );
     grid_x_step_gt_zero_le_grid_x_size( conf );
 }
 
 template<>
-void Spatial_mesh<2>::check_correctness_of_related_config_fields( Config &conf )
+void Spatial_mesh<2>::check_correctness_of_related_config_fields( Config<2> &conf )
 {
     grid_x_size_gt_zero( conf );
     grid_x_step_gt_zero_le_grid_x_size( conf );
@@ -114,7 +114,7 @@ void Spatial_mesh<2>::check_correctness_of_related_config_fields( Config &conf )
 }
 
 template<>
-void Spatial_mesh<3>::check_correctness_of_related_config_fields( Config &conf )
+void Spatial_mesh<3>::check_correctness_of_related_config_fields( Config<3> &conf )
 {
     grid_x_size_gt_zero( conf );
     grid_x_step_gt_zero_le_grid_x_size( conf );
@@ -128,7 +128,7 @@ void Spatial_mesh<3>::check_correctness_of_related_config_fields( Config &conf )
 // too much repetition
 // Guess it won't be possible without С macroprogramming. Which is even worse.
 template< int dim >
-void Spatial_mesh<dim>::init_x_grid( Config &conf )
+void Spatial_mesh<dim>::init_x_grid( Config<dim> &conf )
 {
     x_volume_size = conf.mesh_config_part.grid_x_size;
     x_n_nodes = 
@@ -145,7 +145,7 @@ void Spatial_mesh<dim>::init_x_grid( Config &conf )
 }
 
 template< int dim >
-void Spatial_mesh<dim>::init_y_grid( Config &conf )
+void Spatial_mesh<dim>::init_y_grid( Config<dim> &conf )
 {
     y_volume_size = conf.mesh_config_part.grid_y_size;
     y_n_nodes = 
@@ -162,7 +162,7 @@ void Spatial_mesh<dim>::init_y_grid( Config &conf )
 }
 
 template< int dim >
-void Spatial_mesh<dim>::init_z_grid( Config &conf )
+void Spatial_mesh<dim>::init_z_grid( Config<dim> &conf )
 {
     z_volume_size = conf.mesh_config_part.grid_z_size;
     z_n_nodes = 
@@ -227,7 +227,7 @@ void Spatial_mesh<dim>::clear_old_density_values()
 }
 
 template< int dim >
-void Spatial_mesh<dim>::set_boundary_conditions( Config &conf )
+void Spatial_mesh<dim>::set_boundary_conditions( Config<dim> &conf )
 {
     std::cout << "Unsupported dim = " << dim
 	      << " in Spatial_mesh<dim>::print_ongrid_values. Aborting.";
@@ -235,7 +235,7 @@ void Spatial_mesh<dim>::set_boundary_conditions( Config &conf )
 }
 
 template<>
-void Spatial_mesh<1>::set_boundary_conditions( Config &conf )
+void Spatial_mesh<1>::set_boundary_conditions( Config<1> &conf )
 {
     set_boundary_conditions_1d( conf.boundary_config_part.boundary_phi_left, 
 				conf.boundary_config_part.boundary_phi_right );
@@ -243,7 +243,7 @@ void Spatial_mesh<1>::set_boundary_conditions( Config &conf )
 }
 
 template<>
-void Spatial_mesh<2>::set_boundary_conditions( Config &conf )
+void Spatial_mesh<2>::set_boundary_conditions( Config<2> &conf )
 {
     set_boundary_conditions_2d( conf.boundary_config_part.boundary_phi_left, 
 				conf.boundary_config_part.boundary_phi_right,
@@ -253,7 +253,7 @@ void Spatial_mesh<2>::set_boundary_conditions( Config &conf )
 }
 
 template<>
-void Spatial_mesh<3>::set_boundary_conditions( Config &conf )
+void Spatial_mesh<3>::set_boundary_conditions( Config<3> &conf )
 {
     set_boundary_conditions_3d( conf.boundary_config_part.boundary_phi_left, 
 				conf.boundary_config_part.boundary_phi_right,
@@ -454,14 +454,14 @@ void Spatial_mesh<dim>::print_3d( std::ofstream &out_stream )
 }
 
 template< int dim >
-void Spatial_mesh<dim>::grid_x_size_gt_zero( Config &conf )
+void Spatial_mesh<dim>::grid_x_size_gt_zero( Config<dim> &conf )
 {
     check_and_exit_if_not( conf.mesh_config_part.grid_x_size > 0,
 			   "grid_x_size < 0" );
 }
 
 template< int dim >
-void Spatial_mesh<dim>::grid_x_step_gt_zero_le_grid_x_size( Config &conf )
+void Spatial_mesh<dim>::grid_x_step_gt_zero_le_grid_x_size( Config<dim> &conf )
 {
     check_and_exit_if_not( 
 	( conf.mesh_config_part.grid_x_step > 0 ) && 
@@ -470,14 +470,14 @@ void Spatial_mesh<dim>::grid_x_step_gt_zero_le_grid_x_size( Config &conf )
 }
 
 template< int dim >
-void Spatial_mesh<dim>::grid_y_size_gt_zero( Config &conf )
+void Spatial_mesh<dim>::grid_y_size_gt_zero( Config<dim> &conf )
 {
     check_and_exit_if_not( conf.mesh_config_part.grid_y_size > 0,
 			   "grid_y_size < 0" );
 }
 
 template< int dim >
-void Spatial_mesh<dim>::grid_y_step_gt_zero_le_grid_y_size( Config &conf )
+void Spatial_mesh<dim>::grid_y_step_gt_zero_le_grid_y_size( Config<dim> &conf )
 {
     check_and_exit_if_not( 
 	( conf.mesh_config_part.grid_y_step > 0 ) && 
@@ -486,14 +486,14 @@ void Spatial_mesh<dim>::grid_y_step_gt_zero_le_grid_y_size( Config &conf )
 }
 
 template< int dim >
-void Spatial_mesh<dim>::grid_z_size_gt_zero( Config &conf )
+void Spatial_mesh<dim>::grid_z_size_gt_zero( Config<dim> &conf )
 {
     check_and_exit_if_not( conf.mesh_config_part.grid_z_size > 0,
 			   "grid_z_size < 0" );
 }
 
 template< int dim >
-void Spatial_mesh<dim>::grid_z_step_gt_zero_le_grid_z_size( Config &conf )
+void Spatial_mesh<dim>::grid_z_step_gt_zero_le_grid_z_size( Config<dim> &conf )
 {
     check_and_exit_if_not( 
 	( conf.mesh_config_part.grid_z_step > 0 ) && 

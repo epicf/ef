@@ -1,4 +1,60 @@
-#include "domain.h"
+#ifndef _DOMAIN_H_
+#define _DOMAIN_H_
+
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <functional>
+#include "Config.hpp"
+#include "time_grid.h"
+#include "Spatial_mesh.hpp"
+#include "particle_to_mesh_map.h"
+#include "field_solver.h"
+#include "Particle_source.hpp"
+#include "Particle.hpp"
+#include "VecNd.hpp"
+
+//#define M_PI 3.14159265358979323846264338327
+
+template< int dim >
+class Domain {
+  private:
+    //Domain() {};
+  public:
+    Time_grid time_grid;
+    Spatial_mesh<dim> spat_mesh;
+    Particle_to_mesh_map<dim> particle_to_mesh_map;
+    Field_solver<dim> field_solver;    
+    Particle_sources<dim> particle_sources;
+  public:
+    Domain( Config<dim> &conf );
+    void run_pic( Config<dim> &conf );
+    void write_step_to_save( Config<dim> &conf );
+    void write( Config<dim> &conf );
+    virtual ~Domain();
+  private:
+    // Pic algorithm
+    void prepare_leap_frog();
+    void advance_one_time_step();
+    void eval_charge_density();
+    void eval_potential_and_fields();
+    void push_particles();
+    void apply_domain_constrains();
+    void update_time_grid();
+    // Push particles
+    void leap_frog();
+    void shift_velocities_half_time_step_back();
+    void update_momentum( double dt );
+    void update_position( double dt );
+    // Boundaries and generation
+    void apply_domain_boundary_conditions();
+    bool out_of_bound( const Particle<dim> &p );
+    void generate_new_particles();
+    // Various functions
+    void print_particles();
+};
 
 // Domain print
 std::string construct_output_filename( const std::string output_filename_prefix, 
@@ -9,7 +65,8 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 // Domain initialization
 //
 
-Domain::Domain( Config &conf ) :
+template< int dim >
+Domain<dim>::Domain( Config<dim> &conf ) :
     time_grid( conf ),
     spat_mesh( conf ),
     particle_to_mesh_map( ),
@@ -23,7 +80,8 @@ Domain::Domain( Config &conf ) :
 // Pic simulation 
 //
 
-void Domain::run_pic( Config &conf )
+template< int dim >
+void Domain<dim>::run_pic( Config<dim> &conf )
 {
     int total_time_iterations, current_node;
     total_time_iterations = time_grid.total_nodes - 1;
@@ -39,7 +97,8 @@ void Domain::run_pic( Config &conf )
     return;
 }
 
-void Domain::prepare_leap_frog()
+template< int dim >
+void Domain<dim>::prepare_leap_frog()
 {
     eval_charge_density();
     eval_potential_and_fields();
@@ -47,7 +106,8 @@ void Domain::prepare_leap_frog()
     return;
 }
 
-void Domain::advance_one_time_step()
+template< int dim >
+void Domain<dim>::advance_one_time_step()
 {
     push_particles();
     apply_domain_constrains();
@@ -57,27 +117,31 @@ void Domain::advance_one_time_step()
     return;
 }
 
-void Domain::eval_charge_density()
+template< int dim >
+void Domain<dim>::eval_charge_density()
 {
     spat_mesh.clear_old_density_values();
     particle_to_mesh_map.weight_particles_charge_to_mesh( spat_mesh, particle_sources );
     return;
 }
 
-void Domain::eval_potential_and_fields()
+template< int dim >
+void Domain<dim>::eval_potential_and_fields()
 {
     field_solver.eval_potential( spat_mesh );
     field_solver.eval_fields_from_potential( spat_mesh );
     return;
 }
 
-void Domain::push_particles()
+template< int dim >
+void Domain<dim>::push_particles()
 {
     leap_frog();
     return;
 }
 
-void Domain::apply_domain_constrains()
+template< int dim >
+void Domain<dim>::apply_domain_constrains()
 {
     apply_domain_boundary_conditions();
     generate_new_particles();
@@ -88,7 +152,8 @@ void Domain::apply_domain_constrains()
 // Push particles
 //
 
-void Domain::leap_frog()
+template< int dim >
+void Domain<dim>::leap_frog()
 {  
     double dt = time_grid.time_step_size;
 
@@ -97,17 +162,19 @@ void Domain::leap_frog()
     return;
 }
 
-void Domain::shift_velocities_half_time_step_back()
+template< int dim >
+void Domain<dim>::shift_velocities_half_time_step_back()
 {
-    double half_dt = time_grid.time_step_size / 2;
+    double half_dt = time_grid.time_step_size / 2.0;
 
     update_momentum( -half_dt );
     return;    
 }
 
-void Domain::update_momentum( double dt )
+template< int dim >
+void Domain<dim>::update_momentum( double dt )
 {
-    VecNd<2> force, dp;
+    VecNd<dim> force, dp;
 
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
@@ -119,7 +186,8 @@ void Domain::update_momentum( double dt )
     return;
 }
 
-void Domain::update_position( double dt )
+template< int dim >
+void Domain<dim>::update_position( double dt )
 {
     particle_sources.update_particles_position( dt );
     return;
@@ -129,20 +197,41 @@ void Domain::update_position( double dt )
 // Apply domain constrains
 //
 
-void Domain::apply_domain_boundary_conditions()
+template< int dim >
+void Domain<dim>::apply_domain_boundary_conditions()
 {
     for( auto &src : particle_sources.sources ) {
 	src.particles.erase( 
 	    std::remove_if( 
 		std::begin( src.particles ), 
 		std::end( src.particles ), 
-		[this]( Particle<2> &p ){ return out_of_bound(p); } ), 
+		[this]( Particle<dim> &p ){ return out_of_bound(p); } ), 
 	    std::end( src.particles ) );
     }
     return;
 }
 
-bool Domain::out_of_bound( const Particle<2> &p )
+template<dim>
+bool Domain<dim>::out_of_bound( const Particle<dim> &p )
+{
+    std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
+    exit( EXIT_FAILURE );
+}
+
+template<>
+bool Domain<1>::out_of_bound( const Particle<1> &p )
+{
+    double x = p.position.x();
+    bool out;
+    
+    out = 
+	( x >= spat_mesh.x_volume_size ) || ( x <= 0 );
+    return out;
+
+}
+
+template<>
+bool Domain<2>::out_of_bound( const Particle<2> &p )
 {
     double x = p.position.x();
     double y = p.position.y();
@@ -155,7 +244,24 @@ bool Domain::out_of_bound( const Particle<2> &p )
 
 }
 
-void Domain::generate_new_particles()
+template<>
+bool Domain<3>::out_of_bound( const Particle<3> &p )
+{
+    double x = p.position.x();
+    double y = p.position.y();
+    double y = p.position.z();
+    bool out;
+    
+    out = 
+	( x >= spat_mesh.x_volume_size ) || ( x <= 0 ) ||
+	( y >= spat_mesh.y_volume_size ) || ( y <= 0 ) ||
+	( z >= spat_mesh.z_volume_size ) || ( z <= 0 );
+    return out;
+
+}
+
+template< int dim >
+void Domain<dim>::generate_new_particles()
 {
     particle_sources.generate_each_step();
     return;
@@ -166,7 +272,8 @@ void Domain::generate_new_particles()
 // Update time grid
 //
 
-void Domain::update_time_grid()
+template< int dim >
+void Domain<dim>::update_time_grid()
 {
     time_grid.update_to_next_step();
     return;
@@ -176,7 +283,8 @@ void Domain::update_time_grid()
 // Write domain to file
 //
 
-void Domain::write_step_to_save( Config &conf )
+template< int dim >
+void Domain<dim>::write_step_to_save( Config<dim> &conf )
 {
     int current_step = time_grid.current_node;
     int step_to_save = time_grid.node_to_save;
@@ -186,7 +294,8 @@ void Domain::write_step_to_save( Config &conf )
     return;
 }
 
-void Domain::write( Config &conf )
+template< int dim >
+void Domain<dim>::write( Config<dim> &conf )
 {
     std::string output_filename_prefix = 
 	conf.output_filename_config_part.output_filename_prefix;
@@ -239,7 +348,8 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 // Free domain
 //
 
-Domain::~Domain()
+template< int dim >
+Domain<dim>::~Domain()
 {
     std::cout << "TODO: free domain.\n";
     return;
@@ -249,8 +359,12 @@ Domain::~Domain()
 // Various functions
 //
 
-void Domain::print_particles() 
+template< int dim >
+void Domain<dim>::print_particles() 
 {
     particle_sources.print_particles();
     return;
 }
+
+
+#endif /* _DOMAIN_H_ */

@@ -7,6 +7,7 @@
 *.o
 *.mod
 *.dat
+*.csv
 *.swp
 *.zip
 *.a
