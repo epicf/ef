@@ -20,7 +20,6 @@ class Spatial_mesh {
   public:
     Spatial_mesh( Config<dim> &conf );
     void clear_old_density_values();
-    void set_boundary_conditions( Config<dim> &conf );
     void print( std::ofstream &out_stream );
     virtual ~Spatial_mesh();
   private:
@@ -38,7 +37,6 @@ class Spatial_mesh {
 				     const double phi_top, const double phi_bottom,
 				     const double phi_near, const double phi_far );
     // print
-    void print( std::ofstream &out_stream );
     void print_1d( std::ofstream &out_stream );
     void print_2d( std::ofstream &out_stream );
     void print_3d( std::ofstream &out_stream );
@@ -88,7 +86,6 @@ Spatial_mesh<3>::Spatial_mesh( Config<3> &conf )
     allocate_ongrid_values();
     set_boundary_conditions( conf );
 }
-
 
 template< int dim >
 void Spatial_mesh<dim>::check_correctness_of_related_config_fields( Config<dim> &conf )

@@ -1,6 +1,40 @@
-#include "time_grid.h"
+#ifndef _TIME_GRID_H_
+#define _TIME_GRID_H_
 
-Time_grid::Time_grid( Config &conf ) 
+#include <cmath>
+#include <iostream>
+#include <string>
+#include "Config.hpp"
+
+template< int dim >
+class Time_grid {
+  public:
+    double total_time, current_time;
+    double time_step_size;
+    double time_save_step;
+    int total_nodes, current_node, node_to_save;
+  public:
+    Time_grid( Config<dim> &conf );
+    void update_to_next_step();
+    void print();
+    void write_to_file( std::ofstream &output_file );
+  private:
+    // initialisation
+    void check_correctness_of_related_config_fields( Config<dim> &conf );
+    void get_values_from_config( Config<dim> &conf );
+    void init_total_nodes();
+    void shrink_time_step_size_if_necessary( Config<dim> &conf );
+    void shrink_time_save_step_if_necessary( Config<dim> &conf );
+    void set_current_time_and_node();
+    // check config correctness
+    void total_time_gt_zero( Config<dim> &conf );
+    void time_step_size_gt_zero_le_total_time( Config<dim> &conf );
+    void time_save_step_ge_time_step_size( Config<dim> &conf );
+    void check_and_exit_if_not( const bool &should_be, const std::string &message );
+}; 
+
+template< int dim >
+Time_grid<dim>::Time_grid( Config<dim> &conf ) 
 {
     check_correctness_of_related_config_fields( conf );
     get_values_from_config( conf );
@@ -10,26 +44,30 @@ Time_grid::Time_grid( Config &conf )
     set_current_time_and_node();
 }
 
-void Time_grid::check_correctness_of_related_config_fields( Config &conf )
+template< int dim >
+void Time_grid<dim>::check_correctness_of_related_config_fields( Config<dim> &conf )
 {
     total_time_gt_zero( conf );
     time_step_size_gt_zero_le_total_time( conf );
     time_save_step_ge_time_step_size( conf );
 }
 
-void Time_grid::get_values_from_config( Config &conf )
+template< int dim >
+void Time_grid<dim>::get_values_from_config( Config<dim> &conf )
 {
     total_time = conf.time_config_part.total_time;
     time_step_size = conf.time_config_part.time_step_size; 
     time_save_step = conf.time_config_part.time_save_step;
 }
 
-void Time_grid::init_total_nodes()
+template< int dim >
+void Time_grid<dim>::init_total_nodes()
 {
     total_nodes = ceil( total_time / time_step_size ) + 1; 
 }
 
-void Time_grid::shrink_time_step_size_if_necessary( Config &conf )
+template< int dim >
+void Time_grid<dim>::shrink_time_step_size_if_necessary( Config<dim> &conf )
 {
     time_step_size = total_time / ( total_nodes - 1 );
     if ( time_step_size != conf.time_config_part.time_step_size ) {
@@ -41,7 +79,8 @@ void Time_grid::shrink_time_step_size_if_necessary( Config &conf )
     }
 }
 
-void Time_grid::shrink_time_save_step_if_necessary( Config &conf )
+template< int dim >
+void Time_grid<dim>::shrink_time_save_step_if_necessary( Config<dim> &conf )
 {
     time_save_step = ( (int)( time_save_step / time_step_size ) ) * time_step_size; 
     if ( time_save_step != conf.time_config_part.time_save_step ) {      
@@ -54,19 +93,22 @@ void Time_grid::shrink_time_save_step_if_necessary( Config &conf )
     node_to_save = (int) ( time_save_step / time_step_size );
 }
 
-void Time_grid::set_current_time_and_node()
+template< int dim >
+void Time_grid<dim>::set_current_time_and_node()
 {
     current_time = 0.0;
     current_node = 0;
 }
 
-void Time_grid::update_to_next_step()
+template< int dim >
+void Time_grid<dim>::update_to_next_step()
 {
     current_node++;
     current_time += time_step_size;
 }
 
-void Time_grid::print( )
+template< int dim >
+void Time_grid<dim>::print( )
 {
     std::cout << "Time grid:" << std::endl;
     std::cout << "Total time = " << total_time << std::endl;
@@ -79,7 +121,8 @@ void Time_grid::print( )
     return;
 }
 
-void Time_grid::write_to_file( std::ofstream &output_file )
+template< int dim >
+void Time_grid<dim>::write_to_file( std::ofstream &output_file )
 {
     output_file << "Time grid:" << std::endl;
     output_file << "Total time = " << total_time << std::endl;
@@ -92,14 +135,16 @@ void Time_grid::write_to_file( std::ofstream &output_file )
     return;
 }
 
-void Time_grid::total_time_gt_zero( Config &conf )
+template< int dim >
+void Time_grid<dim>::total_time_gt_zero( Config<dim> &conf )
 {
     check_and_exit_if_not( 
 	conf.time_config_part.total_time >= 0, 
 	"total_time < 0" );
 }
 
-void Time_grid::time_step_size_gt_zero_le_total_time( Config &conf )
+template< int dim >
+void Time_grid<dim>::time_step_size_gt_zero_le_total_time( Config<dim> &conf )
 {
     check_and_exit_if_not( 
 	( conf.time_config_part.time_step_size > 0 ) && 
@@ -108,7 +153,8 @@ void Time_grid::time_step_size_gt_zero_le_total_time( Config &conf )
     return;
 }
 
-void Time_grid::time_save_step_ge_time_step_size( Config &conf )
+template< int dim >
+void Time_grid<dim>::time_save_step_ge_time_step_size( Config<dim> &conf )
 {
     check_and_exit_if_not( 
 	conf.time_config_part.time_save_step >= conf.time_config_part.time_step_size,
@@ -116,7 +162,8 @@ void Time_grid::time_save_step_ge_time_step_size( Config &conf )
     return;
 }
 
-void Time_grid::check_and_exit_if_not( const bool &should_be, const std::string &message )
+template< int dim >
+void Time_grid<dim>::check_and_exit_if_not( const bool &should_be, const std::string &message )
 {
     if( !should_be ){
 	std::cout << "Error: " + message << std::endl;
@@ -124,3 +171,5 @@ void Time_grid::check_and_exit_if_not( const bool &should_be, const std::string 
     }
     return;
 }
+
+#endif /* _TIME_GRID_H_ */

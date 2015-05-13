@@ -6,7 +6,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
-#include "config.h"
+#include "Config.hpp"
 #include "Particle.hpp"
 #include "VecNd.hpp"
 

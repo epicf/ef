@@ -8,10 +8,10 @@
 #include <algorithm>
 #include <functional>
 #include "Config.hpp"
-#include "time_grid.h"
+#include "Time_grid.hpp"
 #include "Spatial_mesh.hpp"
-#include "particle_to_mesh_map.h"
-#include "field_solver.h"
+#include "Particle_to_mesh_map.hpp"
+#include "Field_solver.hpp"
 #include "Particle_source.hpp"
 #include "Particle.hpp"
 #include "VecNd.hpp"

@@ -543,7 +543,7 @@ Config<dim>::Config( const std::string &filename )
 	    if ( section_name.find( "Time grid" ) != std::string::npos ) {
 		time_config_part = Time_config_part( sections.second );
 	    } else if ( section_name.find( "Spatial mesh" ) != std::string::npos ) {		
-		mesh_config_part = Mesh_config_part( sections.second );
+		mesh_config_part = Mesh_config_part<dim>( sections.second );
 	    } else if ( section_name.find( "Source." ) != std::string::npos ) {
 		std::string source_name = section_name.substr( section_name.find(".") + 1 );
 		sources_config_part.emplace_back( source_name, sections.second );
@@ -551,7 +551,7 @@ Config<dim>::Config( const std::string &filename )
 		std::string inner_region_name = section_name.substr( section_name.find(".") + 1 );
 		inner_regions_config_part.emplace_back( inner_region_name, sections.second );
 	    } else if ( section_name.find( "Boundary conditions" ) != std::string::npos ) {
-		boundary_config_part = Boundary_config_part( sections.second );
+		boundary_config_part = Boundary_config_part<dim>( sections.second );
 	    } else if ( section_name.find( "Output filename" ) != std::string::npos ) {
 		output_filename_config_part = Output_filename_config_part( sections.second );				
 	    } else {
