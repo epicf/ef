@@ -51,42 +51,19 @@ void Spatial_mesh::init_y_grid( Config &conf )
 void Spatial_mesh::allocate_ongrid_values( )
 {
     int nx = x_n_nodes;
-    int ny = y_n_nodes;    
-    charge_density = (double **) malloc( nx * sizeof(double *) );
-    potential = (double **) malloc( nx * sizeof(double *) );
-    electric_field = (Vec2d **) malloc( nx * sizeof(Vec2d *) );
-    if ( ( charge_density == NULL ) || 
-	 ( potential == NULL ) || 
-	 ( electric_field == NULL ) ) {
-	std::cout << "allocate_arrays_for_ongrid_values: rows: out of memory " 
-		  << std::endl;
-	exit( EXIT_FAILURE );	
-    }
-    for( int i = 0; i < nx; i++) {
-	charge_density[i] = (double *) calloc( ny, sizeof(double) );
-	potential[i] = (double *) calloc( ny, sizeof(double) );
-	electric_field[i] = (Vec2d *) calloc( ny, sizeof(Vec2d) );
-	if ( ( charge_density[i] == NULL ) || 
-	     ( potential[i] == NULL ) || 
-	     ( electric_field[i] == NULL ) ) {
-	    std::cout << "allocate_arrays_for_ongrid_values: cols: out of memory " 
-		      << std::endl;
-	    exit( EXIT_FAILURE );	
-	}
-    }
+    int ny = y_n_nodes;
+    charge_density.resize( boost::extents[nx][ny] );
+    potential.resize( boost::extents[nx][ny] );
+    electric_field.resize( boost::extents[nx][ny] );
     return;
+    
 }
 
 void Spatial_mesh::clear_old_density_values()
 {
-    int nx = x_n_nodes;
-    int ny = y_n_nodes;    
-    
-    for ( int i = 0; i < nx; i++ ) {
-	for ( int j = 0; j < ny; j++ ) {
-	    charge_density[i][j] = 0;
-	}
-    }
+    std::fill( charge_density.data(),
+	       charge_density.data() + charge_density.num_elements(),
+	       0.0 ); 
 }
 
 
@@ -229,16 +206,4 @@ void Spatial_mesh::check_and_exit_if_not( const bool &should_be, const std::stri
     return;
 }
 
-Spatial_mesh::~Spatial_mesh()
-{
-    int nx = x_n_nodes;
-    for( int i = 0; i < nx; i++) {
-	free( charge_density[i] );
-	free( potential[i] );
-	free( electric_field[i] );
-    }
-    free( charge_density );
-    free( potential );
-    free( electric_field );    
-    return;
-}
+Spatial_mesh::~Spatial_mesh() {}

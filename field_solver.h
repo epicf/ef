@@ -2,6 +2,7 @@
 #define _FIELD_SOLVER_H_
 
 #include <gsl/gsl_linalg.h>
+#include <boost/multi_array.hpp>
 #include "spatial_mesh.h"
 
 class Field_solver {

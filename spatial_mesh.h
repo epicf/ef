@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
+#include <boost/multi_array.hpp>
 #include "config.h"
 #include "vec2d.h"
 
@@ -14,9 +15,9 @@ class Spatial_mesh {
     double x_volume_size, y_volume_size;
     double x_cell_size, y_cell_size;
     int x_n_nodes, y_n_nodes;
-    double **charge_density;
-    double **potential;
-    Vec2d **electric_field;
+    boost::multi_array<double, 2> charge_density;
+    boost::multi_array<double, 2> potential;
+    boost::multi_array<Vec2d, 2> electric_field;
   public:
     Spatial_mesh( Config &conf );
     void clear_old_density_values();
