@@ -171,7 +171,7 @@ void Field_solver::eval_fields_from_potential( Spatial_mesh &spat_mesh )
     int ny = spat_mesh.y_n_nodes;
     double dx = spat_mesh.x_cell_size;
     double dy = spat_mesh.y_cell_size;
-    double **phi = spat_mesh.potential;
+    boost::multi_array<double, 2> &phi = spat_mesh.potential;
     double ex[nx][ny], ey[nx][ny];
 
     for ( int j = 0; j < ny; j++ ) {
