@@ -10,12 +10,18 @@ SHELL:=/bin/bash -O extglob
 #CFLAGS = -std=c++11 -O2
 #LDFLAGS =
 ##### Clang
-CC = clang++
-CFLAGS = -O1 -std=c++11 -g -Wall -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls
-LDFLAGS = -g -fsanitize=address
+# CC = clang++
+# CFLAGS = -O1 -std=c++11 -g -Wall -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls
+# LDFLAGS = -g -fsanitize=address
+##### Prll
+#export OMPI_CXX=clang++
+CC = mpic++
+CFLAGS = -isystem /usr/include/petsc -O2 -std=c++11 -Wall -fbounds-check -Warray-bounds -fsanitize=address
+LDFLAGS = -fsanitize=address
+
 
 ### Libraries
-LIBS=-lm -lgsl -lgslcblas -lboost_program_options
+LIBS=-lm -lboost_program_options -lpetsc
 
 ### Sources and executable
 CPPSOURCES=$(wildcard *.cpp)

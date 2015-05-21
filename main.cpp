@@ -11,6 +11,13 @@ int main( int argc, char *argv[] )
     std::string config_file;
 
     // prepare everything
+    PetscErrorCode ierr;
+    PetscMPIInt    size;        
+    PetscInitialize( &argc, &argv, (char*)0, NULL );
+    ierr = MPI_Comm_size( PETSC_COMM_WORLD, &size); CHKERRXX(ierr);
+    if (size != 1)
+        SETERRQ( PETSC_COMM_WORLD, 1, "This is a uniprocessor example only!" );
+    
     //// Parse command line
     parse_cmd_line( argc, argv, config_file );
     //// Read config
@@ -18,7 +25,9 @@ int main( int argc, char *argv[] )
     conf.print();
     // run simulation
     pic_simulation( conf );
+
     // finalize_whatever_left
+    ierr = PetscFinalize(); CHKERRXX(ierr);
     return 0;
 }
 
