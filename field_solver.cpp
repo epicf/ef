@@ -172,35 +172,27 @@ void Field_solver::eval_fields_from_potential( Spatial_mesh &spat_mesh )
     double dx = spat_mesh.x_cell_size;
     double dy = spat_mesh.y_cell_size;
     boost::multi_array<double, 2> &phi = spat_mesh.potential;
-    double ex[nx][ny], ey[nx][ny];
+    double ex, ey;
 
-    for ( int j = 0; j < ny; j++ ) {
-	for ( int i = 0; i < nx; i++ ) {
+    for ( int i = 0; i < nx; i++ ) {
+	for ( int j = 0; j < ny; j++ ) {
 	    if ( i == 0 ) {
-		ex[i][j] = - boundary_difference( phi[i][j], phi[i+1][j], dx );
+		ex = - boundary_difference( phi[i][j], phi[i+1][j], dx );
 	    } else if ( i == nx-1 ) {
-		ex[i][j] = - boundary_difference( phi[i-1][j], phi[i][j], dx );
+		ex = - boundary_difference( phi[i-1][j], phi[i][j], dx );
 	    } else {
-		ex[i][j] = - central_difference( phi[i-1][j], phi[i+1][j], dx );
+		ex = - central_difference( phi[i-1][j], phi[i+1][j], dx );
 	    }
-	}
-    }
 
-    for ( int i = 0; i < nx; i++ ) {
-	for ( int j = 0; j < ny; j++ ) {
 	    if ( j == 0 ) {
-		ey[i][j] = - boundary_difference( phi[i][j], phi[i][j+1], dy );
+		ey = - boundary_difference( phi[i][j], phi[i][j+1], dy );
 	    } else if ( j == ny-1 ) {
-		ey[i][j] = - boundary_difference( phi[i][j-1], phi[i][j], dy );
+		ey = - boundary_difference( phi[i][j-1], phi[i][j], dy );
 	    } else {
-		ey[i][j] = - central_difference( phi[i][j-1], phi[i][j+1], dy );
+		ey = - central_difference( phi[i][j-1], phi[i][j+1], dy );
 	    }
-	}
-    }
 
-    for ( int i = 0; i < nx; i++ ) {
-	for ( int j = 0; j < ny; j++ ) {
-	    spat_mesh.electric_field[i][j] = vec2d_init( ex[i][j], ey[i][j] );
+	    spat_mesh.electric_field[i][j] = vec2d_init( ex, ey );
 	}
     }
 
