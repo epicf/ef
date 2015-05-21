@@ -3,17 +3,17 @@
 
 #include "iostream"
 #include "iomanip"
-#include "vec2d.h"
+#include "vec3d.h"
 
 class Particle {
   public:
     int id;
     double charge;
     double mass;
-    Vec2d position;
-    Vec2d momentum;
+    Vec3d position;
+    Vec3d momentum;
   public:
-    Particle( int id, double charge, double mass, Vec2d position, Vec2d momentum );
+    Particle( int id, double charge, double mass, Vec3d position, Vec3d momentum );
     void print();
     void print_short();
     void update_position( double dt );

@@ -36,13 +36,17 @@ public:
     double grid_x_step;
     double grid_y_size;
     double grid_y_step;
+    double grid_z_size;
+    double grid_z_step;
 public:
     Mesh_config_part(){};
     Mesh_config_part( boost::property_tree::ptree &ptree ) :
 	grid_x_size( ptree.get<double>("grid_x_size") ),
 	grid_x_step( ptree.get<double>("grid_x_step") ),
         grid_y_size( ptree.get<double>("grid_y_size") ),
-	grid_y_step( ptree.get<double>("grid_y_step") )
+	grid_y_step( ptree.get<double>("grid_y_step") ),
+	grid_z_size( ptree.get<double>("grid_z_size") ),
+	grid_z_step( ptree.get<double>("grid_z_step") )
 	{};
     virtual ~Mesh_config_part() {};
     void print() {
@@ -50,6 +54,8 @@ public:
 	std::cout << "grid_x_step = " << grid_x_step << std::endl;
 	std::cout << "grid_y_size = " << grid_y_size << std::endl;
 	std::cout << "grid_y_step = " << grid_y_step << std::endl;
+	std::cout << "grid_z_size = " << grid_z_size << std::endl;
+	std::cout << "grid_z_step = " << grid_z_step << std::endl;
     }
 };
 
@@ -62,8 +68,11 @@ public:
     double particle_source_x_right;
     double particle_source_y_bottom;
     double particle_source_y_top;
+    double particle_source_z_near;
+    double particle_source_z_far;
     double particle_source_mean_momentum_x;
     double particle_source_mean_momentum_y;
+    double particle_source_mean_momentum_z;
     double particle_source_temperature;
     double particle_source_charge;
     double particle_source_mass;
@@ -77,8 +86,11 @@ public:
 	particle_source_x_right( ptree.get<double>("particle_source_x_right") ),
         particle_source_y_bottom( ptree.get<double>("particle_source_y_bottom") ),
 	particle_source_y_top( ptree.get<double>("particle_source_y_top") ),
+	particle_source_z_near( ptree.get<double>("particle_source_z_near") ),
+	particle_source_z_far( ptree.get<double>("particle_source_z_far") ),
 	particle_source_mean_momentum_x( ptree.get<double>("particle_source_mean_momentum_x") ),
 	particle_source_mean_momentum_y( ptree.get<double>("particle_source_mean_momentum_y") ),
+	particle_source_mean_momentum_z( ptree.get<double>("particle_source_mean_momentum_z") ),
 	particle_source_temperature( ptree.get<double>("particle_source_temperature") ),
         particle_source_charge( ptree.get<double>("particle_source_charge") ),
 	particle_source_mass( ptree.get<double>("particle_source_mass") )
@@ -94,8 +106,11 @@ public:
 	std::cout << "particle_source_x_right = " << particle_source_x_right << std::endl;
 	std::cout << "particle_source_y_bottom = " << particle_source_y_bottom << std::endl;
 	std::cout << "particle_source_y_top = " << particle_source_y_top << std::endl;
+	std::cout << "particle_source_z_near = " << particle_source_z_near << std::endl;
+	std::cout << "particle_source_z_far = " << particle_source_z_far << std::endl;
 	std::cout << "particle_source_mean_momentum_x = " << particle_source_mean_momentum_x << std::endl;
 	std::cout << "particle_source_mean_momentum_y = " << particle_source_mean_momentum_y << std::endl;
+	std::cout << "particle_source_mean_momentum_z = " << particle_source_mean_momentum_z << std::endl;
 	std::cout << "particle_source_temperature = " << particle_source_temperature << std::endl;
 	std::cout << "particle_source_charge = " << particle_source_charge << std::endl;
 	std::cout << "particle_source_mass = " << particle_source_mass << std::endl;
@@ -109,6 +124,8 @@ public:
     double inner_region_x_right;
     double inner_region_y_bottom;
     double inner_region_y_top;
+    double inner_region_z_near;
+    double inner_region_z_far;
     double inner_region_boundary_potential;
 public:
     Inner_region_config_part(){};
@@ -118,6 +135,8 @@ public:
 	inner_region_x_right( ptree.get<double>("inner_region_x_right") ),
         inner_region_y_bottom( ptree.get<double>("inner_region_y_bottom") ),
 	inner_region_y_top( ptree.get<double>("inner_region_y_top") ),
+	inner_region_z_near( ptree.get<double>("inner_region_z_near") ),
+	inner_region_z_far( ptree.get<double>("inner_region_z_far") ),
 	inner_region_boundary_potential( ptree.get<double>("inner_region_boundary_potential") )
 	{};
     virtual ~Inner_region_config_part() {};
@@ -127,6 +146,8 @@ public:
 	std::cout << "inner_region_x_right = " << inner_region_x_right << std::endl;
 	std::cout << "inner_region_y_bottom = " << inner_region_y_bottom << std::endl;
 	std::cout << "inner_region_y_top = " << inner_region_y_top << std::endl;
+	std::cout << "inner_region_z_near = " << inner_region_z_near << std::endl;
+	std::cout << "inner_region_z_far = " << inner_region_z_far << std::endl;
 	std::cout << "inner_region_boundary_potential = " << inner_region_boundary_potential << std::endl;
     }
 };
@@ -138,13 +159,17 @@ public:
     double boundary_phi_right;
     double boundary_phi_bottom;
     double boundary_phi_top;
+    double boundary_phi_near;
+    double boundary_phi_far;
 public:
     Boundary_config_part(){};
     Boundary_config_part( boost::property_tree::ptree &ptree ) :
 	boundary_phi_left( ptree.get<double>("boundary_phi_left") ),
 	boundary_phi_right( ptree.get<double>("boundary_phi_right") ),
-        boundary_phi_bottom( ptree.get<double>("boundary_phi_bottom") ),
-	boundary_phi_top( ptree.get<double>("boundary_phi_top") )
+	boundary_phi_bottom( ptree.get<double>("boundary_phi_bottom") ),
+	boundary_phi_top( ptree.get<double>("boundary_phi_top") ),
+	boundary_phi_near( ptree.get<double>("boundary_phi_near") ),
+	boundary_phi_far( ptree.get<double>("boundary_phi_far") )
 	{} ;
     virtual ~Boundary_config_part() {};
     void print() {
@@ -152,6 +177,8 @@ public:
 	std::cout << "boundary_phi_right = " << boundary_phi_right << std::endl;
 	std::cout << "boundary_phi_bottom = " << boundary_phi_bottom << std::endl;
 	std::cout << "boundary_phi_top = " << boundary_phi_top << std::endl;
+	std::cout << "boundary_phi_near = " << boundary_phi_near << std::endl;
+	std::cout << "boundary_phi_far = " << boundary_phi_far << std::endl;
     }
 };
 

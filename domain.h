@@ -14,7 +14,7 @@
 #include "field_solver.h"
 #include "particle_source.h"
 #include "particle.h"
-#include "vec2d.h"
+#include "vec3d.h"
 
 //#define M_PI 3.14159265358979323846264338327
 

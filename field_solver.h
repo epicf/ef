@@ -17,7 +17,12 @@ class Field_solver {
     gsl_vector *phi_vec;
     gsl_permutation *pmt;
     int perm_sign;
-    gsl_matrix* construct_equation_matrix( int nx, int ny, double dx, double dy );
+    gsl_matrix* construct_equation_matrix( int nx, int ny, int nz,
+					   double dx, double dy, double dz );
+    gsl_matrix* construct_d2dx2_in_3d( int nx, int ny, int nz );
+    gsl_matrix* construct_d2dy2_in_3d( int nx, int ny, int nz );
+    gsl_matrix* construct_d2dz2_in_3d( int nx, int ny, int nz );
+    gsl_matrix* multiply_pattern_along_diagonal( gsl_matrix *pattern, int pt_size, int n_times );
     gsl_matrix* construct_d2dx2_in_2d( int nx, int ny );
     gsl_matrix* construct_d2dy2_in_2d( int nx, int ny );
     // Solve potential
