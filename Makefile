@@ -3,16 +3,16 @@ SHELL:=/bin/bash -O extglob
 
 ##### Compilers
 ##### GNU debug
-# CC = g++
+ CC = g++
 # CFLAGS = -O2 -std=c++11 -Wall -fbounds-check -Warray-bounds -fsanitize=address
 # LDFLAGS = -fsanitize=address
 ### GNU run
-#CFLAGS = -std=c++11 -O2
-#LDFLAGS =
+CFLAGS = -std=c++11 -O2
+LDFLAGS =
 ##### Clang
-CC = clang++
-CFLAGS = -O1 -std=c++11 -g -Wall -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls
-LDFLAGS = -g -fsanitize=address
+#CC = clang++
+#CFLAGS = -O1 -std=c++11 -g -Wall -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls
+#LDFLAGS = -g -fsanitize=address
 
 ### Libraries
 LIBS=-lm -lgsl -lgslcblas -lboost_program_options
