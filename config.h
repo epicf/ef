@@ -102,6 +102,36 @@ public:
     }
 };
 
+class Inner_region_config_part{
+public:
+    std::string inner_region_name;
+    double inner_region_x_left;
+    double inner_region_x_right;
+    double inner_region_y_bottom;
+    double inner_region_y_top;
+    double inner_region_boundary_potential;
+public:
+    Inner_region_config_part(){};
+    Inner_region_config_part( std::string name, boost::property_tree::ptree &ptree ) :
+	inner_region_name( name ),
+	inner_region_x_left( ptree.get<double>("inner_region_x_left") ),
+	inner_region_x_right( ptree.get<double>("inner_region_x_right") ),
+        inner_region_y_bottom( ptree.get<double>("inner_region_y_bottom") ),
+	inner_region_y_top( ptree.get<double>("inner_region_y_top") ),
+	inner_region_boundary_potential( ptree.get<double>("inner_region_boundary_potential") )
+	{};
+    virtual ~Inner_region_config_part() {};
+    void print() { 
+	std::cout << "Inner region: name = " << inner_region_name << std::endl;
+	std::cout << "inner_region_x_left = " << inner_region_x_left << std::endl;
+	std::cout << "inner_region_x_right = " << inner_region_x_right << std::endl;
+	std::cout << "inner_region_y_bottom = " << inner_region_y_bottom << std::endl;
+	std::cout << "inner_region_y_top = " << inner_region_y_top << std::endl;
+	std::cout << "inner_region_boundary_potential = " << inner_region_boundary_potential << std::endl;
+    }
+};
+
+
 class Boundary_config_part {
 public:
     double boundary_phi_left;
@@ -147,6 +177,7 @@ public:
     Time_config_part time_config_part;
     Mesh_config_part mesh_config_part;
     std::vector<Source_config_part> sources_config_part;
+    std::vector<Inner_region_config_part> inner_regions_config_part;
     Boundary_config_part boundary_config_part;
     Output_filename_config_part output_filename_config_part;
 public:
@@ -158,6 +189,9 @@ public:
 	mesh_config_part.print();
 	for ( auto &s : sources_config_part ) {
 	    s.print();
+	}
+	for ( auto &ir : inner_regions_config_part ) {
+	    ir.print();
 	}
 	boundary_config_part.print();
 	output_filename_config_part.print();

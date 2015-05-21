@@ -13,4 +13,3 @@
 *.png
 !doc/figs/*
 *.pdf
-*.plt
