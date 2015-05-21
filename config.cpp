@@ -22,6 +22,8 @@ Config::Config( const std::string &filename )
 		inner_regions_config_part.emplace_back( inner_region_name, sections.second );
 	    } else if ( section_name.find( "Boundary conditions" ) != std::string::npos ) {
 		boundary_config_part = Boundary_config_part( sections.second );
+	    } else if ( section_name.find( "External magnetic field" ) != std::string::npos ) {
+		external_magnetic_field_config_part = External_magnetic_field_config_part( sections.second );
 	    } else if ( section_name.find( "Output filename" ) != std::string::npos ) {
 		output_filename_config_part = Output_filename_config_part( sections.second );				
 	    } else {

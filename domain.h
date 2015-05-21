@@ -12,6 +12,7 @@
 #include "spatial_mesh.h"
 #include "particle_to_mesh_map.h"
 #include "field_solver.h"
+#include "External_magnetic_field.h"
 #include "particle_source.h"
 #include "particle.h"
 #include "vec3d.h"
@@ -27,6 +28,7 @@ class Domain {
     Particle_to_mesh_map particle_to_mesh_map;
     Field_solver field_solver;    
     Particle_sources particle_sources;
+    External_magnetic_field external_magnetic_field;
   public:
     Domain( Config &conf );
     void run_pic( Config &conf );

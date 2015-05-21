@@ -182,6 +182,29 @@ public:
     }
 };
 
+class External_magnetic_field_config_part {
+public:
+    double magnetic_field_x;
+    double magnetic_field_y;
+    double magnetic_field_z;
+    double speed_of_light;
+public:
+    External_magnetic_field_config_part(){};
+    External_magnetic_field_config_part( boost::property_tree::ptree &ptree ) :
+	magnetic_field_x( ptree.get<double>("magnetic_field_x") ),
+	magnetic_field_y( ptree.get<double>("magnetic_field_y") ),
+	magnetic_field_z( ptree.get<double>("magnetic_field_z") ),
+	speed_of_light( ptree.get<double>("speed_of_light") )
+	{} ;
+    virtual ~External_magnetic_field_config_part() {};
+    void print() {
+	std::cout << "magnetic_field_x = " << magnetic_field_x << std::endl;
+	std::cout << "magnetic_field_y = " << magnetic_field_y << std::endl;
+	std::cout << "magnetic_field_z = " << magnetic_field_z << std::endl;
+	std::cout << "speed_of_light = " << speed_of_light << std::endl;
+    }
+};
+
 class Output_filename_config_part {
 public:
     std::string output_filename_prefix;
@@ -206,6 +229,7 @@ public:
     std::vector<Source_config_part> sources_config_part;
     std::vector<Inner_region_config_part> inner_regions_config_part;
     Boundary_config_part boundary_config_part;
+    External_magnetic_field_config_part external_magnetic_field_config_part;
     Output_filename_config_part output_filename_config_part;
 public:
     Config( const std::string &filename );
@@ -222,6 +246,7 @@ public:
 	}
 	boundary_config_part.print();
 	output_filename_config_part.print();
+	external_magnetic_field_config_part.print();
 	std::cout << "======" << std::endl;
     }
 };
