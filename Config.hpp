@@ -48,6 +48,11 @@ class Mesh_config_part<1>{
 public:
     double grid_x_size;
     double grid_x_step;
+    //unused
+    double grid_y_size;
+    double grid_y_step;
+    double grid_z_size;
+    double grid_z_step;
 public:
     Mesh_config_part(){};
     Mesh_config_part( boost::property_tree::ptree &ptree ) :
@@ -69,6 +74,9 @@ public:
     double grid_x_step;
     double grid_y_size;
     double grid_y_step;
+    //unused
+    double grid_z_size;
+    double grid_z_step;
 public:
     Mesh_config_part(){};
     Mesh_config_part( boost::property_tree::ptree &ptree ) :
@@ -142,6 +150,11 @@ public:
     double particle_source_temperature;
     double particle_source_charge;
     double particle_source_mass;
+    //unused
+    double particle_source_y_bottom;
+    double particle_source_y_top;
+    double particle_source_z_near;
+    double particle_source_z_far;
 public:
     Source_config_part(){};
     Source_config_part( std::string name, boost::property_tree::ptree &ptree ) :
@@ -189,6 +202,9 @@ public:
     double particle_source_temperature;
     double particle_source_charge;
     double particle_source_mass;
+    //unused
+    double particle_source_z_near;
+    double particle_source_z_far;
 public:
     Source_config_part(){};
     Source_config_part( std::string name, boost::property_tree::ptree &ptree ) :

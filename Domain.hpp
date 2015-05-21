@@ -23,7 +23,7 @@ class Domain {
   private:
     //Domain() {};
   public:
-    Time_grid time_grid;
+    Time_grid<dim> time_grid;
     Spatial_mesh<dim> spat_mesh;
     Particle_to_mesh_map<dim> particle_to_mesh_map;
     Field_solver<dim> field_solver;    
@@ -211,7 +211,7 @@ void Domain<dim>::apply_domain_boundary_conditions()
     return;
 }
 
-template<dim>
+template<int dim>
 bool Domain<dim>::out_of_bound( const Particle<dim> &p )
 {
     std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
@@ -249,7 +249,7 @@ bool Domain<3>::out_of_bound( const Particle<3> &p )
 {
     double x = p.position.x();
     double y = p.position.y();
-    double y = p.position.z();
+    double z = p.position.z();
     bool out;
     
     out = 

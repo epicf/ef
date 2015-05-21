@@ -11,6 +11,8 @@ class Particle_to_mesh_map {
   public:
     void weight_particles_charge_to_mesh( 
 	Spatial_mesh<dim> &spat_mesh, Particle_sources<dim> &particle_sources );
+    void contribute_charge(
+	Spatial_mesh<dim> &spat_mesh, Particle<dim> &p );
     VecNd<dim> force_on_particle( 
 	Spatial_mesh<dim> &spat_mesh, Particle<dim> &p );
   private:
@@ -97,9 +99,9 @@ void Particle_to_mesh_map<3>::contribute_charge(
     int trf_i, trf_j, trf_k; // 'trf' = 'top_right_far'
     double trf_x_weight, trf_y_weight, trf_z_weight;
 
-    next_node_num_and_weight( vec3d_x( p.position ), dx, &trf_i, &trf_x_weight );
-    next_node_num_and_weight( vec3d_y( p.position ), dy, &trf_j, &trf_y_weight );
-    next_node_num_and_weight( vec3d_z( p.position ), dz, &trf_k, &trf_z_weight );
+    next_node_num_and_weight( p.position.x(), dx, &trf_i, &trf_x_weight );
+    next_node_num_and_weight( p.position.y(), dy, &trf_j, &trf_y_weight );
+    next_node_num_and_weight( p.position.z(), dz, &trf_k, &trf_z_weight );
 
     spat_mesh.charge_density[trf_i][trf_j][trf_k] +=
 	trf_x_weight * trf_y_weight * trf_z_weight * p.charge;
@@ -139,7 +141,7 @@ VecNd<1> Particle_to_mesh_map<1>::force_on_particle(
     double dx = spat_mesh.x_cell_size;
     int tr_i; // 'tr' = 'top_right'
     double tr_x_weight;  
-    VecNd<dim> field_from_node, total_field, force;
+    VecNd<1> field_from_node, total_field, force;
     //
     next_node_num_and_weight( p.position.x(), dx, &tr_i, &tr_x_weight );
     //
@@ -162,7 +164,7 @@ VecNd<2> Particle_to_mesh_map<2>::force_on_particle(
     double dy = spat_mesh.y_cell_size;
     int tr_i, tr_j; // 'tr' = 'top_right'
     double tr_x_weight, tr_y_weight;  
-    VecNd<dim> field_from_node, total_field, force;
+    VecNd<2> field_from_node, total_field, force;
     //
     next_node_num_and_weight( p.position.x(), dx, &tr_i, &tr_x_weight );
     next_node_num_and_weight( p.position.y(), dy, &tr_j, &tr_y_weight );
@@ -197,7 +199,7 @@ VecNd<3> Particle_to_mesh_map<3>::force_on_particle(
     double dz = spat_mesh.z_cell_size;
     int trf_i, trf_j, trf_k; // 'trf' = 'top_right_far'
     double trf_x_weight, trf_y_weight, trf_z_weight;  
-    Vec3d field_from_node, total_field, force;
+    VecNd<3> field_from_node, total_field, force;
     //
     next_node_num_and_weight( p.position.x(), dx, &trf_i, &trf_x_weight );
     next_node_num_and_weight( p.position.y(), dy, &trf_j, &trf_y_weight );
@@ -230,7 +232,7 @@ VecNd<3> Particle_to_mesh_map<3>::force_on_particle(
     total_field = total_field + field_from_node;
     // tln
     field_from_node = ( 1.0 - trf_x_weight ) * spat_mesh.electric_field[trf_i-1][trf_j][trf_k-1];
-    field_from_node = trf_y_weight * ield_from_node;
+    field_from_node = trf_y_weight * field_from_node;
     field_from_node = ( 1.0 - trf_z_weight ) * field_from_node;
     total_field = total_field + field_from_node;
     // brn
@@ -248,6 +250,7 @@ VecNd<3> Particle_to_mesh_map<3>::force_on_particle(
     return force;
 }
 
+template< int dim >
 void Particle_to_mesh_map<dim>::next_node_num_and_weight( 
     const double x, const double grid_step, 
     int *next_node, double *weight )

@@ -33,7 +33,7 @@ private:
 public:
     std::vector< Particle<dim> > particles;
 public:
-    Single_particle_source( Config &conf, Source_config_part &src_conf  );
+    Single_particle_source( Config<dim> &conf, Source_config_part<dim> &src_conf  );
     void generate_each_step();
     void update_particles_position( double dt );	
     void print_particles();
@@ -41,7 +41,7 @@ public:
     virtual ~Single_particle_source() {};
 private:
     // Particle initialization
-    void set_parameters_from_config( Source_config_part &src_conf );
+    void set_parameters_from_config( Source_config_part<dim> &src_conf );
     void generate_initial_particles();
     // Todo: replace 'std::default_random_engine' type with something more general.
     void generate_num_of_particles( int num_of_particles );
@@ -55,35 +55,35 @@ private:
 				       std::default_random_engine &rnd_gen );
     // Check config
     void check_correctness_of_related_config_fields( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
     void particle_source_initial_number_of_particles_ge_zero( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
     void particle_source_particles_to_generate_each_step_ge_zero( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
 
     void particle_source_x_left_ge_zero( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
     void particle_source_x_left_le_particle_source_x_right( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
     void particle_source_x_right_le_grid_x_size( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
     void particle_source_y_bottom_ge_zero( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
     void particle_source_y_bottom_le_particle_source_y_top( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
     void particle_source_y_top_le_grid_y_size( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
     void particle_source_z_near_ge_zero( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
     void particle_source_z_near_le_particle_source_z_far( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
     void particle_source_z_far_le_grid_z_size( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
 
     void particle_source_temperature_gt_zero( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
     void particle_source_mass_gt_zero( 
-	Config &conf, Source_config_part &src_conf );
+	Config<dim> &conf, Source_config_part<dim> &src_conf );
 
     void check_and_warn_if_not( const bool &should_be,
 				const std::string &message );
@@ -91,8 +91,8 @@ private:
 
 template< int dim >
 Single_particle_source<dim>::Single_particle_source( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_correctness_of_related_config_fields( conf, src_conf );
     set_parameters_from_config( src_conf );
@@ -101,8 +101,8 @@ Single_particle_source<dim>::Single_particle_source(
 
 template< int dim >
 void Single_particle_source<dim>::check_correctness_of_related_config_fields( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     particle_source_initial_number_of_particles_ge_zero( conf, src_conf );
     particle_source_particles_to_generate_each_step_ge_zero( conf, src_conf );
@@ -130,39 +130,75 @@ void Single_particle_source<dim>::check_correctness_of_related_config_fields(
 }
 
 template< int dim > 
-void Single_particle_source<dim>::set_parameters_from_config( Source_config_part &src_conf )
+void Single_particle_source<dim>::set_parameters_from_config( Source_config_part<dim> &src_conf )
+{
+    std::cout << "Unsupported dim=" << dim << " in Single_particle_source. Aborting.";
+    exit( EXIT_FAILURE );
+}
+
+template<> 
+void Single_particle_source<1>::set_parameters_from_config(
+    Source_config_part<1> &src_conf )
 {
     name = src_conf.particle_source_name;
     initial_number_of_particles = src_conf.particle_source_initial_number_of_particles;
     particles_to_generate_each_step = 
 	src_conf.particle_source_particles_to_generate_each_step;
 
-    // todo: do it correctly
-    if( dim == 1 ){
-	//left_bottom_near = VecNd<1>( src_conf.particle_source_x_left );
-	//right_top_far = VecNd<1>( src_conf.particle_source_x_right );
-	//mean_momentum = VecNd<1> src_conf.particle_source_mean_momentum_x );
-    } else if( dim == 2 ) {
-	left_bottom_near = VecNd<2>( src_conf.particle_source_x_left,
-				     src_conf.particle_source_y_bottom );
-	right_top_far = VecNd<2>( src_conf.particle_source_x_right,
-				  src_conf.particle_source_y_top );
-	mean_momentum = VecNd<2>( src_conf.particle_source_mean_momentum_x,
-				  src_conf.particle_source_mean_momentum_y );
-    } else if( dim == 3 ) {
-	// left_bottom_near = VecNd<3>( src_conf.particle_source_x_left,
-	// 			     src_conf.particle_source_y_bottom,
-	// 			     src_conf.particle_source_z_near );
-	// right_top_far = VecNd<3>( src_conf.particle_source_x_right,
-	// 			  src_conf.particle_source_y_top,
-	// 			  src_conf.particle_source_z_far );
-	// mean_momentum = VecNd<3>( src_conf.particle_source_mean_momentum_x,
-	// 			  src_conf.particle_source_mean_momentum_y,
-	// 			  src_conf.particle_source_mean_momentum_z );
-    } else {
-	std::cout << "Unsupported dim=" << dim << " in Single_particle_source. Aborting.";
-	exit( EXIT_FAILURE );
-    }
+    left_bottom_near = VecNd<1>( src_conf.particle_source_x_left );
+    right_top_far = VecNd<1>( src_conf.particle_source_x_right );
+    mean_momentum = VecNd<1>( src_conf.particle_source_mean_momentum_x );
+
+    temperature = src_conf.particle_source_temperature;
+    charge = src_conf.particle_source_charge;
+    mass = src_conf.particle_source_mass;    
+    // Random number generator
+    unsigned seed = 0;
+    rnd_gen = std::default_random_engine( seed );
+}
+
+template<> 
+void Single_particle_source<2>::set_parameters_from_config(
+    Source_config_part<2> &src_conf )
+{
+    name = src_conf.particle_source_name;
+    initial_number_of_particles = src_conf.particle_source_initial_number_of_particles;
+    particles_to_generate_each_step = 
+	src_conf.particle_source_particles_to_generate_each_step;
+
+    left_bottom_near = VecNd<2>( src_conf.particle_source_x_left,
+				 src_conf.particle_source_y_bottom );
+    right_top_far = VecNd<2>( src_conf.particle_source_x_right,
+			      src_conf.particle_source_y_top );
+    mean_momentum = VecNd<2>( src_conf.particle_source_mean_momentum_x,
+			      src_conf.particle_source_mean_momentum_y );
+
+    temperature = src_conf.particle_source_temperature;
+    charge = src_conf.particle_source_charge;
+    mass = src_conf.particle_source_mass;    
+    // Random number generator
+    unsigned seed = 0;
+    rnd_gen = std::default_random_engine( seed );
+}
+
+template<> 
+void Single_particle_source<3>::set_parameters_from_config(
+    Source_config_part<3> &src_conf )
+{
+    name = src_conf.particle_source_name;
+    initial_number_of_particles = src_conf.particle_source_initial_number_of_particles;
+    particles_to_generate_each_step = 
+	src_conf.particle_source_particles_to_generate_each_step;
+
+    left_bottom_near = VecNd<3>( src_conf.particle_source_x_left,
+				 src_conf.particle_source_y_bottom,
+				 src_conf.particle_source_z_near );
+    right_top_far = VecNd<3>( src_conf.particle_source_x_right,
+			      src_conf.particle_source_y_top,
+			      src_conf.particle_source_z_far );
+    mean_momentum = VecNd<3>( src_conf.particle_source_mean_momentum_x,
+			      src_conf.particle_source_mean_momentum_y,
+			      src_conf.particle_source_mean_momentum_z );
 
     temperature = src_conf.particle_source_temperature;
     charge = src_conf.particle_source_charge;
@@ -219,23 +255,55 @@ VecNd<dim> Single_particle_source<dim>::uniform_position_in_hyperrectangle(
     const VecNd<dim> right_top_far,
     std::default_random_engine &rnd_gen )
 {
-    VecNd<dim> pos;
+    std::cout << "Unsupported dim=" << dim << " in Single_particle_source. Aborting.";
+    exit( EXIT_FAILURE );
+  
+}
+
+template<>
+VecNd<1> Single_particle_source<1>::uniform_position_in_hyperrectangle( 
+    const VecNd<1> left_bottom_near,
+    const VecNd<1> right_top_far,
+    std::default_random_engine &rnd_gen )
+{
+    VecNd<1> pos;
 
     // todo: add construction from array to VecNd class and
     // rewrite this as loop over dim.
-    if( dim == 1 ){
-	//pos = VecNd<1>( random_in_range( left_bottom_near.x(), right_top_far.x(), rnd_gen ) );
-    } else if( dim == 2 ) {
-	pos = VecNd<2>( random_in_range( left_bottom_near.x(), right_top_far.x(), rnd_gen ),
-			random_in_range( left_bottom_near.y(), right_top_far.y(), rnd_gen ) );
-    } else if( dim == 3 ) {
-	// pos = VecNd<3>( random_in_range( left_bottom_near.x(), right_top_far.x(), rnd_gen ),
-	// 		random_in_range( left_bottom_near.y(), right_top_far.y(), rnd_gen ),
-	// 		random_in_range( left_bottom_near.z(), right_top_far.z(), rnd_gen ) );	
-    } else {
-	std::cout << "Unsupported dim=" << dim << " in Single_particle_source. Aborting.";
-	exit( EXIT_FAILURE );
-    }
+    pos = VecNd<1>( random_in_range( left_bottom_near.x(), right_top_far.x(), rnd_gen ) );
+    
+    return pos;
+}
+
+template<>
+VecNd<2> Single_particle_source<2>::uniform_position_in_hyperrectangle( 
+    const VecNd<2> left_bottom_near,
+    const VecNd<2> right_top_far,
+    std::default_random_engine &rnd_gen )
+{
+    VecNd<2> pos;
+
+    // todo: add construction from array to VecNd class and
+    // rewrite this as loop over dim.
+    pos = VecNd<2>( random_in_range( left_bottom_near.x(), right_top_far.x(), rnd_gen ),
+		    random_in_range( left_bottom_near.y(), right_top_far.y(), rnd_gen ) );
+    
+    return pos;
+}
+
+template<>
+VecNd<3> Single_particle_source<3>::uniform_position_in_hyperrectangle( 
+    const VecNd<3> left_bottom_near,
+    const VecNd<3> right_top_far,
+    std::default_random_engine &rnd_gen )
+{
+    VecNd<3> pos;
+
+    // todo: add construction from array to VecNd class and
+    // rewrite this as loop over dim.
+    pos = VecNd<3>( random_in_range( left_bottom_near.x(), right_top_far.x(), rnd_gen ),
+		    random_in_range( left_bottom_near.y(), right_top_far.y(), rnd_gen ),
+		    random_in_range( left_bottom_near.z(), right_top_far.z(), rnd_gen ) );
   
     return pos;
 }
@@ -255,46 +323,83 @@ VecNd<dim> Single_particle_source<dim>::maxwell_momentum_distr(
     const VecNd<dim> mean_momentum, const double temperature, const double mass, 
     std::default_random_engine &rnd_gen )
 {
-    VecNd<dim> mom;
+    std::cout << "Unsupported dim=" << dim << " in maxwell_momentum_distr. Aborting.";
+    exit( EXIT_FAILURE );
+}
+
+template<> 
+VecNd<1> Single_particle_source<1>::maxwell_momentum_distr(
+    const VecNd<1> mean_momentum, const double temperature, const double mass, 
+    std::default_random_engine &rnd_gen )
+{
+    VecNd<1> mom;
+    double maxwell_gauss_std_dev = sqrt( mass * temperature );
+    double maxwell_gauss_std_mean_x;
+    // Resoursce acquisition is initialization.
+    // Can't declare variables without calling constructor
+    // std::normal_distribution<double> normal_distr_x, normal_distr_y, normal_distr_z;
+
+    maxwell_gauss_std_mean_x = mean_momentum.x();
+    std::normal_distribution<double>
+	normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
+    mom = VecNd<1>( normal_distr_x( rnd_gen ) );
+    
+    mom = mom * 1.0; // recheck
+    return mom;
+}
+
+template<> 
+VecNd<2> Single_particle_source<2>::maxwell_momentum_distr(
+    const VecNd<2> mean_momentum, const double temperature, const double mass, 
+    std::default_random_engine &rnd_gen )
+{
+    VecNd<2> mom;
+    double maxwell_gauss_std_dev = sqrt( mass * temperature );
+    double maxwell_gauss_std_mean_x, maxwell_gauss_std_mean_y;
+    // Resoursce acquisition is initialization.
+    // Can't declare variables without calling constructor
+    // std::normal_distribution<double> normal_distr_x, normal_distr_y, normal_distr_z;
+
+    // todo: way too much repetition
+    maxwell_gauss_std_mean_x = mean_momentum.x();
+    maxwell_gauss_std_mean_y = mean_momentum.y();
+    std::normal_distribution<double>
+	normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
+    std::normal_distribution<double>
+	normal_distr_y( maxwell_gauss_std_mean_y, maxwell_gauss_std_dev );
+    mom = VecNd<2>( normal_distr_x( rnd_gen ),
+		    normal_distr_y( rnd_gen ) );		     
+    
+    mom = mom * 1.0; // recheck
+    return mom;
+}
+
+template<> 
+VecNd<3> Single_particle_source<3>::maxwell_momentum_distr(
+    const VecNd<3> mean_momentum, const double temperature, const double mass, 
+    std::default_random_engine &rnd_gen )
+{
+    VecNd<3> mom;
     double maxwell_gauss_std_dev = sqrt( mass * temperature );
     double maxwell_gauss_std_mean_x, maxwell_gauss_std_mean_y, maxwell_gauss_std_mean_z;
     // Resoursce acquisition is initialization.
     // Can't declare variables without calling constructor
     // std::normal_distribution<double> normal_distr_x, normal_distr_y, normal_distr_z;
 
-    // todo: way too much repetition
-    if( dim == 1 ){
-	maxwell_gauss_std_mean_x = mean_momentum.x();
-	std::normal_distribution<double>
-	    normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
-	//mom = VecNd<1>( normal_distr_x( rnd_gen ) );
-    } else if( dim == 2 ) {
-	maxwell_gauss_std_mean_x = mean_momentum.x();
-	maxwell_gauss_std_mean_y = mean_momentum.y();
-	std::normal_distribution<double>
-	    normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
-	std::normal_distribution<double>
-	    normal_distr_y( maxwell_gauss_std_mean_y, maxwell_gauss_std_dev );
-	mom = VecNd<2>( normal_distr_x( rnd_gen ),
-			normal_distr_y( rnd_gen ) );		     
-    } else if( dim == 3 ) {
-	maxwell_gauss_std_mean_x = mean_momentum.x();
-	maxwell_gauss_std_mean_y = mean_momentum.y();
-	maxwell_gauss_std_mean_z = mean_momentum.z();
-	std::normal_distribution<double>
-	    normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
-	std::normal_distribution<double>
-	    normal_distr_y( maxwell_gauss_std_mean_y, maxwell_gauss_std_dev );
-	std::normal_distribution<double>
-	    normal_distr_z( maxwell_gauss_std_mean_z, maxwell_gauss_std_dev );
-	// mom = VecNd<3>( normal_distr_x( rnd_gen ),
-	// 		normal_distr_y( rnd_gen ),
-	// 		normal_distr_z( rnd_gen ) );
-    } else {
-	std::cout << "Unsupported dim=" << dim << " in maxwell_momentum_distr. Aborting.";
-	exit( EXIT_FAILURE );
-    }
-    
+    maxwell_gauss_std_mean_x = mean_momentum.x();
+    maxwell_gauss_std_mean_y = mean_momentum.y();
+    maxwell_gauss_std_mean_z = mean_momentum.z();
+    std::normal_distribution<double>
+	normal_distr_x( maxwell_gauss_std_mean_x, maxwell_gauss_std_dev );
+    std::normal_distribution<double>
+	normal_distr_y( maxwell_gauss_std_mean_y, maxwell_gauss_std_dev );
+    std::normal_distribution<double>
+	normal_distr_z( maxwell_gauss_std_mean_z, maxwell_gauss_std_dev );
+
+    mom = VecNd<3>( normal_distr_x( rnd_gen ),
+		    normal_distr_y( rnd_gen ),
+		    normal_distr_z( rnd_gen ) );    
+
     mom = mom * 1.0; // recheck
     return mom;
 }
@@ -343,8 +448,8 @@ void Single_particle_source<dim>::write_to_file( std::ofstream &output_file )
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_initial_number_of_particles_ge_zero( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_initial_number_of_particles >= 0,
@@ -353,8 +458,8 @@ void Single_particle_source<dim>::particle_source_initial_number_of_particles_ge
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_particles_to_generate_each_step_ge_zero( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_particles_to_generate_each_step >= 0,
@@ -363,8 +468,8 @@ void Single_particle_source<dim>::particle_source_particles_to_generate_each_ste
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_x_left_ge_zero( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_x_left >= 0,
@@ -373,8 +478,8 @@ void Single_particle_source<dim>::particle_source_x_left_ge_zero(
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_x_left_le_particle_source_x_right( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_x_left <= src_conf.particle_source_x_right,
@@ -383,8 +488,8 @@ void Single_particle_source<dim>::particle_source_x_left_le_particle_source_x_ri
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_x_right_le_grid_x_size( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_x_right <= conf.mesh_config_part.grid_x_size,
@@ -393,8 +498,8 @@ void Single_particle_source<dim>::particle_source_x_right_le_grid_x_size(
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_y_bottom_ge_zero( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_y_bottom >= 0,
@@ -403,8 +508,8 @@ void Single_particle_source<dim>::particle_source_y_bottom_ge_zero(
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_y_bottom_le_particle_source_y_top( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_y_bottom <= src_conf.particle_source_y_top,
@@ -413,8 +518,8 @@ void Single_particle_source<dim>::particle_source_y_bottom_le_particle_source_y_
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_y_top_le_grid_y_size( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_y_top <= conf.mesh_config_part.grid_y_size,
@@ -423,8 +528,8 @@ void Single_particle_source<dim>::particle_source_y_top_le_grid_y_size(
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_z_near_ge_zero( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_z_near >= 0,
@@ -433,8 +538,8 @@ void Single_particle_source<dim>::particle_source_z_near_ge_zero(
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_z_near_le_particle_source_z_far( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_z_near <= src_conf.particle_source_z_far,
@@ -443,8 +548,8 @@ void Single_particle_source<dim>::particle_source_z_near_le_particle_source_z_fa
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_z_far_le_grid_z_size( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_z_far <= conf.mesh_config_part.grid_z_size,
@@ -453,8 +558,8 @@ void Single_particle_source<dim>::particle_source_z_far_le_grid_z_size(
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_temperature_gt_zero( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_temperature >= 0,
@@ -463,8 +568,8 @@ void Single_particle_source<dim>::particle_source_temperature_gt_zero(
 
 template< int dim >
 void Single_particle_source<dim>::particle_source_mass_gt_zero( 
-    Config &conf, 
-    Source_config_part &src_conf )
+    Config<dim> &conf, 
+    Source_config_part<dim> &src_conf )
 {
     check_and_warn_if_not( 
 	src_conf.particle_source_mass >= 0,
@@ -488,7 +593,7 @@ class Particle_sources{
 public:
     std::vector< Single_particle_source<dim> > sources;
 public:
-    Particle_sources( Config &conf );
+    Particle_sources( Config<dim> &conf );
     virtual ~Particle_sources() {};
     void write_to_file( std::ofstream &output_file ) 
     {
@@ -515,7 +620,7 @@ public:
 };
 
 template< int dim >
-Particle_sources<dim>::Particle_sources( Config &conf )
+Particle_sources<dim>::Particle_sources( Config<dim> &conf )
 {
     for( auto &src_conf : conf.sources_config_part ) {
 	sources.emplace_back( conf, src_conf );

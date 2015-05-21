@@ -6,6 +6,6 @@
 #include <string>
 
 //todo: create a structure for command line parameters?
-void parse_cmd_line( int argc, char *argv[], std::string &config_file );
+void parse_cmd_line( int argc, char *argv[], int &dim, std::string &config_file );
 
 #endif /* _PARSE_CMD_LINE_H_ */

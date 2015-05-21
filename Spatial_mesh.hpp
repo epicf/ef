@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
+#include <boost/multi_array.hpp>
 #include "Config.hpp"
 #include "VecNd.hpp"
 
@@ -14,9 +15,9 @@ class Spatial_mesh {
     double x_volume_size, y_volume_size, z_volume_size;
     double x_cell_size, y_cell_size, z_cell_size;
     int x_n_nodes, y_n_nodes, z_n_nodes;
-    ArrayNd< dim, double > charge_density;
-    ArrayNd< dim, double > potential;
-    ArrayNd< dim, VecNd< dim > > electric_field;
+    boost::multi_array< double, dim > charge_density;
+    boost::multi_array< double, dim > potential;
+    boost::multi_array< VecNd< dim >, dim > electric_field;
   public:
     Spatial_mesh( Config<dim> &conf );
     void clear_old_density_values();
@@ -46,9 +47,187 @@ class Spatial_mesh {
     void grid_y_size_gt_zero( Config<dim> &conf );
     void grid_y_step_gt_zero_le_grid_y_size( Config<dim> &conf );
     void grid_z_size_gt_zero( Config<dim> &conf );
-    void grid_z_step_gt_zero_le_grid_y_size( Config<dim> &conf );
+    void grid_z_step_gt_zero_le_grid_z_size( Config<dim> &conf );
     void check_and_exit_if_not( const bool &should_be, const std::string &message );
 };
+
+template< int dim >
+void Spatial_mesh<dim>::check_correctness_of_related_config_fields( Config<dim> &conf )
+{
+    std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
+    exit( EXIT_FAILURE );
+}
+
+template<>
+void Spatial_mesh<1>::check_correctness_of_related_config_fields( Config<1> &conf )
+{
+    grid_x_size_gt_zero( conf );
+    grid_x_step_gt_zero_le_grid_x_size( conf );
+}
+
+template<>
+void Spatial_mesh<2>::check_correctness_of_related_config_fields( Config<2> &conf )
+{
+    grid_x_size_gt_zero( conf );
+    grid_x_step_gt_zero_le_grid_x_size( conf );
+    grid_y_size_gt_zero( conf );
+    grid_y_step_gt_zero_le_grid_y_size( conf );
+}
+
+template<>
+void Spatial_mesh<3>::check_correctness_of_related_config_fields( Config<3> &conf )
+{
+    grid_x_size_gt_zero( conf );
+    grid_x_step_gt_zero_le_grid_x_size( conf );
+    grid_y_size_gt_zero( conf );
+    grid_y_step_gt_zero_le_grid_y_size( conf );
+    grid_z_size_gt_zero( conf );
+    grid_z_step_gt_zero_le_grid_z_size( conf );
+}
+
+template< int dim >
+void Spatial_mesh<dim>::allocate_ongrid_values()
+{
+    std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
+    exit( EXIT_FAILURE );
+    return;
+}
+
+template<>
+void Spatial_mesh<1>::allocate_ongrid_values()
+{
+    // is it necessary to zero-fill the arrays?
+    charge_density.resize( boost::extents[x_n_nodes] );
+    potential.resize( boost::extents[x_n_nodes] );
+    electric_field.resize( boost::extents[x_n_nodes] );
+    return;
+}
+
+template<>
+void Spatial_mesh<2>::allocate_ongrid_values()
+{
+    // is it necessary to zero-fill the arrays?
+    charge_density.resize( boost::extents[x_n_nodes][y_n_nodes] );
+    potential.resize( boost::extents[x_n_nodes][y_n_nodes] );
+    electric_field.resize( boost::extents[x_n_nodes][y_n_nodes] );
+    return;
+}
+
+template<>
+void Spatial_mesh<3>::allocate_ongrid_values()
+{
+    // is it necessary to zero-fill the arrays?
+    charge_density.resize( boost::extents[x_n_nodes][y_n_nodes][z_n_nodes] );
+    potential.resize( boost::extents[x_n_nodes][y_n_nodes][z_n_nodes] );
+    electric_field.resize( boost::extents[x_n_nodes][y_n_nodes][z_n_nodes] );
+    return;
+}
+
+template< int dim >
+void Spatial_mesh<dim>::set_boundary_conditions( Config<dim> &conf )
+{
+    std::cout << "Unsupported dim = " << dim
+	      << " in Spatial_mesh<dim>::print_ongrid_values. Aborting.";
+    exit( EXIT_FAILURE );
+}
+
+template<>
+void Spatial_mesh<1>::set_boundary_conditions( Config<1> &conf )
+{
+    set_boundary_conditions_1d( conf.boundary_config_part.boundary_phi_left, 
+				conf.boundary_config_part.boundary_phi_right );
+    return;
+}
+
+template<>
+void Spatial_mesh<2>::set_boundary_conditions( Config<2> &conf )
+{
+    set_boundary_conditions_2d( conf.boundary_config_part.boundary_phi_left, 
+				conf.boundary_config_part.boundary_phi_right,
+				conf.boundary_config_part.boundary_phi_top, 
+				conf.boundary_config_part.boundary_phi_bottom );
+    return;
+}
+
+template<>
+void Spatial_mesh<3>::set_boundary_conditions( Config<3> &conf )
+{
+    set_boundary_conditions_3d( conf.boundary_config_part.boundary_phi_left, 
+				conf.boundary_config_part.boundary_phi_right,
+				conf.boundary_config_part.boundary_phi_top, 
+				conf.boundary_config_part.boundary_phi_bottom,
+				conf.boundary_config_part.boundary_phi_near, 
+				conf.boundary_config_part.boundary_phi_far );
+    return;
+}
+
+template< int dim >
+void Spatial_mesh<dim>::set_boundary_conditions_1d(
+    const double phi_left, const double phi_right )
+{
+    int nx = x_n_nodes;
+
+    potential[0] = phi_left;
+    potential[nx-1] = phi_right;
+
+    return;
+}
+
+template< int dim >
+void Spatial_mesh<dim>::set_boundary_conditions_2d(
+    const double phi_left, const double phi_right,
+    const double phi_top, const double phi_bottom )
+{
+    int nx = x_n_nodes;
+    int ny = y_n_nodes;    
+
+    for ( int i = 0; i < nx; i++ ) {
+	potential[i][0] = phi_bottom;
+	potential[i][ny-1] = phi_top;
+    }
+    
+    for ( int j = 0; j < ny; j++ ) {
+	potential[0][j] = phi_left;
+	potential[nx-1][j] = phi_right;
+    }
+
+    return;
+}
+
+template< int dim >
+void Spatial_mesh<dim>::set_boundary_conditions_3d(
+    const double phi_left, const double phi_right,
+    const double phi_top, const double phi_bottom,
+    const double phi_near, const double phi_far )
+{
+    int nx = x_n_nodes;
+    int ny = y_n_nodes;
+    int nz = z_n_nodes;         
+
+    for ( int j = 0; j < ny; j++ ) {
+        for ( int k = 0; k < nz; k++ ) {
+            potential[0][j][k] = phi_left;
+            potential[nx-1][j][k] = phi_right;
+        }
+    }
+    
+    for ( int i = 0; i < nx; i++ ) {
+        for ( int k = 0; k < nz; k++ ) {
+            potential[i][0][k] = phi_bottom;
+            potential[i][ny-1][k] = phi_top;
+        }
+    }
+    
+    for ( int i = 0; i < nx; i++ ) {
+        for ( int j = 0; j < ny; j++ ) {
+            potential[i][j][0] = phi_near;
+            potential[i][j][nz-1] = phi_far;
+        }
+    }
+
+    return;
+}
+
 
 template< int dim >
 Spatial_mesh<dim>::Spatial_mesh( Config<dim> &conf )
@@ -87,39 +266,6 @@ Spatial_mesh<3>::Spatial_mesh( Config<3> &conf )
     set_boundary_conditions( conf );
 }
 
-template< int dim >
-void Spatial_mesh<dim>::check_correctness_of_related_config_fields( Config<dim> &conf )
-{
-    std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
-    exit( EXIT_FAILURE );
-}
-
-template<>
-void Spatial_mesh<1>::check_correctness_of_related_config_fields( Config<1> &conf )
-{
-    grid_x_size_gt_zero( conf );
-    grid_x_step_gt_zero_le_grid_x_size( conf );
-}
-
-template<>
-void Spatial_mesh<2>::check_correctness_of_related_config_fields( Config<2> &conf )
-{
-    grid_x_size_gt_zero( conf );
-    grid_x_step_gt_zero_le_grid_x_size( conf );
-    grid_y_size_gt_zero( conf );
-    grid_y_step_gt_zero_le_grid_y_size( conf );
-}
-
-template<>
-void Spatial_mesh<3>::check_correctness_of_related_config_fields( Config<3> &conf )
-{
-    grid_x_size_gt_zero( conf );
-    grid_x_step_gt_zero_le_grid_x_size( conf );
-    grid_y_size_gt_zero( conf );
-    grid_y_step_gt_zero_le_grid_y_size( conf );
-    grid_z_size_gt_zero( conf );
-    grid_z_step_gt_zero_le_grid_z_size( conf );
-}
 
 // todo: merge init_{x,y,z}_grid into single function
 // too much repetition
@@ -175,156 +321,21 @@ void Spatial_mesh<dim>::init_z_grid( Config<dim> &conf )
     return;
 }
 
-template< int dim >
-void Spatial_mesh<dim>::allocate_ongrid_values()
-{
-    std::cout << "Unsupported dim=" << dim << " in Spatial_mesh. Aborting.";
-    exit( EXIT_FAILURE );
-    return;
-}
-
-template<>
-void Spatial_mesh<1>::allocate_ongrid_values()
-{
-    // is it necessary to zero-fill the arrays?
-    charge_density.allocate( x_n_nodes );
-    potential.allocate( x_n_nodes );
-    electric_field.allocate( x_n_nodes );
-    return;
-}
-
-template<>
-void Spatial_mesh<2>::allocate_ongrid_values()
-{
-    // is it necessary to zero-fill the arrays?
-    charge_density.allocate( x_n_nodes, y_n_nodes );
-    potential.allocate( x_n_nodes, y_n_nodes );
-    electric_field.allocate( x_n_nodes, y_n_nodes );
-    return;
-}
-
-template<>
-void Spatial_mesh<3>::allocate_ongrid_values()
-{
-    // is it necessary to zero-fill the arrays?
-    charge_density.allocate( x_n_nodes, y_n_nodes, z_n_nodes );
-    potential.allocate( x_n_nodes, y_n_nodes, z_n_nodes );
-    electric_field.allocate( x_n_nodes, y_n_nodes, z_n_nodes );
-    return;
-}
 
 
 
 template< int dim >
 void Spatial_mesh<dim>::clear_old_density_values()
 {
-    for( auto &rho : charge_density ){
-	rho = 0;
-    }
+    std::fill( charge_density.data(),
+               charge_density.data() + charge_density.num_elements(),
+               0.0 ); 
+    // for( auto &rho : charge_density ){
+    // 	rho = 0;
+    // }
 }
 
-template< int dim >
-void Spatial_mesh<dim>::set_boundary_conditions( Config<dim> &conf )
-{
-    std::cout << "Unsupported dim = " << dim
-	      << " in Spatial_mesh<dim>::print_ongrid_values. Aborting.";
-    exit( EXIT_FAILURE );
-}
 
-template<>
-void Spatial_mesh<1>::set_boundary_conditions( Config<1> &conf )
-{
-    set_boundary_conditions_1d( conf.boundary_config_part.boundary_phi_left, 
-				conf.boundary_config_part.boundary_phi_right );
-    return;
-}
-
-template<>
-void Spatial_mesh<2>::set_boundary_conditions( Config<2> &conf )
-{
-    set_boundary_conditions_2d( conf.boundary_config_part.boundary_phi_left, 
-				conf.boundary_config_part.boundary_phi_right,
-				conf.boundary_config_part.boundary_phi_top, 
-				conf.boundary_config_part.boundary_phi_bottom );
-    return;
-}
-
-template<>
-void Spatial_mesh<3>::set_boundary_conditions( Config<3> &conf )
-{
-    set_boundary_conditions_3d( conf.boundary_config_part.boundary_phi_left, 
-				conf.boundary_config_part.boundary_phi_right,
-				conf.boundary_config_part.boundary_phi_top, 
-				conf.boundary_config_part.boundary_phi_bottom,
-				conf.boundary_config_part.boundary_phi_near, 
-				conf.boundary_config_part.boundary_phi_far );
-    return;
-}
-
-template< int dim >
-void Spatial_mesh<dim>::set_boundary_conditions_1d( const double phi_left, const double phi_right,
-						    const double phi_top, const double phi_bottom )
-{
-    int nx = x_n_nodes;
-
-    potential[0] = phi_left;
-    potential[nx-1] = phi_right;
-
-    return;
-}
-
-template< int dim >
-void Spatial_mesh<dim>::set_boundary_conditions_2d( const double phi_left, const double phi_right,
-						    const double phi_top, const double phi_bottom )
-{
-    int nx = x_n_nodes;
-    int ny = y_n_nodes;    
-
-    for ( int i = 0; i < nx; i++ ) {
-	potential[i][0] = phi_bottom;
-	potential[i][ny-1] = phi_top;
-    }
-    
-    for ( int j = 0; j < ny; j++ ) {
-	potential[0][j] = phi_left;
-	potential[nx-1][j] = phi_right;
-    }
-
-    return;
-}
-
-template< int dim >
-void Spatial_mesh<dim>::set_boundary_conditions_3d( const double phi_left, const double phi_right,
-						    const double phi_top, const double phi_bottom,
-						    const double phi_near, const double phi_far )
-{
-    int nx = x_n_nodes;
-    int ny = y_n_nodes;
-    int nz = z_n_nodes;         
-
-    for ( int j = 0; j < ny; j++ ) {
-        for ( int k = 0; k < nz; k++ ) {
-            potential[0][j][k] = phi_left;
-            potential[nx-1][j][k] = phi_right;
-        }
-    }
-    
-    for ( int i = 0; i < nx; i++ ) {
-        for ( int k = 0; k < nz; k++ ) {
-            potential[i][0][k] = phi_bottom;
-            potential[i][ny-1][k] = phi_top;
-        }
-    }
-    
-    for ( int i = 0; i < nx; i++ ) {
-        for ( int j = 0; j < ny; j++ ) {
-            potential[i][j][0] = phi_near;
-            potential[i][j][nz-1] = phi_far;
-        }
-    }
-
-    return;
-}
 
 template< int dim >
 void Spatial_mesh<dim>::print( std::ofstream &out_stream )

@@ -2,6 +2,7 @@
 #define _FIELD_SOLVER_H_
 
 #include <gsl/gsl_linalg.h>
+#include <boost/multi_array.hpp>
 #include "Spatial_mesh.hpp"
 
 template< int dim >
@@ -36,25 +37,6 @@ Field_solver<dim>::Field_solver( Spatial_mesh<dim> &spat_mesh )
     std::cout << "Unsupported dim=" << dim << " in Field_solver. Aborting.";
     exit( EXIT_FAILURE );
 }
-
-
-template<>
-Field_solver<2>::Field_solver( Spatial_mesh<2> &spat_mesh )
-{
-    int nx = spat_mesh.x_n_nodes;
-    int ny = spat_mesh.y_n_nodes;
-    double dx = spat_mesh.x_cell_size;
-    double dy = spat_mesh.y_cell_size;
-    int nrow = (nx-2)*(ny-2);
-    
-    a = construct_equation_matrix( nx, ny, dx, dy );    
-    rhs = gsl_vector_alloc( nrow );
-    phi_vec = gsl_vector_alloc( nrow );
-    
-    pmt = gsl_permutation_alloc( nrow );    
-    gsl_linalg_LU_decomp( a, pmt, &perm_sign );    
-}
-
 
 template<>
 gsl_matrix* Field_solver<2>::construct_equation_matrix( int nx, int ny, double dx, double dy )
@@ -126,6 +108,23 @@ gsl_matrix* Field_solver<dim>::construct_d2dy2_in_2d( int nx, int ny )
   }
           
   return d2dy2;
+}
+
+template<>
+Field_solver<2>::Field_solver( Spatial_mesh<2> &spat_mesh )
+{
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    double dx = spat_mesh.x_cell_size;
+    double dy = spat_mesh.y_cell_size;
+    int nrow = (nx-2)*(ny-2);
+    
+    a = construct_equation_matrix( nx, ny, dx, dy );    
+    rhs = gsl_vector_alloc( nrow );
+    phi_vec = gsl_vector_alloc( nrow );
+    
+    pmt = gsl_permutation_alloc( nrow );    
+    gsl_linalg_LU_decomp( a, pmt, &perm_sign );    
 }
 
 template< int dim >
@@ -249,7 +248,7 @@ void Field_solver<2>::eval_fields_from_potential( Spatial_mesh<2> &spat_mesh )
     int ny = spat_mesh.y_n_nodes;
     double dx = spat_mesh.x_cell_size;
     double dy = spat_mesh.y_cell_size;
-    double **phi = spat_mesh.potential;
+    boost::multi_array< double, 2 > &phi = spat_mesh.potential;
     double ex[nx][ny], ey[nx][ny];
 
     for ( int j = 0; j < ny; j++ ) {
