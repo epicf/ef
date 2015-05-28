@@ -32,7 +32,9 @@ int main( int argc, char *argv[] )
 	// run simulation
 	pic_simulation( conf );
     } else {
-	std::cout << "Unsupported dim" << std::endl;
+	std::cout << "Please specify correct dimensionality:" << std::endl;
+	std::cout << "./epicf.out -d N test.conf" << std::endl;
+	std::cout << "Where N = 1, 2, or 3" << std::endl;
 	exit( EXIT_FAILURE );
     }
     
