@@ -19,7 +19,7 @@ LIBS=-lm -lgsl -lgslcblas -lboost_program_options
 
 ### Sources and executable
 CPPSOURCES=$(wildcard *.cpp)
-CPPHEADERS=$(wildcard *.h)
+CPPHEADERS=$(wildcard *.hpp)
 OBJECTS=$(CPPSOURCES:%.cpp=%.o)
 EXECUTABLE=epicf.out
 MAKE=make

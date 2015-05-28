@@ -437,8 +437,8 @@ void Single_particle_source<dim>::write_to_file( std::ofstream &output_file )
     output_file.setf( std::ios::right );
     for ( auto &p : particles ) {	
 	output_file << std::setw(10) << std::left << p.id
-		    << std::setw(10) << p.charge
-		    << std::setw(10) << p.mass
+		    << std::setw(15) << p.charge
+		    << std::setw(15) << p.mass
 		    << std::setw(25) << p.position
 		    << std::setw(25) << p.momentum
 		    << std::endl;
