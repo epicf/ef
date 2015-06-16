@@ -325,18 +325,18 @@ void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A, P
     ierr = KSPSetOperators( *ksp, *A, *A, DIFFERENT_NONZERO_PATTERN ); CHKERRXX(ierr);
     //ierr = KSPSetOperators( *ksp, *A, *A ); CHKERRXX(ierr);
     ierr = KSPGetPC( *ksp, pc ); CHKERRXX(ierr);
-    //ierr = PCSetType( *pc, PCJACOBI ); CHKERRXX(ierr);
-    ierr = PCSetType( *pc, PCLU ); CHKERRXX(ierr);
+    ierr = PCSetType( *pc, PCGAMG ); CHKERRXX(ierr);
+    ierr = KSPSetType( *ksp, KSPGMRES ); CHKERRXX(ierr);
     ierr = KSPSetTolerances( *ksp, rtol,
 			     PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT); CHKERRXX(ierr);
-    //ierr = KSPSetFromOptions( *ksp ); CHKERRXX(ierr);
-    ierr = KSPSetType( *ksp, KSPPREONLY ); CHKERRXX(ierr); 
-    
+    ierr = KSPSetFromOptions( *ksp ); CHKERRXX(ierr);    
     if ( nonzeroguess ) {
 	PetscScalar p = .5;
 	ierr = VecSet( *x, p ); CHKERRXX( ierr );
 	ierr = KSPSetInitialGuessNonzero( *ksp, PETSC_TRUE ); CHKERRXX( ierr );
     }
+
+    ierr = KSPSetUp( *ksp ); CHKERRXX(ierr);
     return;
 }
 

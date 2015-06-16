@@ -22,7 +22,7 @@ void parse_cmd_line( int argc, char *argv[], std::string &config_file )
 		
         po::variables_map vm;        
         po::store( 
-	    po::command_line_parser(argc, argv).options(all_options).positional(p).run(),
+	    po::command_line_parser(argc, argv).options(all_options).positional(p).allow_unregistered().run(),
 	    vm);
         po::notify(vm);    
 
@@ -34,11 +34,12 @@ void parse_cmd_line( int argc, char *argv[], std::string &config_file )
         }
         if ( vm.count("config" ) ) {
 	    std::vector<std::string> all_positional_args = vm["config"].as< std::vector<std::string> >();
-	    if ( all_positional_args.size() > 1 ) {
-		std::cout << "Single config file is expected. \n";
-		exit( EXIT_FAILURE );
-	    }
-	    config_file = all_positional_args.at(0);
+	    //if ( all_positional_args.size() > 1 ) {
+	    //std::cout << "Single config file is expected. \n";
+	    //	exit( EXIT_FAILURE );
+	    //}
+	    //config_file = all_positional_args.at(0);
+	    config_file = all_positional_args.back();
             std::cout << "Config file is " << config_file << std::endl;
         } else {
 	    std::cout << "Error: config file is not specified." << std::endl;
