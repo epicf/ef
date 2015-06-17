@@ -33,6 +33,8 @@ void Domain::run_pic( Config &conf )
     prepare_leap_frog();
 
     for ( int i = current_node; i < total_time_iterations; i++ ){
+	std::cout << "Time step from " << i << " to " << i+1
+		  << " of " << total_time_iterations << std::endl;
     	advance_one_time_step();
     	write_step_to_save( conf );
     }
