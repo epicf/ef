@@ -11,15 +11,16 @@ Field_solver::Field_solver( Spatial_mesh &spat_mesh )
     PetscInt nrows = (nx-2)*(ny-2)*(nz-2);
     PetscInt ncols = nrows;
 
+    PetscErrorCode ierr;
     PetscInt A_approx_nonzero_per_row = 7;
-    PetscBool nonzeroguess = PETSC_FALSE;
 
     alloc_petsc_vector( &phi_vec, nrows, "Solution" );
+    ierr = VecSet( phi_vec, 0.0 ); CHKERRXX( ierr );
     alloc_petsc_vector( &rhs, nrows, "RHS" );
     alloc_petsc_matrix( &A, nrows, ncols, A_approx_nonzero_per_row );
     
     construct_equation_matrix( &A, nx, ny, nz, dx, dy, dz );
-    create_solver_and_preconditioner( &ksp, &pc, &A, nonzeroguess, &phi_vec );
+    create_solver_and_preconditioner( &ksp, &pc, &A );
 }
 
 void Field_solver::alloc_petsc_vector( Vec *x, int size, const char *name )
@@ -316,7 +317,7 @@ void Field_solver::construct_d2dy2_in_2d( Mat *d2dy2_2d, int nx, int ny )
     return;
 }
 
-void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A, PetscBool nonzeroguess, Vec *x )
+void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A )
 {
     PetscReal rtol = 1.e-12;
     
@@ -330,11 +331,7 @@ void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A, P
     ierr = KSPSetTolerances( *ksp, rtol,
 			     PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT); CHKERRXX(ierr);
     ierr = KSPSetFromOptions( *ksp ); CHKERRXX(ierr);    
-    if ( nonzeroguess ) {
-	PetscScalar p = .5;
-	ierr = VecSet( *x, p ); CHKERRXX( ierr );
-	ierr = KSPSetInitialGuessNonzero( *ksp, PETSC_TRUE ); CHKERRXX( ierr );
-    }
+    ierr = KSPSetInitialGuessNonzero( *ksp, PETSC_TRUE ); CHKERRXX( ierr );
 
     ierr = KSPSetUp( *ksp ); CHKERRXX(ierr);
     return;

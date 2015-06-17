@@ -21,7 +21,7 @@ class Field_solver {
     void construct_equation_matrix( Mat *A,
 				    int nx, int ny, int nz,
 				    double dx, double dy, double dz );
-    void create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A, PetscBool nonzeroguess, Vec *x );
+    void create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A );
     void construct_d2dx2_in_3d( Mat *d2dx2_3d, int nx, int ny, int nz );
     void construct_d2dy2_in_3d( Mat *d2dy2_3d, int nx, int ny, int nz );
     void construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz );
