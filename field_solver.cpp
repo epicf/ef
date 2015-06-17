@@ -252,7 +252,6 @@ void Field_solver::construct_d2dx2_in_2d( Mat *d2dx2_2d, int nx, int ny )
 				 no_boundaries_pattern, INSERT_VALUES );
 	    CHKERRXX( ierr );
 	}
-	//printf( "d2dx2 loop: i = %d \n", i );
     }		
     
     ierr = MatAssemblyBegin( *d2dx2_2d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
@@ -309,7 +308,6 @@ void Field_solver::construct_d2dy2_in_2d( Mat *d2dy2_2d, int nx, int ny )
 				 no_boundaries_pattern, INSERT_VALUES );
 	    CHKERRXX( ierr );
 	}
-	//printf( "d2dx2 loop: i = %d \n", i );
     }		
     
     ierr = MatAssemblyBegin( *d2dy2_2d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
@@ -320,6 +318,8 @@ void Field_solver::construct_d2dy2_in_2d( Mat *d2dy2_2d, int nx, int ny )
 void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A )
 {
     PetscReal rtol = 1.e-12;
+    // Default.     
+    // Possible to specify from command line using '-ksp_rtol' option.
     
     PetscErrorCode ierr;
     ierr = KSPCreate( PETSC_COMM_WORLD, ksp ); CHKERRXX(ierr);
