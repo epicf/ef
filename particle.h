@@ -12,6 +12,7 @@ class Particle {
     double mass;
     Vec3d position;
     Vec3d momentum;
+    bool momentum_is_half_time_step_shifted;
   public:
     Particle( int id, double charge, double mass, Vec3d position, Vec3d momentum );
     void print();
