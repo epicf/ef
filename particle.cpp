@@ -5,7 +5,8 @@ Particle::Particle( int id, double charge, double mass, Vec3d position, Vec3d mo
     charge( charge ),
     mass( mass ),
     position( position ),
-    momentum( momentum )
+    momentum( momentum ),
+    momentum_is_half_time_step_shifted( false )
 { }
 
 
