@@ -102,10 +102,22 @@ void Domain::leap_frog()
 
 void Domain::shift_velocities_half_time_step_back()
 {
-    double half_dt = time_grid.time_step_size / 2;
+    double minus_half_dt = -time_grid.time_step_size / 2;
+    Vec3d el_field_force, mgn_field_force, total_force, dp;
 
-    update_momentum( -half_dt );
-    return;    
+    for( auto &src : particle_sources.sources ) {
+	for( auto &p : src.particles ) {
+	    if ( !p.momentum_is_half_time_step_shifted ){
+		el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
+		mgn_field_force = external_magnetic_field.force_on_particle( p );
+		total_force = vec3d_add( el_field_force, mgn_field_force );
+		dp = vec3d_times_scalar( total_force, minus_half_dt );
+		p.momentum = vec3d_add( p.momentum, dp );
+		p.momentum_is_half_time_step_shifted = true;
+	    }
+	}
+    }
+    return;
 }
 
 void Domain::update_momentum( double dt )
@@ -165,6 +177,7 @@ bool Domain::out_of_bound( const Particle &p )
 void Domain::generate_new_particles()
 {
     particle_sources.generate_each_step();
+    shift_velocities_half_time_step_back();
     return;
 }
 
