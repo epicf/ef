@@ -35,8 +35,8 @@ void pic_simulation( Config &conf )
 {
   Domain dom( conf );
   
-  // save domain state just after initialisation
-  dom.write( conf );
+  // fields in domain without any particles
+  dom.eval_and_write_fields_without_particles( conf );
   // run simulation
   dom.run_pic( conf );
 

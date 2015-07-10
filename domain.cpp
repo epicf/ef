@@ -31,6 +31,7 @@ void Domain::run_pic( Config &conf )
     current_node = time_grid.current_node;
 
     prepare_leap_frog();
+    write_step_to_save( conf );
 
     for ( int i = current_node; i < total_time_iterations; i++ ){
 	std::cout << "Time step from " << i << " to " << i+1
@@ -247,7 +248,7 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 				       const std::string output_filename_suffix )
 {    
     std::stringstream step_string;
-    step_string << std::setfill('0') << std::setw(5) <<  current_time_step;
+    step_string << std::setfill('0') << std::setw(7) <<  current_time_step;
 
     std::string filename;
     filename = output_filename_prefix + 
@@ -273,5 +274,42 @@ Domain::~Domain()
 void Domain::print_particles() 
 {
     particle_sources.print_particles();
+    return;
+}
+
+void Domain::eval_and_write_fields_without_particles( Config &conf )
+{
+    spat_mesh.clear_old_density_values();
+    eval_potential_and_fields();
+
+    std::string output_filename_prefix = 
+	conf.output_filename_config_part.output_filename_prefix;
+    std::string output_filename_suffix = 
+	conf.output_filename_config_part.output_filename_suffix;
+    std::string file_name_to_write;
+    
+    file_name_to_write = output_filename_prefix + 
+	"fieldsWithoutParticles" + 
+	output_filename_suffix;
+
+    std::ofstream output_file( file_name_to_write );
+    if ( !output_file.is_open() ) {
+	std::cout << "Error: can't open file \'" 
+		  << file_name_to_write 
+		  << "\' to save results of initial field calculation!" 
+		  << std::endl;
+	std::cout << "Recheck \'output_filename_prefix\' key in config file." 
+		  << std::endl;
+	std::cout << "Make sure the directory you want to save to exists." 
+		  << std::endl;
+	exit( EXIT_FAILURE );
+    }
+    std::cout << "Writing initial fields" << " "
+	      << "to file " << file_name_to_write << std::endl;
+        
+    spat_mesh.write_to_file( output_file );
+
+    output_file.close();
+    
     return;
 }
