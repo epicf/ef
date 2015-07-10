@@ -32,6 +32,7 @@ class Domain {
   public:
     Domain( Config &conf );
     void run_pic( Config &conf );
+    void eval_and_write_fields_without_particles( Config &conf );
     void write_step_to_save( Config &conf );
     void write( Config &conf );
     virtual ~Domain();
