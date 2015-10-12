@@ -128,7 +128,13 @@ void Domain::update_momentum( double dt )
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
 	    el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
+	    // std::cout << "el_field_force = ";
+	    // vec3d_print( el_field_force );
+	    // std::cout << "\n";
 	    mgn_field_force = external_magnetic_field.force_on_particle( p );
+	    // std::cout << "mgn_field_force = ";
+	    // vec3d_print( mgn_field_force );
+	    // std::cout << "\n";	    
 	    total_force = vec3d_add( el_field_force, mgn_field_force );
 	    dp = vec3d_times_scalar( total_force, dt );
 	    p.momentum = vec3d_add( p.momentum, dp );
