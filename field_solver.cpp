@@ -452,14 +452,24 @@ void Field_solver::transfer_solution_to_spat_mesh( Spatial_mesh &spat_mesh )
     PetscInt ix;
     PetscErrorCode ierr;
     
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );    
+
     for( int k = 1; k <= nz-2; k++ ){
 	for ( int j = ny-2; j >= 1; j-- ) { 
 	    for ( int i = 1; i <= nx-2; i++ ) {
 		ix = (i - 1) + ( ( ny - 2 ) - j ) * (nx-2) + ( nx - 2 ) * ( ny - 2 ) * ( k - 1 ) ;
 		if( ix >= rstart && ix < rend ){
 		    ierr = VecGetValues( phi_vec, 1, &ix, &phi_at_point ); CHKERRXX( ierr );
-		    spat_mesh.potential[i][j][k] = phi_at_point;
+		} else {
+		    phi_at_point = 0;
 		}
+		// Awful. redo.
+		// Device a better way to do synchronization.
+		ierr = MPI_Allreduce(&phi_at_point, &phi_at_point, 1,
+				     MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD );
+		spat_mesh.potential[i][j][k] = phi_at_point;		
 	    }
 	}
     }
