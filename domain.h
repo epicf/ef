@@ -10,6 +10,7 @@
 #include "config.h"
 #include "time_grid.h"
 #include "spatial_mesh.h"
+#include "inner_region.h"
 #include "particle_to_mesh_map.h"
 #include "field_solver.h"
 #include "External_magnetic_field.h"
@@ -25,6 +26,7 @@ class Domain {
   public:
     Time_grid time_grid;
     Spatial_mesh spat_mesh;
+    Inner_region inner_region;
     Particle_to_mesh_map particle_to_mesh_map;
     Field_solver field_solver;    
     Particle_sources particle_sources;
@@ -44,6 +46,7 @@ class Domain {
     void eval_potential_and_fields();
     void push_particles();
     void apply_domain_constrains();
+    void remove_particles_inside_inner_regions();
     void update_time_grid();
     // Push particles
     void leap_frog();

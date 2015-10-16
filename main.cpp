@@ -34,7 +34,8 @@ int main( int argc, char *argv[] )
 void pic_simulation( Config &conf )
 {
   Domain dom( conf );
-  
+
+  dom.inner_region.print();
   // fields in domain without any particles
   dom.eval_and_write_fields_without_particles( conf );
   // run simulation

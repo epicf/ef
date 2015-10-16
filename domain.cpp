@@ -12,8 +12,9 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 Domain::Domain( Config &conf ) :
     time_grid( conf ),
     spat_mesh( conf ),
+    inner_region( conf ),
     particle_to_mesh_map( ),
-    field_solver( spat_mesh ),
+    field_solver( spat_mesh, inner_region ),
     particle_sources( conf ),
     external_magnetic_field( conf )
 {
@@ -70,7 +71,7 @@ void Domain::eval_charge_density()
 
 void Domain::eval_potential_and_fields()
 {
-    field_solver.eval_potential( spat_mesh );
+    field_solver.eval_potential( spat_mesh, inner_region );
     field_solver.eval_fields_from_potential( spat_mesh );
     return;
 }
@@ -84,6 +85,7 @@ void Domain::push_particles()
 void Domain::apply_domain_constrains()
 {
     apply_domain_boundary_conditions();
+    remove_particles_inside_inner_regions();
     generate_new_particles();
     return;
 }
@@ -155,6 +157,19 @@ void Domain::apply_domain_boundary_conditions()
 		std::begin( src.particles ), 
 		std::end( src.particles ), 
 		[this]( Particle &p ){ return out_of_bound(p); } ), 
+	    std::end( src.particles ) );
+    }
+    return;
+}
+
+void Domain::remove_particles_inside_inner_regions()
+{
+    for( auto &src : particle_sources.sources ) {
+	src.particles.erase( 
+	    std::remove_if( 
+		std::begin( src.particles ), 
+		std::end( src.particles ), 
+		[this]( Particle &p ){ return inner_region.check_if_particle_inside( p ); } ), 
 	    std::end( src.particles ) );
     }
     return;
