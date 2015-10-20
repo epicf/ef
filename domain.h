@@ -26,7 +26,7 @@ class Domain {
   public:
     Time_grid time_grid;
     Spatial_mesh spat_mesh;
-    Inner_region inner_region;
+    Inner_regions_manager inner_regions;
     Particle_to_mesh_map particle_to_mesh_map;
     Field_solver field_solver;    
     Particle_sources particle_sources;

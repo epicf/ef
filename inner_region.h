@@ -4,71 +4,8 @@
 #include <iostream>
 #include <algorithm>
 #include "config.h"
+#include "node_reference.h"
 #include "particle.h"
-
-class Node_reference{
-public:
-    int x, y, z;
-public:
-    Node_reference( int xx, int yy, int zz ): x(xx), y(yy), z(zz) {};
-    virtual ~Node_reference() {};
-    std::vector<Node_reference> adjacent_nodes() {
-	Node_reference left( x-1, y, z );
-	Node_reference right( x+1, y, z );
-	Node_reference top( x, y-1, z ); // warning y numeration from top to bottom
-	Node_reference bottom( x, y+1, z ); // warning y numeration from top to bottom
-	Node_reference near( x, y, z-1 );
-	Node_reference far( x, y, z+1 );
-	std::vector<Node_reference> neighbours( {left, right, top, bottom, near, far} );
-	return neighbours;
-    };
-    void print() {
-	std::cout << "Node = " << x << " " << y << " " << z << std::endl;
-    };
-    bool at_domain_boundary( int nx, int ny, int nz ){
-	return ( x <= 0 || x >= nx - 1 ||
-		 y <= 0 || y >= ny - 1 ||
-		 z <= 0 || z >= nz - 1 );
-    };
-    int global_index( int nx, int ny, int nz ){
-	// x=1,y=1,z=1 corresponds to eq.no 0
-	//return ( (x - 1) + (y - 1) * (nx - 2) + (z - 1) * (nx - 2) * (ny - 2) );
-
-	// warning!! x=1, y=ny-2, z=1 corresponds to eq.no 0
-	return ( (x - 1) + ( (ny - 2) - y ) * (nx - 2) + (z - 1) * (nx - 2) * (ny - 2) );
-    };
-    bool left_from( Node_reference other_node ){
-	return x+1 == other_node.x;
-    };
-    bool right_from( Node_reference other_node ){
-	return x-1 == other_node.x;
-    };
-    bool top_from( Node_reference other_node ){
-	// warning y numeration from top to bottom
-	return y+1 == other_node.y;
-    };
-    bool bottom_from( Node_reference other_node ){
-	// warning y numeration from top to bottom
-	return y-1 == other_node.y;
-    };
-    bool near_from( Node_reference other_node ){
-	return z+1 == other_node.z;
-    };
-    bool far_from( Node_reference other_node ){
-	return z-1 == other_node.z;
-    };
-
-    // comparison operators are necessary for std::sort and std::unique to work
-    bool operator< ( const Node_reference &other_node ){
-	return x < other_node.x ||
-	    x == other_node.x && y < other_node.y ||
-	    x == other_node.x && y == other_node.y && z < other_node.z;
-    };
-    bool operator== ( const Node_reference &other_node ){
-	return x == other_node.x && y == other_node.y && z == other_node.z;
-    };
-    
-};
 
 class Inner_region{
 public:
@@ -83,9 +20,10 @@ public:
 public:
     std::vector<Node_reference> inner_nodes;
     std::vector<Node_reference> near_boundary_nodes;
+    // possible todo: add_boundary_nodes    
 public:
     Inner_region(){};
-    Inner_region( Config &conf );
+    Inner_region( Config &conf, Inner_region_config_part &inner_region_conf );
     Inner_region( std::string name, double xleft, double xright,
 		  double ybottom, double ytop,
 		  double znear, double zfar, double phi ) :
@@ -118,8 +56,7 @@ public:
 	for( auto &node : inner_nodes )
 	    node.print();
     };
-    std::vector<int> global_indices_of_inner_nodes_not_at_domain_boundary(
-	int nx, int ny, int nz );
+    std::vector<Node_reference> inner_nodes_not_at_domain_edge( int nx, int ny, int nz );
     void mark_near_boundary_points( double *x, int nx, double *y, int ny, double *z, int nz );
     void print_near_boundary_points() {
 	std::cout << "Near-boundary nodes of '" << name << "' object." << std::endl;
@@ -127,9 +64,37 @@ public:
 	    node.print();
     };
 private:
-    void check_correctness_of_related_config_fields( Config &conf );
-    void get_values_from_config( Config &conf );
+    void check_correctness_of_related_config_fields( Config &conf, Inner_region_config_part &inner_region_conf );
+    void get_values_from_config( Inner_region_config_part &inner_region_conf );
 };
+
+
+class Inner_regions_manager{
+public:
+    std::vector<Inner_region> regions;
+public:
+    Inner_regions_manager( Config &conf )
+    {
+	for( auto &inner_region_conf : conf.inner_regions_config_part )
+	    regions.emplace_back( conf, inner_region_conf );
+    }
+
+    virtual ~Inner_regions_manager() {};    
+
+    bool check_if_particle_inside( Particle &p )
+    {
+	for( auto &region : regions )
+	    region.check_if_particle_inside( p );
+    }
+
+    void print( )
+    {
+	for( auto &region : regions )
+	    region.print();
+    }
+
+};
+
 
 // class Inner_region_sphere{
 // public:

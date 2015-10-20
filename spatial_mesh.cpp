@@ -19,7 +19,6 @@ void Spatial_mesh::check_correctness_of_related_config_fields( Config &conf )
     grid_y_step_gt_zero_le_grid_y_size( conf );
     grid_z_size_gt_zero( conf );
     grid_z_step_gt_zero_le_grid_z_size( conf );
-
 }
 
 void Spatial_mesh::init_x_grid( Config &conf )

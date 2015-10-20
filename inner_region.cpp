@@ -1,26 +1,27 @@
 #include "inner_region.h"
 
-Inner_region::Inner_region( Config &conf )
+Inner_region::Inner_region( Config &conf, Inner_region_config_part &inner_region_conf )
 {
-    check_correctness_of_related_config_fields( conf );
-    get_values_from_config( conf );    
+    check_correctness_of_related_config_fields( conf, inner_region_conf );
+    get_values_from_config( inner_region_conf );
 }
 
-void Inner_region::check_correctness_of_related_config_fields( Config &conf )
+void Inner_region::check_correctness_of_related_config_fields( Config &conf,
+							       Inner_region_config_part &inner_region_conf )
 {
     // check if region lies inside the domain
 }
 
-void Inner_region::get_values_from_config( Config &conf )
+void Inner_region::get_values_from_config( Inner_region_config_part &inner_region_conf )
 {
-    name = conf.inner_regions_config_part[0].inner_region_name;
-    x_left = conf.inner_regions_config_part[0].inner_region_x_left;
-    x_right = conf.inner_regions_config_part[0].inner_region_x_right;
-    y_bottom = conf.inner_regions_config_part[0].inner_region_y_bottom;
-    y_top = conf.inner_regions_config_part[0].inner_region_y_top;
-    z_near = conf.inner_regions_config_part[0].inner_region_z_near;
-    z_far = conf.inner_regions_config_part[0].inner_region_z_far;
-    potential = conf.inner_regions_config_part[0].inner_region_boundary_potential;
+    name = inner_region_conf.inner_region_name;
+    x_left = inner_region_conf.inner_region_x_left;
+    x_right = inner_region_conf.inner_region_x_right;
+    y_bottom = inner_region_conf.inner_region_y_bottom;
+    y_top = inner_region_conf.inner_region_y_top;
+    z_near = inner_region_conf.inner_region_z_near;
+    z_far = inner_region_conf.inner_region_z_far;
+    potential = inner_region_conf.inner_region_boundary_potential;
 }
 
 
@@ -62,16 +63,19 @@ void Inner_region::mark_inner_points( double *x, int nx,
     }
 }
 
-std::vector<int> Inner_region::global_indices_of_inner_nodes_not_at_domain_boundary(
-    int nx, int ny, int nz ){
-    std::vector<int> result;
-    result.reserve( inner_nodes.size() );
+std::vector<Node_reference> Inner_region::inner_nodes_not_at_domain_edge( int nx, int ny, int nz )
+{
+    // todo: rewrite with remove_if or something
+    // todo: construct this list once during an object creation
+    std::vector<Node_reference> node_list;
+    node_list.reserve( inner_nodes.size() );
+    
     for( auto &node : inner_nodes ){
-	if( !node.at_domain_boundary( nx, ny, nz ) ){
-	    result.push_back( node.global_index( nx, ny, nz ) );
+	if( !node.at_domain_edge( nx, ny, nz ) ){
+	    node_list.push_back( node );
 	}
     }
-    return result;
+    return node_list;
 }
 
 

@@ -8,8 +8,8 @@
 
 class Field_solver {
   public:
-    Field_solver( Spatial_mesh &spat_mesh, Inner_region &inner_region );
-    void eval_potential( Spatial_mesh &spat_mesh, Inner_region &inner_region );
+    Field_solver( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions );
+    void eval_potential( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions );
     void eval_fields_from_potential( Spatial_mesh &spat_mesh );
     virtual ~Field_solver();
   private:
@@ -22,17 +22,29 @@ class Field_solver {
     void construct_equation_matrix( Mat *A,
 				    int nx, int ny, int nz,
 				    double dx, double dy, double dz,
-				    Inner_region &inner_region );
+				    Inner_regions_manager &inner_regions );
     void construct_equation_matrix_in_full_domain( Mat *A,
 						   int nx, int ny, int nz,
 						   double dx, double dy, double dz );
+    void cross_out_nodes_occupied_by_objects( Mat *A,
+					      int nx, int ny, int nz,
+					      Inner_regions_manager &inner_regions );
     void cross_out_nodes_occupied_by_objects( Mat *A,
 					      int nx, int ny, int nz,
 					      Inner_region &inner_region );
     void modify_equation_near_object_boundaries( Mat *A,
 						 int nx, int ny, int nz,
 						 double dx, double dy, double dz,
+						 Inner_regions_manager &inner_regions );
+    void modify_equation_near_object_boundaries( Mat *A,
+						 int nx, int ny, int nz,
+						 double dx, double dy, double dz,
 						 Inner_region &inner_region );
+    std::vector<PetscInt> adjacent_nodes_not_at_domain_edge_and_inside_inner_region(
+	Node_reference &node,
+	Inner_region &inner_region,
+	int nx, int ny, int nz,
+	double dx, double dy, double dz );
     void create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A );
     void construct_d2dx2_in_3d( Mat *d2dx2_3d, int nx, int ny, int nz );
     void construct_d2dy2_in_3d( Mat *d2dy2_3d, int nx, int ny, int nz );
@@ -41,10 +53,12 @@ class Field_solver {
     void construct_d2dx2_in_2d( Mat *d2dx2, int nx, int ny );
     void construct_d2dy2_in_2d( Mat *d2dy2, int nx, int ny );
     // Solve potential
-    void solve_poisson_eqn( Spatial_mesh &spat_mesh, Inner_region &inner_region );
-    void init_rhs_vector( Spatial_mesh &spat_mesh, Inner_region &inner_region );
+    void solve_poisson_eqn( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions );
+    void init_rhs_vector( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions );
     void init_rhs_vector_in_full_domain( Spatial_mesh &spat_mesh );
+    void set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions );
     void set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh, Inner_region &inner_region );
+    void modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions );
     void modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh, Inner_region &inner_region );
     void indicies_of_near_boundary_nodes_and_rhs_modifications(
 	std::vector<PetscInt> indices_of_nodes_near_boundaries,
@@ -53,6 +67,9 @@ class Field_solver {
 	double dx, double dy, double dz,
 	Inner_region &inner_region );
     int kronecker_delta( int i,  int j );
+    int node_global_index_in_matrix( Node_reference &node, int nx, int ny, int nz );
+    std::vector<int> list_of_nodes_global_indices_in_matrix( std::vector<Node_reference> &nodes, int nx, int ny, int nz );
+    int node_ijk_to_global_index_in_matrix( int i, int j, int k, int nx, int ny, int nz );
     void transfer_solution_to_spat_mesh( Spatial_mesh &spat_mesh );
     // Eval fields from potential
     double boundary_difference( double phi1, double phi2, double dx );
