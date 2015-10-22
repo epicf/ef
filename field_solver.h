@@ -61,11 +61,15 @@ class Field_solver {
     void modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions );
     void modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh, Inner_region &inner_region );
     void indicies_of_near_boundary_nodes_and_rhs_modifications(
-	std::vector<PetscInt> indices_of_nodes_near_boundaries,
-	std::vector<PetscScalar> rhs_modification_for_nodes_near_boundaries,
+	std::vector<PetscInt> &indices_of_nodes_near_boundaries,
+	std::vector<PetscScalar> &rhs_modification_for_nodes_near_boundaries,
 	int nx, int ny, int nz,
 	double dx, double dy, double dz,
 	Inner_region &inner_region );
+    void set_solution_at_nodes_of_inner_regions( Spatial_mesh &spat_mesh,
+						 Inner_regions_manager &inner_regions );
+    void set_solution_at_nodes_of_inner_regions( Spatial_mesh &spat_mesh,
+						 Inner_region &inner_region );
     int kronecker_delta( int i,  int j );
     int node_global_index_in_matrix( Node_reference &node, int nx, int ny, int nz );
     std::vector<int> list_of_nodes_global_indices_in_matrix( std::vector<Node_reference> &nodes, int nx, int ny, int nz );

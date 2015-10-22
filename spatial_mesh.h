@@ -25,6 +25,9 @@ class Spatial_mesh {
     void print();
     void write_to_file( std::ofstream &output_file );
     virtual ~Spatial_mesh();
+    double node_number_to_coordinate_x( int i );
+    double node_number_to_coordinate_y( int j );
+    double node_number_to_coordinate_z( int k );
   private:
     // init
     void check_correctness_of_related_config_fields( Config &conf );

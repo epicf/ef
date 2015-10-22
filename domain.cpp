@@ -12,12 +12,14 @@ std::string construct_output_filename( const std::string output_filename_prefix,
 Domain::Domain( Config &conf ) :
     time_grid( conf ),
     spat_mesh( conf ),
-    inner_regions( conf ),
+    inner_regions( conf, spat_mesh ),
     particle_to_mesh_map( ),
     field_solver( spat_mesh, inner_regions ),
     particle_sources( conf ),
     external_magnetic_field( conf )
 {
+    //inner_regions.print_inner_nodes();
+    //inner_regions.print_near_boundary_nodes();
     return;
 }
 

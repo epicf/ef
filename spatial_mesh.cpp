@@ -272,4 +272,35 @@ void Spatial_mesh::check_and_exit_if_not( const bool &should_be, const std::stri
     return;
 }
 
+double Spatial_mesh::node_number_to_coordinate_x( int i )
+{
+    if( i >= 0 && i < x_n_nodes ){
+	return i*x_cell_size; 
+    } else {
+	printf( "invalid node number i=%d at node_number_to_coordinate_x\n", i );
+	exit( EXIT_FAILURE );
+    }
+}
+
+double Spatial_mesh::node_number_to_coordinate_y( int j )
+{
+    if( j >= 0 && j < y_n_nodes ){
+	return j*y_cell_size; 
+    } else {
+	printf( "invalid node number j=%d at node_number_to_coordinate_y\n", j );
+	exit( EXIT_FAILURE );
+    }
+}
+
+double Spatial_mesh::node_number_to_coordinate_z( int k )
+{
+    if( k >= 0 && k < z_n_nodes ){
+	return k*z_cell_size; 
+    } else {
+	printf( "invalid node number k=%d at node_number_to_coordinate_z\n", k );
+	exit( EXIT_FAILURE );
+    }
+}
+
+
 Spatial_mesh::~Spatial_mesh() {}

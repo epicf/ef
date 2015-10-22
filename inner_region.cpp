@@ -1,9 +1,15 @@
 #include "inner_region.h"
 
-Inner_region::Inner_region( Config &conf, Inner_region_config_part &inner_region_conf )
+Inner_region::Inner_region( Config &conf,
+			    Inner_region_config_part &inner_region_conf,
+			    Spatial_mesh &spat_mesh )
 {
     check_correctness_of_related_config_fields( conf, inner_region_conf );
     get_values_from_config( inner_region_conf );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
 }
 
 void Inner_region::check_correctness_of_related_config_fields( Config &conf,
@@ -48,14 +54,18 @@ bool Inner_region::check_if_node_inside( Node_reference &node,
     return check_if_point_inside( node.x * dx, node.y * dy, node.z * dz );
 }
 
-void Inner_region::mark_inner_points( double *x, int nx,
-				      double *y, int ny,
-				      double *z, int nz )
+void Inner_region::mark_inner_nodes( Spatial_mesh &spat_mesh )
 {
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+
     for ( int k = 0; k < nz; k++ ) {
 	for ( int j = 0; j < ny; j++ ) {
 	    for ( int i = 0; i < nx; i++ ) {
-		if ( check_if_point_inside( x[i], y[j], z[k] ) ){
+		if ( check_if_point_inside( spat_mesh.node_number_to_coordinate_x(i),
+					    spat_mesh.node_number_to_coordinate_y(j),
+					    spat_mesh.node_number_to_coordinate_z(k) ) ){
 		    inner_nodes.emplace_back( i, j, k );
 		}
 	    }
@@ -63,31 +73,37 @@ void Inner_region::mark_inner_points( double *x, int nx,
     }
 }
 
-std::vector<Node_reference> Inner_region::inner_nodes_not_at_domain_edge( int nx, int ny, int nz )
+void Inner_region::select_inner_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh )
 {
-    // todo: rewrite with remove_if or something
-    // todo: construct this list once during an object creation
-    std::vector<Node_reference> node_list;
-    node_list.reserve( inner_nodes.size() );
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+
+    inner_nodes_not_at_domain_edge.reserve( inner_nodes.size() );
     
     for( auto &node : inner_nodes ){
 	if( !node.at_domain_edge( nx, ny, nz ) ){
-	    node_list.push_back( node );
+	    inner_nodes_not_at_domain_edge.push_back( node );
 	}
     }
-    return node_list;
 }
 
-
-void Inner_region::mark_near_boundary_points( double *x, int nx,
-					      double *y, int ny,
-					      double *z, int nz )
+void Inner_region::mark_near_boundary_nodes( Spatial_mesh &spat_mesh )
 {
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+
+    // rewrite; 
     for( auto &node : inner_nodes ){
 	std::vector<Node_reference> neighbours = node.adjacent_nodes();
 	for( auto &nbr : neighbours ){
-	    if ( !check_if_point_inside( x[nbr.x], y[nbr.y], z[nbr.z] ) ){
-		near_boundary_nodes.emplace_back( nbr.x, nbr.y, nbr.z );
+	    if ( !node.at_domain_edge( nx, ny, nz ) ) {
+		if ( !check_if_point_inside( spat_mesh.node_number_to_coordinate_x(nbr.x),
+					     spat_mesh.node_number_to_coordinate_y(nbr.y),
+					     spat_mesh.node_number_to_coordinate_z(nbr.z) ) ){
+		    near_boundary_nodes.emplace_back( nbr.x, nbr.y, nbr.z );
+		}
 	    }
 	}
     }
@@ -95,6 +111,23 @@ void Inner_region::mark_near_boundary_points( double *x, int nx,
     near_boundary_nodes.erase(
 	std::unique( near_boundary_nodes.begin(), near_boundary_nodes.end() ),
 	near_boundary_nodes.end() );
+}
+
+void Inner_region::select_near_boundary_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh )
+{
+    // todo: repeats with select_inner_nodes_not_at_domain_edge;
+    // remove code duplication
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+
+    near_boundary_nodes_not_at_domain_edge.reserve( near_boundary_nodes.size() );
+    
+    for( auto &node : near_boundary_nodes ){
+	if( !node.at_domain_edge( nx, ny, nz ) ){
+	    near_boundary_nodes_not_at_domain_edge.push_back( node );
+	}
+    }    
 }
 
 
