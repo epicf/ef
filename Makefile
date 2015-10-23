@@ -4,7 +4,7 @@ SHELL:=/bin/bash -O extglob
 ##### Compilers
 ##### Prll
 #export OMPI_CXX=clang++
-CC = mpic++
+CC = mpic++ 
 CFLAGS = -isystem /usr/include/petsc -O2 -std=c++11
 LDFLAGS = 
 

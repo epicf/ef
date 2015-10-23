@@ -29,6 +29,9 @@ Domain::Domain( Config &conf ) :
 
 void Domain::run_pic( Config &conf )
 {
+    int mpi_process_rank;
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
+    
     int total_time_iterations, current_node;
     total_time_iterations = time_grid.total_nodes - 1;
     current_node = time_grid.current_node;
@@ -37,8 +40,10 @@ void Domain::run_pic( Config &conf )
     write_step_to_save( conf );
 
     for ( int i = current_node; i < total_time_iterations; i++ ){
-	std::cout << "Time step from " << i << " to " << i+1
-		  << " of " << total_time_iterations << std::endl;
+	if ( mpi_process_rank == 0 ){
+	    std::cout << "Time step from " << i << " to " << i+1
+		      << " of " << total_time_iterations << std::endl;
+	}
     	advance_one_time_step();
     	write_step_to_save( conf );
     }
@@ -132,7 +137,13 @@ void Domain::update_momentum( double dt )
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
 	    el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
+	    // std::cout << "el_field_force = ";
+	    // vec3d_print( el_field_force );
+	    // std::cout << "\n";
 	    mgn_field_force = external_magnetic_field.force_on_particle( p );
+	    // std::cout << "mgn_field_force = ";
+	    // vec3d_print( mgn_field_force );
+	    // std::cout << "\n";	    
 	    total_force = vec3d_add( el_field_force, mgn_field_force );
 	    dp = vec3d_times_scalar( total_force, dt );
 	    p.momentum = vec3d_add( p.momentum, dp );
