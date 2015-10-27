@@ -14,6 +14,10 @@ Field_solver::Field_solver( Spatial_mesh &spat_mesh, Inner_regions_manager &inne
     PetscErrorCode ierr;
     PetscInt A_approx_nonzero_per_row = 7;
 
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );    
+    
     alloc_petsc_vector( &phi_vec, nrows, "Solution" );
     ierr = VecSet( phi_vec, 0.0 ); CHKERRXX( ierr );
     get_vector_ownership_range_and_local_size_for_each_process( &phi_vec, &rstart, &rend, &nlocal );
@@ -57,6 +61,9 @@ void Field_solver::alloc_petsc_matrix( Mat *A,
     ierr = MatSetFromOptions( *A ); CHKERRXX( ierr );
     ierr = MatSetType( *A, MATAIJ ); CHKERRXX( ierr );
     // redo; set nonzero_per_row more accurately
+    // if           nlocal >= (nx-2)*(ny-2): max_diag_nonzero_per_row = 7, max_offdiag_nonzer_per_row = 3
+    //    (nx-2) <= nlocal < (nx-2)*(ny-2) : max_diag_nonzero_per_row = 5, max_offdiag_nonzer_per_row = 4
+    // probably. 
     ierr = MatMPIAIJSetPreallocation( *A, nonzero_per_row, NULL, nonzero_per_row, NULL); CHKERRXX( ierr ); 
     ierr = MatSetUp( *A ); CHKERRXX( ierr );
     return;
@@ -141,26 +148,28 @@ void Field_solver::cross_out_nodes_occupied_by_objects( Mat *A,
 	PetscScalar diag = 1.0;
 	PetscScalar charge_density_inside_conductor = 0.0;
 	Vec phi_inside_region, rhs_inside_region; /* Approx solution and RHS at zeroed rows */
+	phi_inside_region = rhs_inside_region = NULL;
 
-	// looks like it doesn't work
+	// looks like setting phi_inside_region and
+	// rhs_inside_region has no effect	
 	
 	// todo: separate function
-	std::string vec_name = "Phi inside " + inner_region.name;
-	alloc_petsc_vector( &phi_inside_region,
-			    (nx-2) * (ny-2) * (nz-2),
-			    vec_name.c_str() );
-	VecSet( phi_inside_region, inner_region.potential );    
-	ierr = VecAssemblyBegin( phi_inside_region ); CHKERRXX( ierr );
-	ierr = VecAssemblyEnd( phi_inside_region ); CHKERRXX( ierr );
+	// std::string vec_name = "Phi inside " + inner_region.name;
+	// alloc_petsc_vector( &phi_inside_region,
+	// 		    (nx-2) * (ny-2) * (nz-2),
+	// 		    vec_name.c_str() );
+	// VecSet( phi_inside_region, inner_region.potential );    
+	// ierr = VecAssemblyBegin( phi_inside_region ); CHKERRXX( ierr );
+	// ierr = VecAssemblyEnd( phi_inside_region ); CHKERRXX( ierr );
 
 	// todo: separate function
-	vec_name = "RHS inside " + inner_region.name;
-	alloc_petsc_vector( &rhs_inside_region,
-			    (nx-2) * (ny-2) * (nz-2),
-			    vec_name.c_str() );
-	VecSet( rhs_inside_region, charge_density_inside_conductor );    
-	ierr = VecAssemblyBegin( rhs_inside_region ); CHKERRXX( ierr );
-	ierr = VecAssemblyEnd( rhs_inside_region ); CHKERRXX( ierr );
+	// vec_name = "RHS inside " + inner_region.name;
+	// alloc_petsc_vector( &rhs_inside_region,
+	// 		    (nx-2) * (ny-2) * (nz-2),
+	// 		    vec_name.c_str() );
+	// VecSet( rhs_inside_region, charge_density_inside_conductor );    
+	// ierr = VecAssemblyBegin( rhs_inside_region ); CHKERRXX( ierr );
+	// ierr = VecAssemblyEnd( rhs_inside_region ); CHKERRXX( ierr );
 	
 	ierr = MatZeroRows( *A, num_of_rows_to_remove, rows_global_indices,
 			    diag, phi_inside_region, rhs_inside_region); CHKERRXX( ierr );
@@ -491,6 +500,9 @@ void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A )
     ierr = KSPSetFromOptions( *ksp ); CHKERRXX(ierr);    
     ierr = KSPSetInitialGuessNonzero( *ksp, PETSC_TRUE ); CHKERRXX( ierr );
 
+    // For test purposes
+    //ierr = KSPSetInitialGuessNonzero( *ksp, PETSC_FALSE ); CHKERRXX( ierr );
+
     ierr = KSPSetUp( *ksp ); CHKERRXX(ierr);
     return;
 }
@@ -503,15 +515,32 @@ void Field_solver::eval_potential( Spatial_mesh &spat_mesh, Inner_regions_manage
 void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions )
 {
     PetscErrorCode ierr;
+    double t1_before, t2_init_rhs, t3_solve, t4_setinner, t5_transfer; 
 
+    t1_before = MPI_Wtime();
     init_rhs_vector( spat_mesh, inner_regions );
+    t2_init_rhs = MPI_Wtime();
+    printf( "Init_rhs elapsed time is %f\n", t2_init_rhs - t1_before );    
+    MPI_Barrier( PETSC_COMM_WORLD );
+    
     ierr = KSPSolve( ksp, rhs, phi_vec); CHKERRXX( ierr );
-
+    //ierr = KSPView( ksp, PETSC_VIEWER_STDOUT_WORLD );
+    t3_solve = MPI_Wtime();
+    printf( "Solve elapsed time is %f\n", t3_solve - t2_init_rhs );
+    MPI_Barrier( PETSC_COMM_WORLD );
+    
     // This should be done in 'cross_out_nodes_occupied_by_objects' by
     // MatZeroRows function but it seems it doesn't work
     set_solution_at_nodes_of_inner_regions( spat_mesh, inner_regions );
-
+    t4_setinner = MPI_Wtime();
+    printf( "Setinner elapsed time is %f\n", t4_setinner - t3_solve );
+    MPI_Barrier( PETSC_COMM_WORLD );
+    
     transfer_solution_to_spat_mesh( spat_mesh );
+    t5_transfer = MPI_Wtime();
+    printf( "Transfer elapsed time is %f\n", t5_transfer - t4_setinner );
+    MPI_Barrier( PETSC_COMM_WORLD );
+    
     return;
 }
 
@@ -764,36 +793,92 @@ int Field_solver::node_ijk_to_global_index_in_matrix( int i, int j, int k,
     }    
 }
 
+void Field_solver::global_index_in_matrix_to_node_ijk( int global_index,
+						       int *i, int *j, int *k,
+						       int nx, int ny, int nz )
+{
+    // global_index = (i - 1) + (j - 1) * ( nx - 2 ) + ( k - 1 ) * ( nx - 2 ) * ( ny - 2 );
+    int i_and_j_part;
+    *k = global_index / ( ( nx - 2 ) * ( ny - 2 ) ) + 1;
+    i_and_j_part = global_index % ( ( nx - 2 ) * ( ny - 2 ) );
+    *j = i_and_j_part / ( nx - 2 ) + 1;
+    *i = i_and_j_part % ( nx - 2 ) + 1;
+    //todo: remove test
+    // if( node_ijk_to_global_index_in_matrix( *i, *j, *k, nx, ny, nz ) != global_index ){
+    // 	printf( "mistake in global_index_in_matrix_to_node_ijk; aborting" );
+    // 	exit( EXIT_FAILURE );
+    // }
+    return;
+}
+
+
 void Field_solver::transfer_solution_to_spat_mesh( Spatial_mesh &spat_mesh )
 {
     int nx = spat_mesh.x_n_nodes;
     int ny = spat_mesh.y_n_nodes;
     int nz = spat_mesh.z_n_nodes;
+    int i,j,k;
     PetscScalar phi_at_point;
     PetscInt ix;
     PetscErrorCode ierr;
-    
+
+    int recieved_rstart, recieved_rend, recieved_nlocal;
     int mpi_n_of_proc, mpi_process_rank;
     MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );    
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
 
-    for( int k = 1; k <= nz-2; k++ ){
-	for ( int j = 1; j <= ny-2; j++ ) { 
-	    for ( int i = 1; i <= nx-2; i++ ) {
-		ix = node_ijk_to_global_index_in_matrix( i, j, k, nx, ny, nz );
-		if( ix >= rstart && ix < rend ){
-		    ierr = VecGetValues( phi_vec, 1, &ix, &phi_at_point ); CHKERRXX( ierr );
-		} else {
-		    phi_at_point = 0;
-		}
-		// Awful. redo.
-		// Device a better way to do synchronization.
-		ierr = MPI_Allreduce(&phi_at_point, &phi_at_point, 1,
-				     MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD );
-		spat_mesh.potential[i][j][k] = phi_at_point;		
-	    }
+    //todo: split into several functions
+    MPI_Barrier( PETSC_COMM_WORLD );
+    for( int proc = 0; proc < mpi_n_of_proc; proc++ ){
+	if( proc == mpi_process_rank ){
+	    recieved_rstart = rstart;
+	    recieved_rend = rend;
 	}
+	MPI_Bcast( &recieved_rstart, 1, MPI_INT, proc, PETSC_COMM_WORLD );
+	MPI_Bcast( &recieved_rend, 1, MPI_INT, proc, PETSC_COMM_WORLD );
+	recieved_nlocal = recieved_rend - recieved_rstart;
+	// printf( "rank = %d, recieved_nlocal = %d, recieved_rstart = %d, recieved_rend = %d\n",
+	// 	mpi_process_rank, recieved_nlocal, recieved_rstart, recieved_rend );
+	//MPI_Barrier( PETSC_COMM_WORLD );
+	double *local_phi_values;
+	if( proc == mpi_process_rank ){
+	    ierr = VecGetArray( phi_vec, &local_phi_values ); CHKERRXX( ierr );
+	} else {
+	    local_phi_values = new double [recieved_nlocal];
+	}
+	MPI_Bcast( local_phi_values, recieved_nlocal, MPI_DOUBLE, proc, PETSC_COMM_WORLD );
+	for( int global_index = recieved_rstart;
+	     global_index < recieved_rend;
+	     global_index++ ){	    
+	    global_index_in_matrix_to_node_ijk( global_index,
+						&i, &j, &k,
+						nx, ny, nz );
+	    spat_mesh.potential[i][j][k] = local_phi_values[ global_index - recieved_rstart ];
+	}
+	if( proc == mpi_process_rank ){
+	    ierr = VecRestoreArray( phi_vec, &local_phi_values ); CHKERRXX( ierr );
+	} else {
+	    delete[] local_phi_values;
+	}		
     }
+
+    // for( int k = 1; k <= nz-2; k++ ){
+    // 	for ( int j = 1; j <= ny-2; j++ ) { 
+    // 	    for ( int i = 1; i <= nx-2; i++ ) {
+    // 		ix = node_ijk_to_global_index_in_matrix( i, j, k, nx, ny, nz );
+    // 		if( ix >= rstart && ix < rend ){
+    // 		    ierr = VecGetValues( phi_vec, 1, &ix, &phi_at_point ); CHKERRXX( ierr );
+    // 		} else {
+    // 		    phi_at_point = 0;
+    // 		}
+    // 		// Awful. redo.
+    // 		// Device a better way to do synchronization.
+    // 		ierr = MPI_Allreduce(&phi_at_point, &phi_at_point, 1,
+    // 				     MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD );
+    // 		spat_mesh.potential[i][j][k] = phi_at_point;		
+    // 	    }
+    // 	}
+    // }
 }
 
 

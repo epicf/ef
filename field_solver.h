@@ -83,6 +83,9 @@ class Field_solver {
     int node_global_index_in_matrix( Node_reference &node, int nx, int ny, int nz );
     std::vector<int> list_of_nodes_global_indices_in_matrix( std::vector<Node_reference> &nodes, int nx, int ny, int nz );
     int node_ijk_to_global_index_in_matrix( int i, int j, int k, int nx, int ny, int nz );
+    void global_index_in_matrix_to_node_ijk( int global_index,
+					     int *i, int *j, int *k,
+					     int nx, int ny, int nz );
     void transfer_solution_to_spat_mesh( Spatial_mesh &spat_mesh );
     // Eval fields from potential
     double boundary_difference( double phi1, double phi2, double dx );
