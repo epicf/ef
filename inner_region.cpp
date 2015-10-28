@@ -131,6 +131,189 @@ void Inner_region::select_near_boundary_nodes_not_at_domain_edge( Spatial_mesh &
 }
 
 
+
+// Step model
+
+
+Inner_region_with_model::Inner_region_with_model( Config &conf,
+						  Inner_region_with_model_config_part &inner_region_with_model_conf,
+						  Spatial_mesh &spat_mesh )
+{
+    check_correctness_of_related_config_fields( conf );
+    get_values_from_config( inner_region_with_model_conf );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
+void Inner_region_with_model::check_correctness_of_related_config_fields( Config &conf )
+{
+  // Check if file exists?   
+}
+
+void Inner_region_with_model::get_values_from_config( Inner_region_with_model_config_part &inner_region_with_model_conf )
+{
+    name = inner_region_with_model_conf.inner_region_with_model_name;   
+    read_geometry_file( inner_region_with_model_conf.inner_region_with_model_file );
+    potential = inner_region_with_model_conf.inner_region_with_model_potential;
+}
+
+void Inner_region_with_model::read_geometry_file( std::string filename )
+{
+  STEPControl_Reader reader;
+  reader.ReadFile( filename.c_str() );
+  cout << "filename = " << filename << std::endl;
+  // gets the number of transferable roots
+  Standard_Integer NbRoots = reader.NbRootsForTransfer();
+  cout << "Number of roots in STEP file:" << NbRoots << std::endl;
+  // translates all transferable roots, and returns the number of
+  // successful translations
+  Standard_Integer NbTrans = reader.TransferRoots();
+  cout << "STEP roots transferred: " << NbTrans << std::endl;
+  cout << "Number of resulting shapes is: " << reader.NbShapes() << std::endl;
+
+  geometry = reader.OneShape();
+  if (geometry.IsNull() || geometry.ShapeType() != TopAbs_SOLID) {
+      std::cout << "Something wrong with model of inner_region_with_model: "
+  		<< name
+  		<< std::endl;
+      exit( EXIT_FAILURE );
+  }
+}
+
+bool Inner_region_with_model::check_if_point_inside( double x, double y, double z )
+{
+    gp_Pnt point(x, y, z);
+    BRepClass3d_SolidClassifier solidClassifier( geometry, point, Precision::Confusion() );
+    TopAbs_State in_or_out = solidClassifier.State();
+
+    if ( in_or_out == TopAbs_OUT ){
+      //std::cout << "outside of the model" << std::endl;
+      return false;
+    }
+    else if ( in_or_out == TopAbs_IN || in_or_out == TopAbs_ON ){
+      //std::cout << "inside the model" << std::endl;
+      return true;
+    }
+    else {	
+      std::cout << "Unknown in_or_out state: " << in_or_out << std::endl;
+      std::cout << "x=" << x << " y=" << y << " z="<< z << std::endl;
+      std::cout << "Aborting.";
+      std::cout << std::endl;
+      std::exit( 1 );
+    }
+}
+
+bool Inner_region_with_model::check_if_particle_inside( Particle &p )
+{
+    double px = vec3d_x( p.position );
+    double py = vec3d_y( p.position );
+    double pz = vec3d_z( p.position );
+    return check_if_point_inside( px, py, pz );
+}
+
+bool Inner_region_with_model::check_if_node_inside( Node_reference &node,
+						    double dx, double dy, double dz )
+{
+    return check_if_point_inside( node.x * dx, node.y * dy, node.z * dz );
+}
+
+
+void Inner_region_with_model::mark_inner_nodes( Spatial_mesh &spat_mesh )
+{
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+
+    for ( int k = 0; k < nz; k++ ) {
+	for ( int j = 0; j < ny; j++ ) {
+	    for ( int i = 0; i < nx; i++ ) {
+		if ( check_if_point_inside( spat_mesh.node_number_to_coordinate_x(i),
+					    spat_mesh.node_number_to_coordinate_y(j),
+					    spat_mesh.node_number_to_coordinate_z(k) ) ){
+		    inner_nodes.emplace_back( i, j, k );
+		}
+	    }
+	}
+    }
+}
+
+void Inner_region_with_model::select_inner_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh )
+{
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+
+    inner_nodes_not_at_domain_edge.reserve( inner_nodes.size() );
+    
+    for( auto &node : inner_nodes ){
+	if( !node.at_domain_edge( nx, ny, nz ) ){
+	    inner_nodes_not_at_domain_edge.push_back( node );
+	}
+    }
+}
+
+void Inner_region_with_model::mark_near_boundary_nodes( Spatial_mesh &spat_mesh )
+{
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+
+    // rewrite; 
+    for( auto &node : inner_nodes ){
+	std::vector<Node_reference> neighbours = node.adjacent_nodes();
+	for( auto &nbr : neighbours ){
+	    if ( !node.at_domain_edge( nx, ny, nz ) ) {
+		if ( !check_if_point_inside( spat_mesh.node_number_to_coordinate_x(nbr.x),
+					     spat_mesh.node_number_to_coordinate_y(nbr.y),
+					     spat_mesh.node_number_to_coordinate_z(nbr.z) ) ){
+		    near_boundary_nodes.emplace_back( nbr.x, nbr.y, nbr.z );
+		}
+	    }
+	}
+    }
+    std::sort( near_boundary_nodes.begin(), near_boundary_nodes.end() );
+    near_boundary_nodes.erase(
+	std::unique( near_boundary_nodes.begin(), near_boundary_nodes.end() ),
+	near_boundary_nodes.end() );
+}
+
+void Inner_region_with_model::select_near_boundary_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh )
+{
+    // todo: repeats with select_inner_nodes_not_at_domain_edge;
+    // remove code duplication
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+
+    near_boundary_nodes_not_at_domain_edge.reserve( near_boundary_nodes.size() );
+    
+    for( auto &node : near_boundary_nodes ){
+	if( !node.at_domain_edge( nx, ny, nz ) ){
+	    near_boundary_nodes_not_at_domain_edge.push_back( node );
+	}
+    }    
+}
+
+
+void Inner_region_with_model::write_to_file( std::ofstream &output_file )
+{
+    // todo
+}
+
+void Inner_region_with_model::print( )
+{
+    // todo
+}
+
+Inner_region_with_model::~Inner_region_with_model()
+{
+    // todo
+}
+
+
+
 // Sphere
 
 

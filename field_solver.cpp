@@ -1,6 +1,8 @@
 #include "field_solver.h"
 
-Field_solver::Field_solver( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions )
+Field_solver::Field_solver( Spatial_mesh &spat_mesh,
+			    Inner_regions_manager &inner_regions,
+			    Inner_regions_with_models_manager &inner_regions_with_models )
 {
     int nx = spat_mesh.x_n_nodes;
     int ny = spat_mesh.y_n_nodes;
@@ -19,7 +21,7 @@ Field_solver::Field_solver( Spatial_mesh &spat_mesh, Inner_regions_manager &inne
     alloc_petsc_vector( &rhs, nrows, "RHS" );
     alloc_petsc_matrix( &A, nrows, ncols, A_approx_nonzero_per_row );
     
-    construct_equation_matrix( &A, nx, ny, nz, dx, dy, dz, inner_regions );
+    construct_equation_matrix( &A, nx, ny, nz, dx, dy, dz, inner_regions, inner_regions_with_models );
     create_solver_and_preconditioner( &ksp, &pc, &A );
 }
 
@@ -52,11 +54,12 @@ void Field_solver::alloc_petsc_matrix( Mat *A, PetscInt nrow, PetscInt ncol, Pet
 void Field_solver::construct_equation_matrix( Mat *A,
 					      int nx, int ny, int nz,
 					      double dx, double dy, double dz,
-					      Inner_regions_manager &inner_regions )
+					      Inner_regions_manager &inner_regions,
+					      Inner_regions_with_models_manager &inner_regions_with_models )
 {
     construct_equation_matrix_in_full_domain( A, nx, ny, nz, dx, dy, dz );
-    cross_out_nodes_occupied_by_objects( A, nx, ny, nz, inner_regions );
-    modify_equation_near_object_boundaries( A, nx, ny, nz, dx, dy, dz, inner_regions );
+    cross_out_nodes_occupied_by_objects( A, nx, ny, nz, inner_regions, inner_regions_with_models );
+    modify_equation_near_object_boundaries( A, nx, ny, nz, dx, dy, dz, inner_regions, inner_regions_with_models );
 }
 
 
@@ -88,10 +91,13 @@ void Field_solver::construct_equation_matrix_in_full_domain( Mat *A,
 
 void Field_solver::cross_out_nodes_occupied_by_objects( Mat *A,
 							int nx, int ny, int nz,
-							Inner_regions_manager &inner_regions )
+							Inner_regions_manager &inner_regions,
+							Inner_regions_with_models_manager &inner_regions_with_models )
 {
     for( auto &reg : inner_regions.regions )
 	cross_out_nodes_occupied_by_objects( A, nx, ny, nz, reg );
+    for( auto &reg : inner_regions_with_models.regions )
+	cross_out_nodes_occupied_by_objects( A, nx, ny, nz, reg );    
 }
 
 
@@ -139,13 +145,62 @@ void Field_solver::cross_out_nodes_occupied_by_objects( Mat *A,
     }
 }
 
+void Field_solver::cross_out_nodes_occupied_by_objects( Mat *A,
+							int nx, int ny, int nz,
+							Inner_region_with_model &inner_region )
+{
+    std::vector<int> occupied_nodes_global_indices =
+	list_of_nodes_global_indices_in_matrix( inner_region.inner_nodes_not_at_domain_edge, nx, ny, nz );
+    
+    PetscErrorCode ierr;
+    PetscInt num_of_rows_to_remove = occupied_nodes_global_indices.size();
+    if( num_of_rows_to_remove != 0 ){
+	PetscInt *rows_global_indices = &occupied_nodes_global_indices[0];
+	PetscScalar diag = 1.0;
+	PetscScalar charge_density_inside_conductor = 0.0;
+	Vec phi_inside_region, rhs_inside_region; /* Approx solution and RHS at zeroed rows */
+
+	// looks like it doesn't work
+	
+	// todo: separate function
+	std::string vec_name = "Phi inside " + inner_region.name;
+	alloc_petsc_vector( &phi_inside_region,
+			    (nx-2) * (ny-2) * (nz-2),
+			    vec_name.c_str() );
+	VecSet( phi_inside_region, inner_region.potential );    
+	ierr = VecAssemblyBegin( phi_inside_region ); CHKERRXX( ierr );
+	ierr = VecAssemblyEnd( phi_inside_region ); CHKERRXX( ierr );
+
+	// todo: separate function
+	vec_name = "RHS inside " + inner_region.name;
+	alloc_petsc_vector( &rhs_inside_region,
+			    (nx-2) * (ny-2) * (nz-2),
+			    vec_name.c_str() );
+	VecSet( rhs_inside_region, charge_density_inside_conductor );    
+	ierr = VecAssemblyBegin( rhs_inside_region ); CHKERRXX( ierr );
+	ierr = VecAssemblyEnd( rhs_inside_region ); CHKERRXX( ierr );
+	
+	ierr = MatZeroRows( *A, num_of_rows_to_remove, rows_global_indices,
+			    diag, phi_inside_region, rhs_inside_region); CHKERRXX( ierr );
+
+	// ierr = VecDestroy( &phi_inside_region ); CHKERRXX( ierr );
+	// ierr = VecDestroy( &rhs_inside_region ); CHKERRXX( ierr );
+	// todo: without vecdestroy call there is memory leak	
+    }
+}
+
+
 void Field_solver::modify_equation_near_object_boundaries( Mat *A,
 							   int nx, int ny, int nz,
 							   double dx, double dy, double dz,
-							   Inner_regions_manager &inner_regions )
+							   Inner_regions_manager &inner_regions,
+							   Inner_regions_with_models_manager &inner_regions_with_models )
 {
     for( auto &reg : inner_regions.regions )
 	modify_equation_near_object_boundaries( A, nx, ny, nz, dx, dy, dz, reg );
+    for( auto &reg : inner_regions_with_models.regions )
+	modify_equation_near_object_boundaries( A, nx, ny, nz, dx, dy, dz, reg );
+
 }
 
 
@@ -180,10 +235,43 @@ void Field_solver::modify_equation_near_object_boundaries( Mat *A,
     ierr = MatAssemblyEnd( *A, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
 }
 
-std::vector<PetscInt> Field_solver::adjacent_nodes_not_at_domain_edge_and_inside_inner_region( Node_reference &node,
-											       Inner_region &inner_region,
-											       int nx, int ny, int nz,
-											       double dx, double dy, double dz )
+void Field_solver::modify_equation_near_object_boundaries( Mat *A,
+							   int nx, int ny, int nz,
+							   double dx, double dy, double dz,
+							   Inner_region_with_model &inner_region )
+{
+    PetscErrorCode ierr;
+    int max_possible_neighbours = 6; // in 3d case; todo: make max_possible_nbr a property of Node_reference
+    PetscScalar zeroes[max_possible_neighbours] = { 0.0 };
+    
+    for( auto &node : inner_region.near_boundary_nodes_not_at_domain_edge ){
+	PetscInt modify_single_row = 1;
+	PetscInt row_to_modify = node_global_index_in_matrix( node, nx, ny, nz );
+	std::vector<PetscInt> cols_to_modify =
+	    adjacent_nodes_not_at_domain_edge_and_inside_inner_region( node, inner_region,
+								       nx, ny, nz, dx, dy, dz );
+	PetscInt n_of_cols_to_modify = cols_to_modify.size();
+	
+	if( n_of_cols_to_modify != 0 ){
+	    PetscInt *col_indices = &cols_to_modify[0];
+	    ierr = MatSetValues( *A,
+				 modify_single_row, &row_to_modify,
+				 n_of_cols_to_modify, col_indices,
+				 zeroes, INSERT_VALUES );
+	    CHKERRXX( ierr );	
+	}
+    }
+    
+    ierr = MatAssemblyBegin( *A, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
+    ierr = MatAssemblyEnd( *A, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
+}
+
+
+std::vector<PetscInt> Field_solver::adjacent_nodes_not_at_domain_edge_and_inside_inner_region(
+    Node_reference &node,
+    Inner_region &inner_region,
+    int nx, int ny, int nz,
+    double dx, double dy, double dz )
 {
     int max_possible_neighbours = 6; // in 3d case; todo: make max_possible_nbr a property of Node_reference
     std::vector<PetscInt> resulting_global_indices;
@@ -196,6 +284,25 @@ std::vector<PetscInt> Field_solver::adjacent_nodes_not_at_domain_edge_and_inside
     }
     return resulting_global_indices;
 }
+
+std::vector<PetscInt> Field_solver::adjacent_nodes_not_at_domain_edge_and_inside_inner_region(
+    Node_reference &node,
+    Inner_region_with_model &inner_region,
+    int nx, int ny, int nz,
+    double dx, double dy, double dz )
+{
+    int max_possible_neighbours = 6; // in 3d case; todo: make max_possible_nbr a property of Node_reference
+    std::vector<PetscInt> resulting_global_indices;
+    resulting_global_indices.reserve( max_possible_neighbours );
+    for( auto &adj_node : node.adjacent_nodes() ){
+	if( !adj_node.at_domain_edge( nx, ny, nz ) &&
+	    inner_region.check_if_node_inside( adj_node, dx, dy, dz ) ){
+	    resulting_global_indices.push_back( node_global_index_in_matrix( adj_node, nx, ny, nz ) );
+	}
+    }
+    return resulting_global_indices;
+}
+
 
 void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d, int nx, int ny, int nz )
 {    
@@ -459,31 +566,37 @@ void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A )
     return;
 }
 
-void Field_solver::eval_potential( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions )
+void Field_solver::eval_potential( Spatial_mesh &spat_mesh,
+				   Inner_regions_manager &inner_regions,
+				   Inner_regions_with_models_manager &inner_regions_with_models )
 {
-    solve_poisson_eqn( spat_mesh, inner_regions );
+    solve_poisson_eqn( spat_mesh, inner_regions, inner_regions_with_models );
 }
 
-void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions )
+void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh,
+				      Inner_regions_manager &inner_regions,
+				      Inner_regions_with_models_manager &inner_regions_with_models )
 {
     PetscErrorCode ierr;
 
-    init_rhs_vector( spat_mesh, inner_regions );
+    init_rhs_vector( spat_mesh, inner_regions, inner_regions_with_models );
     ierr = KSPSolve( ksp, rhs, phi_vec); CHKERRXX( ierr );
 
     // This should be done in 'cross_out_nodes_occupied_by_objects' by
     // MatZeroRows function but it seems it doesn't work
-    set_solution_at_nodes_of_inner_regions( spat_mesh, inner_regions );
+    set_solution_at_nodes_of_inner_regions( spat_mesh, inner_regions, inner_regions_with_models );
 
     transfer_solution_to_spat_mesh( spat_mesh );
     return;
 }
 
-void Field_solver::init_rhs_vector( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions )
+void Field_solver::init_rhs_vector( Spatial_mesh &spat_mesh,
+				    Inner_regions_manager &inner_regions,
+				    Inner_regions_with_models_manager &inner_regions_with_models )
 {
     init_rhs_vector_in_full_domain( spat_mesh );
-    set_rhs_at_nodes_occupied_by_objects( spat_mesh, inner_regions );
-    modify_rhs_near_object_boundaries( spat_mesh, inner_regions );
+    set_rhs_at_nodes_occupied_by_objects( spat_mesh, inner_regions, inner_regions_with_models );
+    modify_rhs_near_object_boundaries( spat_mesh, inner_regions, inner_regions_with_models );
 }
 
 void Field_solver::init_rhs_vector_in_full_domain( Spatial_mesh &spat_mesh )
@@ -538,10 +651,14 @@ void Field_solver::init_rhs_vector_in_full_domain( Spatial_mesh &spat_mesh )
 }
 
 void Field_solver::set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh,
-							 Inner_regions_manager &inner_regions )
+							 Inner_regions_manager &inner_regions,
+							 Inner_regions_with_models_manager &inner_regions_with_models )
 {
     for( auto &reg : inner_regions.regions )
 	set_rhs_at_nodes_occupied_by_objects( spat_mesh, reg );
+    for( auto &reg : inner_regions_with_models.regions )
+	set_rhs_at_nodes_occupied_by_objects( spat_mesh, reg );
+
 }
 
 void Field_solver::set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh,
@@ -569,11 +686,41 @@ void Field_solver::set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh
     }
 }
 
+void Field_solver::set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh,
+							 Inner_region_with_model &inner_region )
+{
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+
+    std::vector<PetscInt> indices_of_inner_nodes_not_at_domain_edge;
+    indices_of_inner_nodes_not_at_domain_edge =
+	list_of_nodes_global_indices_in_matrix( inner_region.inner_nodes_not_at_domain_edge, nx, ny, nz );
+
+    PetscErrorCode ierr;
+    PetscInt num_of_elements = indices_of_inner_nodes_not_at_domain_edge.size();
+    if( num_of_elements != 0 ){
+	PetscInt *global_indices = &indices_of_inner_nodes_not_at_domain_edge[0];
+	PetscScalar zeroes[num_of_elements] = {0.0};
+    
+	ierr = VecSetValues( rhs, num_of_elements, global_indices, zeroes, INSERT_VALUES );
+	CHKERRXX( ierr );
+
+	ierr = VecAssemblyBegin( rhs ); CHKERRXX( ierr );
+	ierr = VecAssemblyEnd( rhs ); CHKERRXX( ierr );
+    }
+}
+
+
 void Field_solver::modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh,
-						      Inner_regions_manager &inner_regions )
+						      Inner_regions_manager &inner_regions,
+						      Inner_regions_with_models_manager &inner_regions_with_models )
 {
     for( auto &reg : inner_regions.regions )
 	modify_rhs_near_object_boundaries( spat_mesh, reg );
+    for( auto &reg : inner_regions_with_models.regions )
+	modify_rhs_near_object_boundaries( spat_mesh, reg );
+
 }
 
 
@@ -612,6 +759,42 @@ void Field_solver::modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh,
     }
 }
 
+void Field_solver::modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh,
+						      Inner_region_with_model &inner_region )
+{
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+    //int nrow = (nx-2)*(ny-2);
+    double dx = spat_mesh.x_cell_size;
+    double dy = spat_mesh.y_cell_size;
+    double dz = spat_mesh.z_cell_size;
+
+    PetscErrorCode ierr;    
+    std::vector<PetscInt> indices_of_nodes_near_boundaries;
+    std::vector<PetscScalar> rhs_modification_for_nodes_near_boundaries;
+
+    indicies_of_near_boundary_nodes_and_rhs_modifications(
+	indices_of_nodes_near_boundaries,
+	rhs_modification_for_nodes_near_boundaries,
+	nx, ny, nz,
+	dx, dy, dz,
+	inner_region );
+    
+    PetscInt number_of_elements = indices_of_nodes_near_boundaries.size();
+    if( number_of_elements != 0 ){
+	PetscInt *indices = &indices_of_nodes_near_boundaries[0];
+	PetscScalar *values = &rhs_modification_for_nodes_near_boundaries[0];
+	ierr = VecSetValues( rhs, number_of_elements,
+			     indices, values, ADD_VALUES ); CHKERRXX( ierr );
+	CHKERRXX( ierr );
+	
+	ierr = VecAssemblyBegin( rhs ); CHKERRXX( ierr );
+	ierr = VecAssemblyEnd( rhs ); CHKERRXX( ierr );
+    }
+}
+
+
 void Field_solver::indicies_of_near_boundary_nodes_and_rhs_modifications(
     std::vector<PetscInt> &indices_of_nodes_near_boundaries,
     std::vector<PetscScalar> &rhs_modification_for_nodes_near_boundaries,
@@ -649,15 +832,85 @@ void Field_solver::indicies_of_near_boundary_nodes_and_rhs_modifications(
     }
 }
 
+void Field_solver::indicies_of_near_boundary_nodes_and_rhs_modifications(
+    std::vector<PetscInt> &indices_of_nodes_near_boundaries,
+    std::vector<PetscScalar> &rhs_modification_for_nodes_near_boundaries,
+    int nx, int ny, int nz,
+    double dx, double dy, double dz,
+    Inner_region_with_model &inner_region )
+{
+    int max_possible_nodes_where_to_modify_rhs = inner_region.near_boundary_nodes_not_at_domain_edge.size();
+    indices_of_nodes_near_boundaries.reserve( max_possible_nodes_where_to_modify_rhs );
+    rhs_modification_for_nodes_near_boundaries.reserve( max_possible_nodes_where_to_modify_rhs );
+    
+    for( auto &node : inner_region.near_boundary_nodes_not_at_domain_edge ){
+	PetscScalar rhs_mod = 0.0;
+	for( auto &adj_node : node.adjacent_nodes() ){
+	    // possible todo: separate function for rhs_mod evaluation?
+	    if( !adj_node.at_domain_edge( nx, ny, nz ) &&
+		inner_region.check_if_node_inside( adj_node, dx, dy, dz ) ){
+		if( adj_node.left_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dy * dy * dz * dz;
+		} else if( adj_node.right_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dy * dy * dz * dz;
+		} else if( adj_node.top_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dx * dx * dz * dz;
+		} else if( adj_node.bottom_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dx * dx * dz * dz;
+		} else if( adj_node.near_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dx * dx * dy * dy;
+		} else if( adj_node.far_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dx * dx * dy * dy;
+		}
+	    }
+	}
+	indices_of_nodes_near_boundaries.push_back( node_global_index_in_matrix( node, nx, ny, nz ) );
+	rhs_modification_for_nodes_near_boundaries.push_back( rhs_mod );
+    }
+}
+
+
 void Field_solver::set_solution_at_nodes_of_inner_regions( Spatial_mesh &spat_mesh,
-							   Inner_regions_manager &inner_regions ) 
+							   Inner_regions_manager &inner_regions,
+							   Inner_regions_with_models_manager &inner_regions_with_models ) 
 {
     for( auto &reg : inner_regions.regions )
 	set_solution_at_nodes_of_inner_regions( spat_mesh, reg );
+    for( auto &reg : inner_regions_with_models.regions )
+	set_solution_at_nodes_of_inner_regions( spat_mesh, reg );
+
 }
 
 void Field_solver::set_solution_at_nodes_of_inner_regions( Spatial_mesh &spat_mesh,
 							   Inner_region &inner_region )
+{
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+    
+    std::vector<int> occupied_nodes_global_indices =
+	list_of_nodes_global_indices_in_matrix( inner_region.inner_nodes_not_at_domain_edge, nx, ny, nz );
+    
+    PetscErrorCode ierr;
+    PetscInt num_of_elements_to_set = occupied_nodes_global_indices.size();
+    if( num_of_elements_to_set != 0 ){
+	std::vector<PetscScalar> phi_inside_region(num_of_elements_to_set);
+	std::fill( phi_inside_region.begin(), phi_inside_region.end(), inner_region.potential );
+	
+	PetscInt *global_indices = &occupied_nodes_global_indices[0];
+	PetscScalar *values = &phi_inside_region[0];
+	
+	ierr = VecSetValues( phi_vec, num_of_elements_to_set, global_indices,
+			     values, INSERT_VALUES); CHKERRXX( ierr );
+	ierr = VecAssemblyBegin( phi_vec ); CHKERRXX( ierr );
+	ierr = VecAssemblyEnd( phi_vec ); CHKERRXX( ierr );
+    }
+    
+    return;
+}
+
+void Field_solver::set_solution_at_nodes_of_inner_regions( Spatial_mesh &spat_mesh,
+							   Inner_region_with_model &inner_region )
 {
     int nx = spat_mesh.x_n_nodes;
     int ny = spat_mesh.y_n_nodes;

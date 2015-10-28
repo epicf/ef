@@ -152,6 +152,25 @@ public:
     }
 };
 
+class Inner_region_with_model_config_part {
+public:
+    std::string inner_region_with_model_name;
+    std::string inner_region_with_model_file;
+    double inner_region_with_model_potential;
+public:
+    Inner_region_with_model_config_part(){};
+    Inner_region_with_model_config_part( std::string name, boost::property_tree::ptree &ptree ) :
+	inner_region_with_model_name( name ),
+	inner_region_with_model_file( ptree.get<std::string>("inner_region_with_model_file") ),
+	inner_region_with_model_potential( ptree.get<double>("inner_region_with_model_potential") )
+	{} ;
+    virtual ~Inner_region_with_model_config_part() {};
+    void print() {
+	std::cout << "Inner_region_with_model_name = " << inner_region_with_model_name << std::endl;
+	std::cout << "Inner_region_with_model_file = " << inner_region_with_model_file << std::endl;
+	std::cout << "Inner_region_with_model_potential = " << inner_region_with_model_potential << std::endl;
+    }
+};
 
 class Boundary_config_part {
 public:
@@ -228,6 +247,7 @@ public:
     Mesh_config_part mesh_config_part;
     std::vector<Source_config_part> sources_config_part;
     std::vector<Inner_region_config_part> inner_regions_config_part;
+    std::vector<Inner_region_with_model_config_part> inner_regions_with_models_config_part;
     Boundary_config_part boundary_config_part;
     External_magnetic_field_config_part external_magnetic_field_config_part;
     Output_filename_config_part output_filename_config_part;
@@ -242,6 +262,9 @@ public:
 	    s.print();
 	}
 	for ( auto &ir : inner_regions_config_part ) {
+	    ir.print();
+	}
+	for ( auto &ir : inner_regions_with_models_config_part ) {
 	    ir.print();
 	}
 	boundary_config_part.print();

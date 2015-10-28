@@ -8,6 +8,16 @@
 #include "node_reference.h"
 #include "particle.h"
 
+#include <string>
+#include <oce/STEPControl_Reader.hxx>
+#include <oce/TopoDS_Shape.hxx>
+#include <oce/BRepTools.hxx>
+#include <oce/gp_Pnt.hxx>
+#include <oce/BRepPrimAPI_MakeBox.hxx>
+#include <oce/BRepClass3d_SolidClassifier.hxx>
+#include "config.h"
+
+
 class Inner_region{
 public:
     std::string name;
@@ -110,6 +120,91 @@ public:
     }
 
 };
+
+
+
+
+class Inner_region_with_model
+{
+public:
+    std::string name;
+    TopoDS_Shape geometry;
+    const double tolerance = 0.001;
+    double potential;
+public:
+    std::vector<Node_reference> inner_nodes;
+    std::vector<Node_reference> inner_nodes_not_at_domain_edge;
+    std::vector<Node_reference> near_boundary_nodes;
+    std::vector<Node_reference> near_boundary_nodes_not_at_domain_edge;
+    // possible todo: add_boundary_nodes    
+public:
+    Inner_region_with_model( Config &conf,
+			     Inner_region_with_model_config_part &inner_region_with_model_conf,
+			     Spatial_mesh &spat_mesh );
+    bool check_if_point_inside( double x, double y, double z );
+    bool check_if_particle_inside( Particle &p );
+    bool check_if_node_inside( Node_reference &node, double dx, double dy, double dz );
+    void mark_inner_nodes( Spatial_mesh &spat_mesh );
+    void select_inner_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh );
+    void print_inner_nodes() {
+	std::cout << "Inner nodes of '" << name << "' object." << std::endl;
+	for( auto &node : inner_nodes )
+	    node.print();
+    };
+    void mark_near_boundary_nodes( Spatial_mesh &spat_mesh );
+    void select_near_boundary_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh );
+    void print_near_boundary_nodes() {
+	std::cout << "Near-boundary nodes of '" << name << "' object." << std::endl;
+	for( auto &node : near_boundary_nodes )
+	    node.print();
+    };
+    void print();
+    void write_to_file( std::ofstream &output_file );
+    virtual ~Inner_region_with_model();
+private:
+    void check_correctness_of_related_config_fields( Config &conf );
+    void get_values_from_config( Inner_region_with_model_config_part &inner_region_with_model_conf );    
+    void read_geometry_file( std::string filename );
+};
+
+
+
+class Inner_regions_with_models_manager{
+public:
+    std::vector<Inner_region_with_model> regions;
+public:
+    Inner_regions_with_models_manager( Config &conf, Spatial_mesh &spat_mesh )
+    {
+	for( auto &inner_region_with_model_conf : conf.inner_regions_with_models_config_part )
+	    regions.emplace_back( conf, inner_region_with_model_conf, spat_mesh );
+    }
+
+    virtual ~Inner_regions_with_models_manager() {};
+
+    bool check_if_particle_inside( Particle &p )
+    {
+	for( auto &region : regions )
+	    region.check_if_particle_inside( p );
+    }
+
+    void print( )
+    {
+	for( auto &region : regions )
+	    region.print();
+    }
+
+    void print_inner_nodes() {
+    	for( auto &region : regions )
+	    region.print_inner_nodes();
+    }
+
+    void print_near_boundary_nodes() {
+    	for( auto &region : regions )
+	    region.print_near_boundary_nodes();
+    }
+
+};
+
 
 
 // class Inner_region_sphere{
