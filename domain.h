@@ -27,7 +27,6 @@ class Domain {
     Time_grid time_grid;
     Spatial_mesh spat_mesh;
     Inner_regions_manager inner_regions;
-    Inner_regions_with_models_manager inner_regions_with_models;
     Particle_to_mesh_map particle_to_mesh_map;
     Field_solver field_solver;    
     Particle_sources particle_sources;
@@ -48,7 +47,6 @@ class Domain {
     void push_particles();
     void apply_domain_constrains();
     void remove_particles_inside_inner_regions();
-    void remove_particles_inside_inner_regions_with_models();
     void update_time_grid();
     // Push particles
     void leap_frog();
