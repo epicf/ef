@@ -72,6 +72,6 @@ Vec3d vec3d_times_scalar( Vec3d v, double a )
 
 void vec3d_print( Vec3d v )
 {
-    printf("(%.2f, %.2f, %.2f)",
+    printf("(%e, %e, %e)",
 	   vec3d_x(v), vec3d_y(v), vec3d_z(v) );
 }
