@@ -5,7 +5,8 @@ SHELL:=/bin/bash -O extglob
 ##### Prll
 #export OMPI_CXX=clang++
 CC = mpic++
-CFLAGS = -isystem /usr/include/petsc -isystem /usr/include/oce -O2 -std=c++11
+SUPPRESS_MPI_C11_WARNING=-Wno-literal-suffix
+CFLAGS = -isystem /usr/include/petsc -isystem /usr/include/oce -O2 -std=c++11 ${SUPPRESS_MPI_C11_WARNING}
 LDFLAGS = 
 
 ### Libraries

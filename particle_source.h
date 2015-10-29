@@ -6,6 +6,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <mpi.h>
 #include "config.h"
 #include "particle.h"
 #include "vec3d.h"
@@ -16,6 +17,7 @@ private:
     //
     int initial_number_of_particles;
     int particles_to_generate_each_step;
+    unsigned int max_id;
     // Source position
     double xleft;
     double xright;
@@ -46,7 +48,11 @@ private:
     void generate_initial_particles();
     // Todo: replace 'std::default_random_engine' type with something more general.
     void generate_num_of_particles( int num_of_particles );
-    int generate_particle_id( const int number );
+    void num_of_particles_for_each_process( int *num_of_particles_for_this_proc,
+					    int num_of_particles );
+    void populate_vec_of_ids( std::vector<int> &vec_of_ids,
+			      int num_of_particles_for_this_proc );
+    //int generate_particle_id( const int number, const int proc );
     Vec3d uniform_position_in_cube( const double xleft, const double ytop, const double znear,
 				    const double xright, const double ybottom, const double zfar,
 				    std::default_random_engine &rnd_gen );
