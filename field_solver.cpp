@@ -520,31 +520,15 @@ void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh,
 				      Inner_regions_manager &inner_regions )
 {
     PetscErrorCode ierr;
-    double t1_before, t2_init_rhs, t3_solve, t4_setinner, t5_transfer; 
 
-    t1_before = MPI_Wtime();
-    init_rhs_vector( spat_mesh, inner_regions );
-    t2_init_rhs = MPI_Wtime();
-    printf( "Init_rhs elapsed time is %f\n", t2_init_rhs - t1_before );    
-    MPI_Barrier( PETSC_COMM_WORLD );
-    
+    init_rhs_vector( spat_mesh, inner_regions );    
     ierr = KSPSolve( ksp, rhs, phi_vec); CHKERRXX( ierr );
-    //ierr = KSPView( ksp, PETSC_VIEWER_STDOUT_WORLD );
-    t3_solve = MPI_Wtime();
-    printf( "Solve elapsed time is %f\n", t3_solve - t2_init_rhs );
-    MPI_Barrier( PETSC_COMM_WORLD );
     
     // This should be done in 'cross_out_nodes_occupied_by_objects' by
     // MatZeroRows function but it seems it doesn't work
     set_solution_at_nodes_of_inner_regions( spat_mesh, inner_regions );
-    t4_setinner = MPI_Wtime();
-    printf( "Setinner elapsed time is %f\n", t4_setinner - t3_solve );
-    MPI_Barrier( PETSC_COMM_WORLD );
     
     transfer_solution_to_spat_mesh( spat_mesh );
-    t5_transfer = MPI_Wtime();
-    printf( "Transfer elapsed time is %f\n", t5_transfer - t4_setinner );
-    MPI_Barrier( PETSC_COMM_WORLD );
     
     return;
 }
@@ -822,73 +806,75 @@ void Field_solver::global_index_in_matrix_to_node_ijk( int global_index,
 
 void Field_solver::transfer_solution_to_spat_mesh( Spatial_mesh &spat_mesh )
 {
-    int nx = spat_mesh.x_n_nodes;
-    int ny = spat_mesh.y_n_nodes;
-    int nz = spat_mesh.z_n_nodes;
-    int i,j,k;
-    PetscScalar phi_at_point;
-    PetscInt ix;
-    PetscErrorCode ierr;
-
     int recieved_rstart, recieved_rend, recieved_nlocal;
+    double *local_phi_values;
+
     int mpi_n_of_proc, mpi_process_rank;
     MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
     MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
 
-    //todo: split into several functions
     MPI_Barrier( PETSC_COMM_WORLD );
     for( int proc = 0; proc < mpi_n_of_proc; proc++ ){
-	if( proc == mpi_process_rank ){
-	    recieved_rstart = rstart;
-	    recieved_rend = rend;
-	}
-	MPI_Bcast( &recieved_rstart, 1, MPI_INT, proc, PETSC_COMM_WORLD );
-	MPI_Bcast( &recieved_rend, 1, MPI_INT, proc, PETSC_COMM_WORLD );
-	recieved_nlocal = recieved_rend - recieved_rstart;
-	// printf( "rank = %d, recieved_nlocal = %d, recieved_rstart = %d, recieved_rend = %d\n",
-	// 	mpi_process_rank, recieved_nlocal, recieved_rstart, recieved_rend );
-	//MPI_Barrier( PETSC_COMM_WORLD );
-	double *local_phi_values;
-	if( proc == mpi_process_rank ){
-	    ierr = VecGetArray( phi_vec, &local_phi_values ); CHKERRXX( ierr );
-	} else {
-	    local_phi_values = new double [recieved_nlocal];
-	}
-	MPI_Bcast( local_phi_values, recieved_nlocal, MPI_DOUBLE, proc, PETSC_COMM_WORLD );
-	for( int global_index = recieved_rstart;
-	     global_index < recieved_rend;
-	     global_index++ ){	    
-	    global_index_in_matrix_to_node_ijk( global_index,
-						&i, &j, &k,
-						nx, ny, nz );
-	    spat_mesh.potential[i][j][k] = local_phi_values[ global_index - recieved_rstart ];
-	}
-	if( proc == mpi_process_rank ){
-	    ierr = VecRestoreArray( phi_vec, &local_phi_values ); CHKERRXX( ierr );
-	} else {
-	    delete[] local_phi_values;
-	}		
+	bcast_phi_array_size( &recieved_rstart, &recieved_rend, &recieved_nlocal, proc, mpi_process_rank );
+	allocate_and_populate_phi_array( &local_phi_values, recieved_nlocal, proc, mpi_process_rank );
+	transfer_from_phi_array_to_spat_mesh_potential( local_phi_values, recieved_rstart, recieved_rend, spat_mesh );
+	deallocate_phi_array( local_phi_values, proc, mpi_process_rank );
     }
-
-    // for( int k = 1; k <= nz-2; k++ ){
-    // 	for ( int j = 1; j <= ny-2; j++ ) { 
-    // 	    for ( int i = 1; i <= nx-2; i++ ) {
-    // 		ix = node_ijk_to_global_index_in_matrix( i, j, k, nx, ny, nz );
-    // 		if( ix >= rstart && ix < rend ){
-    // 		    ierr = VecGetValues( phi_vec, 1, &ix, &phi_at_point ); CHKERRXX( ierr );
-    // 		} else {
-    // 		    phi_at_point = 0;
-    // 		}
-    // 		// Awful. redo.
-    // 		// Device a better way to do synchronization.
-    // 		ierr = MPI_Allreduce(&phi_at_point, &phi_at_point, 1,
-    // 				     MPI_DOUBLE, MPI_SUM, PETSC_COMM_WORLD );
-    // 		spat_mesh.potential[i][j][k] = phi_at_point;		
-    // 	    }
-    // 	}
-    // }
 }
 
+void Field_solver::bcast_phi_array_size( int *recieved_rstart, int *recieved_rend, int *recieved_nlocal,
+					 int proc, int mpi_process_rank )
+{
+    if( proc == mpi_process_rank ){
+	*recieved_rstart = rstart;
+	*recieved_rend = rend;
+    }
+    MPI_Bcast( recieved_rstart, 1, MPI_INT, proc, PETSC_COMM_WORLD );
+    MPI_Bcast( recieved_rend, 1, MPI_INT, proc, PETSC_COMM_WORLD );
+    *recieved_nlocal = *recieved_rend - *recieved_rstart;
+    return;
+}
+
+void Field_solver::allocate_and_populate_phi_array( double **local_phi_values, int recieved_nlocal,
+						    int proc, int mpi_process_rank )
+{
+    PetscErrorCode ierr;
+    if( proc == mpi_process_rank ){
+	ierr = VecGetArray( phi_vec, local_phi_values ); CHKERRXX( ierr );
+    } else {
+	*local_phi_values = new double [recieved_nlocal];
+    }
+    MPI_Bcast( *local_phi_values, recieved_nlocal, MPI_DOUBLE, proc, PETSC_COMM_WORLD );
+}
+
+void Field_solver::transfer_from_phi_array_to_spat_mesh_potential( double *local_phi_values,
+								   int recieved_rstart, int recieved_rend,
+								   Spatial_mesh &spat_mesh )
+{
+    int nx = spat_mesh.x_n_nodes;
+    int ny = spat_mesh.y_n_nodes;
+    int nz = spat_mesh.z_n_nodes;
+    int i,j,k;
+
+    for( int global_index = recieved_rstart; global_index < recieved_rend; global_index++ ){
+	global_index_in_matrix_to_node_ijk( global_index,
+					    &i, &j, &k,
+					    nx, ny, nz );
+	spat_mesh.potential[i][j][k] = local_phi_values[ global_index - recieved_rstart ];
+    }
+    
+}
+
+void Field_solver::deallocate_phi_array( double *local_phi_values, int proc, int mpi_process_rank )
+{
+    PetscErrorCode ierr;
+
+    if( proc == mpi_process_rank ){
+	ierr = VecRestoreArray( phi_vec, &local_phi_values ); CHKERRXX( ierr );
+    } else {
+	delete[] local_phi_values;
+    }		    
+}
 
 void Field_solver::eval_fields_from_potential( Spatial_mesh &spat_mesh )
 {

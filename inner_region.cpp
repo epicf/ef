@@ -238,11 +238,9 @@ bool Inner_region_with_model::check_if_point_inside( double x, double y, double 
     TopAbs_State in_or_out = solidClassifier.State();
 
     if ( in_or_out == TopAbs_OUT ){
-      //std::cout << "outside of the model" << std::endl;
       return false;
     }
     else if ( in_or_out == TopAbs_IN || in_or_out == TopAbs_ON ){
-      //std::cout << "inside the model" << std::endl;
       return true;
     }
     else {	
@@ -258,64 +256,3 @@ Inner_region_with_model::~Inner_region_with_model()
 {
     // todo
 }
-
-
-
-// Sphere
-
-
-// bool Inner_region_sphere::check_if_point_inside( double x, double y, double z )
-// {	
-//     bool in = (x - x0) * (x - x0) + (y - y0) * (y - y0) + (z - z0) * (z - z0) <= R*R;
-//     return in;
-// }
-
-// bool Inner_region_sphere::check_if_node_inside( Node_reference &node, double dx, double dy, double dz )
-// {
-//     return check_if_point_inside( node.x * dx, node.y * dy, node.z * dz );
-// }
-
-// void Inner_region_sphere::mark_inner_points( double *x, int nx, double *y, int ny, double *z, int nz )
-// {
-//     for ( int k = 0; k < nz; k++ ) {
-// 	for ( int j = 0; j < ny; j++ ) {
-// 	    for ( int i = 0; i < nx; i++ ) {		
-// 		if ( check_if_point_inside( x[i], y[j], z[k] ) ){
-// 		    inner_nodes.emplace_back( i, j, k );
-// 		}
-// 	    }
-// 	}
-//     }
-// }
-
-// std::vector<int> Inner_region_sphere::global_indices_of_inner_nodes_not_at_domain_boundary(
-//     int nx, int ny, int nz ){
-//     std::vector<int> result;
-//     result.reserve( inner_nodes.size() );
-//     for( auto &node : inner_nodes ){
-// 	if( !node.at_domain_boundary( nx, ny, nz ) ){
-// 	    result.push_back( node.global_index( nx, ny, nz ) );
-// 	}
-//     }
-//     return result;
-// }
-
-
-// void Inner_region_sphere::mark_near_boundary_points( double *x, int nx,
-// 						     double *y, int ny,
-// 						     double *z, int nz )
-// {
-//     for( auto &node : inner_nodes ){
-// 	std::vector<Node_reference> neighbours = node.adjacent_nodes();
-// 	for( auto &nbr : neighbours ){
-// 	    if ( !check_if_point_inside( x[nbr.x], y[nbr.y], z[nbr.z] ) ){
-// 		near_boundary_nodes.emplace_back( nbr.x, nbr.y, nbr.z );
-// 	    }
-// 	}	
-//     }
-//     std::sort( near_boundary_nodes.begin(), near_boundary_nodes.end() );
-//     near_boundary_nodes.erase(
-// 	std::unique( near_boundary_nodes.begin(), near_boundary_nodes.end() ),
-// 	near_boundary_nodes.end() );
-// }
-

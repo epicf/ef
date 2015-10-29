@@ -96,6 +96,14 @@ class Field_solver {
 					     int *i, int *j, int *k,
 					     int nx, int ny, int nz );
     void transfer_solution_to_spat_mesh( Spatial_mesh &spat_mesh );
+    void bcast_phi_array_size( int *recieved_rstart, int *recieved_rend, int *recieved_nlocal,
+			       int proc, int mpi_process_rank );
+    void allocate_and_populate_phi_array( double **local_phi_values, int recieved_nlocal,
+					  int proc, int mpi_process_rank );
+    void transfer_from_phi_array_to_spat_mesh_potential( double *local_phi_values,
+							 int recieved_rstart, int recieved_rend,
+							 Spatial_mesh &spat_mesh );
+    void deallocate_phi_array( double *local_phi_values, int proc, int mpi_process_rank );
     // Eval fields from potential
     double boundary_difference( double phi1, double phi2, double dx );
     double central_difference( double phi1, double phi2, double dx );

@@ -22,8 +22,8 @@ int main( int argc, char *argv[] )
     parse_cmd_line( argc, argv, config_file );
     //// Read config
     Config conf( config_file );
-    // if ( mpi_process_rank == 0 )
-    // 	conf.print();
+    if ( mpi_process_rank == 0 )
+    	conf.print();
     // run simulation
     pic_simulation( conf );
 
