@@ -18,8 +18,8 @@ Domain::Domain( Config &conf ) :
     particle_sources( conf ),
     external_magnetic_field( conf )
 {
-    //inner_regions.print_inner_nodes();
-    //inner_regions.print_near_boundary_nodes();
+    inner_regions.print_inner_nodes();
+    inner_regions.print_near_boundary_nodes();
     return;
 }
 

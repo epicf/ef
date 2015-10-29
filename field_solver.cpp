@@ -1,6 +1,7 @@
 #include "field_solver.h"
 
-Field_solver::Field_solver( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions )
+Field_solver::Field_solver( Spatial_mesh &spat_mesh,
+			    Inner_regions_manager &inner_regions )
 {
     int nx = spat_mesh.x_n_nodes;
     int ny = spat_mesh.y_n_nodes;
@@ -180,10 +181,12 @@ void Field_solver::modify_equation_near_object_boundaries( Mat *A,
     ierr = MatAssemblyEnd( *A, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
 }
 
-std::vector<PetscInt> Field_solver::adjacent_nodes_not_at_domain_edge_and_inside_inner_region( Node_reference &node,
-											       Inner_region &inner_region,
-											       int nx, int ny, int nz,
-											       double dx, double dy, double dz )
+
+std::vector<PetscInt> Field_solver::adjacent_nodes_not_at_domain_edge_and_inside_inner_region(
+    Node_reference &node,
+    Inner_region &inner_region,
+    int nx, int ny, int nz,
+    double dx, double dy, double dz )
 {
     int max_possible_neighbours = 6; // in 3d case; todo: make max_possible_nbr a property of Node_reference
     std::vector<PetscInt> resulting_global_indices;
@@ -459,12 +462,14 @@ void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A )
     return;
 }
 
-void Field_solver::eval_potential( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions )
+void Field_solver::eval_potential( Spatial_mesh &spat_mesh,
+				   Inner_regions_manager &inner_regions )
 {
     solve_poisson_eqn( spat_mesh, inner_regions );
 }
 
-void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions )
+void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh,
+				      Inner_regions_manager &inner_regions )
 {
     PetscErrorCode ierr;
 
@@ -479,7 +484,8 @@ void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh, Inner_regions_man
     return;
 }
 
-void Field_solver::init_rhs_vector( Spatial_mesh &spat_mesh, Inner_regions_manager &inner_regions )
+void Field_solver::init_rhs_vector( Spatial_mesh &spat_mesh,
+				    Inner_regions_manager &inner_regions )
 {
     init_rhs_vector_in_full_domain( spat_mesh );
     set_rhs_at_nodes_occupied_by_objects( spat_mesh, inner_regions );
@@ -569,6 +575,7 @@ void Field_solver::set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh
     }
 }
 
+
 void Field_solver::modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh,
 						      Inner_regions_manager &inner_regions )
 {
@@ -611,6 +618,7 @@ void Field_solver::modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh,
 	ierr = VecAssemblyEnd( rhs ); CHKERRXX( ierr );
     }
 }
+
 
 void Field_solver::indicies_of_near_boundary_nodes_and_rhs_modifications(
     std::vector<PetscInt> &indices_of_nodes_near_boundaries,
@@ -684,8 +692,6 @@ void Field_solver::set_solution_at_nodes_of_inner_regions( Spatial_mesh &spat_me
     return;
 }
 
-
-
 int Field_solver::kronecker_delta( int i,  int j )
 {
     if ( i == j ) {
@@ -700,7 +706,9 @@ int Field_solver::node_global_index_in_matrix( Node_reference &node, int nx, int
     return node_ijk_to_global_index_in_matrix( node.x, node.y, node.z, nx, ny, nz );
 }
 
-std::vector<int> Field_solver::list_of_nodes_global_indices_in_matrix( std::vector<Node_reference> &nodes, int nx, int ny, int nz )
+std::vector<int> Field_solver::list_of_nodes_global_indices_in_matrix(
+    std::vector<Node_reference> &nodes,
+    int nx, int ny, int nz )
 {
     std::vector<int> indices;
     indices.reserve( nodes.size() );
