@@ -18,8 +18,6 @@ Domain::Domain( Config &conf ) :
     particle_sources( conf ),
     external_magnetic_field( conf )
 {
-    //inner_regions.print_inner_nodes();
-    //inner_regions.print_near_boundary_nodes();
     return;
 }
 
@@ -29,6 +27,9 @@ Domain::Domain( Config &conf ) :
 
 void Domain::run_pic( Config &conf )
 {
+    int mpi_process_rank;
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
+    
     int total_time_iterations, current_node;
     total_time_iterations = time_grid.total_nodes - 1;
     current_node = time_grid.current_node;
@@ -37,8 +38,10 @@ void Domain::run_pic( Config &conf )
     write_step_to_save( conf );
 
     for ( int i = current_node; i < total_time_iterations; i++ ){
-	std::cout << "Time step from " << i << " to " << i+1
-		  << " of " << total_time_iterations << std::endl;
+	if ( mpi_process_rank == 0 ){
+	    std::cout << "Time step from " << i << " to " << i+1
+		      << " of " << total_time_iterations << std::endl;
+	}
     	advance_one_time_step();
     	write_step_to_save( conf );
     }
