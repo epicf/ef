@@ -6,9 +6,6 @@ Field_solver::Field_solver( Spatial_mesh &spat_mesh,
     int nx = spat_mesh.x_n_nodes;
     int ny = spat_mesh.y_n_nodes;
     int nz = spat_mesh.z_n_nodes;
-    double dx = spat_mesh.x_cell_size;
-    double dy = spat_mesh.y_cell_size;
-    double dz = spat_mesh.z_cell_size;
     PetscInt nrows = (nx-2)*(ny-2)*(nz-2);
     PetscInt ncols = nrows;
 
@@ -146,8 +143,7 @@ void Field_solver::cross_out_nodes_occupied_by_objects( Mat *A,
     PetscInt num_of_rows_to_remove = occupied_nodes_global_indices.size();
     if( num_of_rows_to_remove != 0 ){
 	PetscInt *rows_global_indices = &occupied_nodes_global_indices[0];
-	PetscScalar diag = 1.0;
-	PetscScalar charge_density_inside_conductor = 0.0;
+	PetscScalar diag = 1.0;	
 	Vec phi_inside_region, rhs_inside_region; /* Approx solution and RHS at zeroed rows */
 	phi_inside_region = rhs_inside_region = NULL;
 
@@ -165,6 +161,7 @@ void Field_solver::cross_out_nodes_occupied_by_objects( Mat *A,
 
 	// todo: separate function
 	// vec_name = "RHS inside " + inner_region.name;
+	// PetscScalar charge_density_inside_conductor = 0.0;
 	// alloc_petsc_vector( &rhs_inside_region,
 	// 		    (nx-2) * (ny-2) * (nz-2),
 	// 		    vec_name.c_str() );
@@ -198,7 +195,7 @@ void Field_solver::modify_equation_near_object_boundaries( Mat *A,
 {
     PetscErrorCode ierr;
     int max_possible_neighbours = 6; // in 3d case; todo: make max_possible_nbr a property of Node_reference
-    PetscScalar zeroes[max_possible_neighbours] = { 0.0 };
+    std::vector<PetscScalar> zeroes( max_possible_neighbours, 0.0 );
     
     for( auto &node : inner_region.near_boundary_nodes_not_at_domain_edge ){
 	PetscInt modify_single_row = 1;
@@ -213,7 +210,7 @@ void Field_solver::modify_equation_near_object_boundaries( Mat *A,
 	    ierr = MatSetValues( *A,
 				 modify_single_row, &row_to_modify,
 				 n_of_cols_to_modify, col_indices,
-				 zeroes, INSERT_VALUES );
+				 &zeroes[0], INSERT_VALUES );
 	    CHKERRXX( ierr );	
 	}
     }
@@ -279,10 +276,10 @@ void Field_solver::construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz,
 					  PetscInt rstart, PetscInt rend )
 {
     PetscErrorCode ierr;    
-    int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    //int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
     //int ncol = nrow;
-    int at_boundary_pattern_size = 2;
-    int no_boundaries_pattern_size = 3;
+    const int at_boundary_pattern_size = 2;
+    const int no_boundaries_pattern_size = 3;
     PetscScalar at_near_boundary_pattern[at_boundary_pattern_size];
     PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
     PetscScalar at_far_boundary_pattern[at_boundary_pattern_size];
@@ -337,7 +334,7 @@ void Field_solver::multiply_pattern_along_diagonal( Mat *result, Mat *pattern, i
 						    PetscInt rstart, PetscInt rend )
 {
     PetscErrorCode ierr;    
-    int result_nrow = pattern_size * n_times;
+    //int result_nrow = pattern_size * n_times;
     //int result_ncol = result_nrow;
     int pattern_i;
     // int pattern_j;
@@ -351,7 +348,7 @@ void Field_solver::multiply_pattern_along_diagonal( Mat *result, Mat *pattern, i
 			  pattern_i, &pattern_nonzero_cols_number, &pattern_nonzero_cols,
 			  &pattern_nonzero_vals); CHKERRXX( ierr );
 
-	PetscInt result_nonzero_cols[pattern_nonzero_cols_number];
+	std::vector<PetscInt> result_nonzero_cols(pattern_nonzero_cols_number);
 
 	for( int t = 0; t < pattern_nonzero_cols_number; t++  ){
 	    result_nonzero_cols[t] = pattern_nonzero_cols[t] + ( i / pattern_size ) * pattern_size;
@@ -359,7 +356,7 @@ void Field_solver::multiply_pattern_along_diagonal( Mat *result, Mat *pattern, i
 
 	ierr = MatSetValues( *result,
 			     1, &i,
-			     pattern_nonzero_cols_number, result_nonzero_cols,
+			     pattern_nonzero_cols_number, &result_nonzero_cols[0],
 			     pattern_nonzero_vals, INSERT_VALUES); CHKERRXX( ierr );
 	MatRestoreRow( *pattern,
 		       pattern_i, &pattern_nonzero_cols_number, &pattern_nonzero_cols,
@@ -378,8 +375,8 @@ void Field_solver::construct_d2dx2_in_2d( Mat *d2dx2_2d, int nx, int ny )
     PetscErrorCode ierr;
     int nrow = ( nx - 2 ) * ( ny - 2 );
     //int ncol = nrow;
-    int at_boundary_pattern_size = 2;
-    int no_boundaries_pattern_size = 3;
+    const int at_boundary_pattern_size = 2;
+    const int no_boundaries_pattern_size = 3;
     PetscScalar at_left_boundary_pattern[at_boundary_pattern_size];
     PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
     PetscScalar at_right_boundary_pattern[at_boundary_pattern_size];
@@ -434,8 +431,8 @@ void Field_solver::construct_d2dy2_in_2d( Mat *d2dy2_2d, int nx, int ny )
     PetscErrorCode ierr;    
     int nrow = ( nx - 2 ) * ( ny - 2 );
     //int ncol = nrow;
-    int at_boundary_pattern_size = 2;
-    int no_boundaries_pattern_size = 3;
+    const int at_boundary_pattern_size = 2;
+    const int no_boundaries_pattern_size = 3;
     PetscScalar at_top_boundary_pattern[at_boundary_pattern_size];
     PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
     PetscScalar at_bottom_boundary_pattern[at_boundary_pattern_size];
@@ -614,9 +611,9 @@ void Field_solver::set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh
     PetscInt num_of_elements = indices_of_inner_nodes_not_at_domain_edge.size();
     if( num_of_elements != 0 ){
 	PetscInt *global_indices = &indices_of_inner_nodes_not_at_domain_edge[0];
-	PetscScalar zeroes[num_of_elements] = {0.0};
+	std::vector<PetscScalar> zeroes(num_of_elements, 0.0);
     
-	ierr = VecSetValues( rhs, num_of_elements, global_indices, zeroes, INSERT_VALUES );
+	ierr = VecSetValues( rhs, num_of_elements, global_indices, &zeroes[0], INSERT_VALUES );
 	CHKERRXX( ierr );
 
 	ierr = VecAssemblyBegin( rhs ); CHKERRXX( ierr );

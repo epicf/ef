@@ -1,6 +1,9 @@
 #ifndef _NODE_REFERENCE_H_
 #define _NODE_REFERENCE_H_
 
+#include <iostream>
+#include <vector>
+
 class Node_reference{
 public:
     int x, y, z;
@@ -48,9 +51,9 @@ public:
 
     // comparison operators are necessary for std::sort and std::unique to work
     bool operator< ( const Node_reference &other_node ){
-	return x < other_node.x ||
-	    x == other_node.x && y < other_node.y ||
-	    x == other_node.x && y == other_node.y && z < other_node.z;
+	return ( x < other_node.x ) ||
+	       ( x == other_node.x && y < other_node.y ) ||
+	       ( x == other_node.x && y == other_node.y && z < other_node.z );
     };
     bool operator== ( const Node_reference &other_node ){
 	return x == other_node.x && y == other_node.y && z == other_node.z;

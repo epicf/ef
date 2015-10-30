@@ -6,15 +6,17 @@ SHELL:=/bin/bash -O extglob
 #export OMPI_CXX=clang++
 CC = mpic++
 SUPPRESS_MPI_C11_WARNING=-Wno-literal-suffix
-CFLAGS = -isystem /usr/include/petsc -isystem /usr/include/oce -O2 -std=c++11 ${SUPPRESS_MPI_C11_WARNING}
+WARNINGS=-Wall -fbounds-check -Warray-bounds -fsanitize=address
+CFLAGS = -isystem /usr/include/petsc -isystem /usr/include/oce -O2 -std=c++11 ${WARNINGS} ${SUPPRESS_MPI_C11_WARNING}
 LDFLAGS = 
 
 ### Libraries
 COMMONLIBS=-lm
+SANITIZER=-lasan
 BOOSTLIBS=-lboost_program_options
 PETSCLIBS=-lpetsc
 OPENCASCADELIBS=-lTKXSBase -lTKernel -lTKBRep -lTKMath -lTKSTEP -lTKBool -lTKTopAlgo -lTKPrim
-LIBS=${COMMONLIBS} ${BOOSTLIBS} ${PETSCLIBS} ${OPENCASCADELIBS}
+LIBS=${COMMONLIBS} ${BOOSTLIBS} ${PETSCLIBS} ${OPENCASCADELIBS} ${SANITIZER}
 
 ### Sources and executable
 CPPSOURCES=$(wildcard *.cpp)
