@@ -172,8 +172,11 @@ public:
 
     bool check_if_particle_inside( Particle &p )
     {
-	for( auto &region : regions )
-	    region.check_if_particle_inside( p );
+	for( auto &region : regions ){
+	    if( region.check_if_particle_inside( p ) )
+		return true;
+	}
+	return false;
     }
 
     void print( )
