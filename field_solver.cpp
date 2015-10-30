@@ -198,7 +198,7 @@ void Field_solver::modify_equation_near_object_boundaries( Mat *A,
 {
     PetscErrorCode ierr;
     int max_possible_neighbours = 6; // in 3d case; todo: make max_possible_nbr a property of Node_reference
-    PetscScalar zeroes[max_possible_neighbours] = { 0.0 };
+    std::vector<PetscScalar> zeroes( max_possible_neighbours, 0.0 );
     
     for( auto &node : inner_region.near_boundary_nodes_not_at_domain_edge ){
 	PetscInt modify_single_row = 1;
@@ -213,7 +213,7 @@ void Field_solver::modify_equation_near_object_boundaries( Mat *A,
 	    ierr = MatSetValues( *A,
 				 modify_single_row, &row_to_modify,
 				 n_of_cols_to_modify, col_indices,
-				 zeroes, INSERT_VALUES );
+				 &zeroes[0], INSERT_VALUES );
 	    CHKERRXX( ierr );	
 	}
     }
@@ -614,9 +614,9 @@ void Field_solver::set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh
     PetscInt num_of_elements = indices_of_inner_nodes_not_at_domain_edge.size();
     if( num_of_elements != 0 ){
 	PetscInt *global_indices = &indices_of_inner_nodes_not_at_domain_edge[0];
-	PetscScalar zeroes[num_of_elements] = {0.0};
+	std::vector<PetscScalar> zeroes(num_of_elements, 0.0);
     
-	ierr = VecSetValues( rhs, num_of_elements, global_indices, zeroes, INSERT_VALUES );
+	ierr = VecSetValues( rhs, num_of_elements, global_indices, &zeroes[0], INSERT_VALUES );
 	CHKERRXX( ierr );
 
 	ierr = VecAssemblyBegin( rhs ); CHKERRXX( ierr );
