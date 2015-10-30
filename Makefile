@@ -5,16 +5,15 @@ SHELL:=/bin/bash -O extglob
 ##### Prll
 #export OMPI_CXX=clang++
 CC = mpic++
-CFLAGS = -isystem /usr/include/petsc -isystem /usr/include/oce -O2 -std=c++11 -Wall -fbounds-check -Warray-bounds -fsanitize=address
+CFLAGS = -isystem /usr/include/petsc -isystem /usr/include/oce -O2 -std=c++11
 LDFLAGS = 
 
 ### Libraries
 COMMONLIBS=-lm
-SANITIZER=-lasan
 BOOSTLIBS=-lboost_program_options
 PETSCLIBS=-lpetsc
 OPENCASCADELIBS=-lTKXSBase -lTKernel -lTKBRep -lTKMath -lTKSTEP -lTKBool -lTKTopAlgo -lTKPrim
-LIBS=${COMMONLIBS} ${BOOSTLIBS} ${PETSCLIBS} ${OPENCASCADELIBS} ${SANITIZER}
+LIBS=${COMMONLIBS} ${BOOSTLIBS} ${PETSCLIBS} ${OPENCASCADELIBS}
 
 ### Sources and executable
 CPPSOURCES=$(wildcard *.cpp)
