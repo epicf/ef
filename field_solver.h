@@ -1,8 +1,10 @@
 #ifndef _FIELD_SOLVER_H_
 #define _FIELD_SOLVER_H_
 
+#include <iostream>
 #include <petscksp.h>
 #include <boost/multi_array.hpp>
+#include <vector>
 #include "spatial_mesh.h"
 #include "inner_region.h"
 

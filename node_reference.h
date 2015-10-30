@@ -1,6 +1,9 @@
 #ifndef _NODE_REFERENCE_H_
 #define _NODE_REFERENCE_H_
 
+#include <iostream>
+#include <vector>
+
 class Node_reference{
 public:
     int x, y, z;
