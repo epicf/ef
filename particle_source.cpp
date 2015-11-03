@@ -47,10 +47,17 @@ void Single_particle_source::set_parameters_from_config( Source_config_part &src
 				src_conf.particle_source_mean_momentum_z );
     temperature = src_conf.particle_source_temperature;
     charge = src_conf.particle_source_charge;
-    mass = src_conf.particle_source_mass;    
+    mass = src_conf.particle_source_mass;
     // Random number generator
-    unsigned seed = 0;
+    // Simple approach: use different seed for each proccess.
+    // Other way would be to synchronize the state of the rnd_gen
+    //    between each processes after each call to it.    
+    int mpi_process_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+    unsigned seed = 0 + 1000000*mpi_process_rank;
     rnd_gen = std::default_random_engine( seed );
+    // Initial id
+    max_id = 0;
 }
 
 void Single_particle_source::generate_initial_particles()
@@ -99,7 +106,7 @@ void Single_particle_source::num_of_particles_for_each_process(
     *num_of_particles_for_this_proc = num_of_particles / mpi_n_of_proc;
     rest = num_of_particles % mpi_n_of_proc;
     if( mpi_process_rank < rest ){
-	*num_of_particles_for_this_proc++;
+	(*num_of_particles_for_this_proc)++;
 	// Processes with lesser ranks will accumulate
 	// more particles.
 	// This seems unessential.
@@ -215,6 +222,28 @@ void Single_particle_source::write_to_file( std::ofstream &output_file )
     }
     return;
 }
+
+void Single_particle_source::write_to_file_particles_only( std::ofstream &output_file )
+{
+    output_file.fill(' ');
+    output_file.setf( std::ios::scientific );
+    output_file.precision( 3 );    
+    output_file.setf( std::ios::right );
+    for ( auto &p : particles ) {	
+	output_file << std::setw(10) << std::left << p.id
+		    << std::setw(12) << p.charge
+		    << std::setw(12) << p.mass
+		    << std::setw(12) << vec3d_x( p.position )
+		    << std::setw(12) << vec3d_y( p.position )
+		    << std::setw(12) << vec3d_z( p.position )
+		    << std::setw(12) << vec3d_x( p.momentum )
+		    << std::setw(12) << vec3d_y( p.momentum )
+		    << std::setw(12) << vec3d_z( p.momentum )
+		    << std::endl;
+    }
+    return;
+}
+
 
 void Single_particle_source::particle_source_initial_number_of_particles_gt_zero( 
     Config &conf, 

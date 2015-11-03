@@ -12,9 +12,10 @@
 #include "vec3d.h"
 
 class Single_particle_source{
-private:
+public:
     std::string name;
-    //
+    std::vector<Particle> particles;
+private:
     int initial_number_of_particles;
     int particles_to_generate_each_step;
     unsigned int max_id;
@@ -34,13 +35,12 @@ private:
     // Random number generator
     std::default_random_engine rnd_gen;
 public:
-    std::vector<Particle> particles;
-public:
     Single_particle_source( Config &conf, Source_config_part &src_conf  );
     void generate_each_step();
     void update_particles_position( double dt );	
     void print_particles();
     void write_to_file( std::ofstream &output_file );
+    void write_to_file_particles_only( std::ofstream &output_file );
     virtual ~Single_particle_source() {};
 private:
     // Particle initialization
@@ -103,6 +103,44 @@ public:
 	for( auto &src : sources )
 	    src.write_to_file( output_file );
     }
+    void write_to_file_from_each_process( std::ofstream &output_file ) 
+    {
+	int mpi_n_of_proc, mpi_process_rank;
+	MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
+	MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );
+
+	if( mpi_process_rank == 0 ){ 
+	    output_file << "### Particles" << std::endl;
+	}
+	// for( auto &src : sources ){
+	//     int n_of_particles_at_each_process = src.particles.size();
+	//     int total_number_of_particles;
+	//     int filepos;
+	//     MPI_Reduce( &n_of_particles_at_each_process, &total_number_of_particles,
+	// 		1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD );
+	//     if( mpi_process_rank == 0 ){    
+	// 	std::cout << "Source name = " << src.name << ", "
+	// 		  << "number of particles = " << total_number_of_particles 
+	// 		  << std::endl;
+	// 	output_file << "Source name = " << src.name << std::endl;
+	// 	output_file << "Total number of particles = " << total_number_of_particles << std::endl;
+	// 	output_file << "id, charge, mass, position(x,y,z), momentum(px,py,pz)" << std::endl;
+	// 	filepos = output_file.tellp();
+	//     }
+	//     MPI_Bcast( &filepos, 1, MPI_INT, 0, MPI_COMM_WORLD );
+	//     MPI_Barrier( MPI_COMM_WORLD );
+	//     for( int proc = 0; proc < mpi_n_of_proc; proc++ ){
+	// 	if( proc == mpi_process_rank ){
+	// 	    output_file.seekp( filepos );
+	// 	    src.write_to_file_particles_only( output_file );
+	// 	    filepos = output_file.tellp();
+	// 	}
+	// 	MPI_Bcast( &filepos, 1, MPI_INT, proc, MPI_COMM_WORLD );
+	// 	MPI_Barrier( MPI_COMM_WORLD );
+	//     }
+	// }
+    }
+
     void generate_each_step()
     {
 	for( auto &src : sources )

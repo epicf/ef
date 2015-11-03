@@ -59,6 +59,7 @@ void Domain::prepare_leap_frog()
 
 void Domain::advance_one_time_step()
 {
+    particle_sources.print_particles();
     push_particles();
     apply_domain_constrains();
     eval_charge_density();
@@ -71,6 +72,7 @@ void Domain::eval_charge_density()
 {
     spat_mesh.clear_old_density_values();
     particle_to_mesh_map.weight_particles_charge_to_mesh( spat_mesh, particle_sources );
+    
     return;
 }
 
@@ -237,8 +239,8 @@ void Domain::write( Config &conf )
     
     file_name_to_write = construct_output_filename( output_filename_prefix, 
 						    time_grid.current_node,
-						    output_filename_suffix  );
-			           
+						    output_filename_suffix  );			           
+
     std::ofstream output_file( file_name_to_write );
     if ( !output_file.is_open() ) {
 	std::cout << "Error: can't open file \'" 
@@ -251,15 +253,23 @@ void Domain::write( Config &conf )
 		  << std::endl;
 	exit( EXIT_FAILURE );
     }
-    std::cout << "Writing step " << time_grid.current_node 
-	      << " to file " << file_name_to_write << std::endl;
-	    
-    time_grid.write_to_file( output_file );
-    spat_mesh.write_to_file( output_file );
-    external_magnetic_field.write_to_file( output_file );
-    particle_sources.write_to_file( output_file );
+    int mpi_process_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
 
+    if( mpi_process_rank == 0 ){    
+	std::cout << "Writing step " << time_grid.current_node 
+		  << " to file " << file_name_to_write << std::endl;
+	
+    	time_grid.write_to_file( output_file );
+     	spat_mesh.write_to_file( output_file );    
+     	external_magnetic_field.write_to_file( output_file );
+    }
+    MPI_Barrier( MPI_COMM_WORLD );
+    //particle_sources.write_to_file_from_each_process( output_file );   
+    
+    MPI_Barrier( MPI_COMM_WORLD );
     output_file.close();
+
     return;
 }
 
@@ -324,11 +334,18 @@ void Domain::eval_and_write_fields_without_particles( Config &conf )
 		  << std::endl;
 	exit( EXIT_FAILURE );
     }
+
+    int mpi_process_rank;
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );    
+
+    if( mpi_process_rank == 0 ){    
     std::cout << "Writing initial fields" << " "
 	      << "to file " << file_name_to_write << std::endl;
         
-    spat_mesh.write_to_file( output_file );
+	spat_mesh.write_to_file( output_file );
+    }
 
+    MPI_Barrier( MPI_COMM_WORLD );	
     output_file.close();
     
     return;
