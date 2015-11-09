@@ -53,6 +53,8 @@ void Particle_to_mesh_map::weight_particles_charge_to_mesh_for_single_process(
 
 void Particle_to_mesh_map::combine_charge_densities_from_all_processes( Spatial_mesh &spat_mesh )
 {
+    // Hopefully, data arrangment in spat_mesh.charge_density is similar
+    // at each process. 
     double *rho = spat_mesh.charge_density.data();
     int n_of_elements = spat_mesh.charge_density.num_elements();
     MPI_Allreduce(MPI_IN_PLACE, rho, n_of_elements, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
