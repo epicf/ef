@@ -29,7 +29,7 @@ class Domain {
     Inner_regions_manager inner_regions;
     Particle_to_mesh_map particle_to_mesh_map;
     Field_solver field_solver;    
-    Particle_sources particle_sources;
+    Particle_sources_manager particle_sources;
     External_magnetic_field external_magnetic_field;
   public:
     Domain( Config &conf );

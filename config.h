@@ -132,8 +132,8 @@ public:
 	{};	
     virtual ~Inner_region_config_part() {};
     virtual void print() {
-	std::cout << "Inner_region_with_model_name = " << inner_region_name << std::endl;
-	std::cout << "Inner_region_with_model_potential = " << inner_region_potential << std::endl;
+	std::cout << "Inner_region_STEP_name = " << inner_region_name << std::endl;
+	std::cout << "Inner_region_STEP_potential = " << inner_region_potential << std::endl;
     }
 };
 
@@ -197,21 +197,21 @@ public:
     }
 };
 
-class Inner_region_with_model_config_part : public Inner_region_config_part {
-public:
-    std::string inner_region_with_model_file;
-public:
-    Inner_region_with_model_config_part(){};
-    Inner_region_with_model_config_part( std::string name, boost::property_tree::ptree &ptree ) :
-	inner_region_with_model_file( ptree.get<std::string>("inner_region_with_model_file") ) {
-	    inner_region_name = name;
-	    inner_region_potential = ptree.get<double>("inner_region_with_model_potential");
-	};
-    virtual ~Inner_region_with_model_config_part() {};
+class Inner_region_STEP_config_part : public Inner_region_config_part {
+  public:
+    std::string inner_region_STEP_file;
+  public:
+    Inner_region_STEP_config_part(){};
+  Inner_region_STEP_config_part( std::string name, boost::property_tree::ptree &ptree ) :
+    inner_region_STEP_file( ptree.get<std::string>("inner_region_STEP_file") ) {
+	inner_region_name = name;
+	inner_region_potential = ptree.get<double>("inner_region_STEP_potential");
+    };
+    virtual ~Inner_region_STEP_config_part() {};
     void print() {
-	std::cout << "Inner_region_with_model_name = " << inner_region_name << std::endl;
-	std::cout << "Inner_region_with_model_potential = " << inner_region_potential << std::endl;
-	std::cout << "Inner_region_with_model_file = " << inner_region_with_model_file << std::endl;
+	std::cout << "Inner_region_STEP_name = " << inner_region_name << std::endl;
+	std::cout << "Inner_region_STEP_potential = " << inner_region_potential << std::endl;
+	std::cout << "Inner_region_STEP_file = " << inner_region_STEP_file << std::endl;
     }
 };
 

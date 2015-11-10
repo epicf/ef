@@ -181,34 +181,34 @@ bool Inner_region_sphere::check_if_point_inside( double x, double y, double z )
 
 // Step model
 
-Inner_region_with_model::Inner_region_with_model( Config &conf,
-						  Inner_region_with_model_config_part &inner_region_with_model_conf,
-						  Spatial_mesh &spat_mesh )
+Inner_region_STEP::Inner_region_STEP( Config &conf,
+				      Inner_region_STEP_config_part &inner_region_STEP_conf,
+				      Spatial_mesh &spat_mesh )
 {
-    check_correctness_of_related_config_fields( conf, inner_region_with_model_conf );
-    get_values_from_config( inner_region_with_model_conf );
+    check_correctness_of_related_config_fields( conf, inner_region_STEP_conf );
+    get_values_from_config( inner_region_STEP_conf );
     mark_inner_nodes( spat_mesh );
     select_inner_nodes_not_at_domain_edge( spat_mesh );
     mark_near_boundary_nodes( spat_mesh );
     select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
 }
 
-void Inner_region_with_model::check_correctness_of_related_config_fields(
+void Inner_region_STEP::check_correctness_of_related_config_fields(
     Config &conf,
-    Inner_region_with_model_config_part &inner_region_with_model_conf )
+    Inner_region_STEP_config_part &inner_region_STEP_conf )
 {
   // Check if file exists?   
 }
 
-void Inner_region_with_model::get_values_from_config( Inner_region_with_model_config_part &inner_region_with_model_conf )
+void Inner_region_STEP::get_values_from_config( Inner_region_STEP_config_part &inner_region_STEP_conf )
 {
-    name = inner_region_with_model_conf.inner_region_name;
-    potential = inner_region_with_model_conf.inner_region_potential;
-    read_geometry_file( inner_region_with_model_conf.inner_region_with_model_file );
+    name = inner_region_STEP_conf.inner_region_name;
+    potential = inner_region_STEP_conf.inner_region_potential;
+    read_geometry_file( inner_region_STEP_conf.inner_region_STEP_file );
 
 }
 
-void Inner_region_with_model::read_geometry_file( std::string filename )
+void Inner_region_STEP::read_geometry_file( std::string filename )
 {
   STEPControl_Reader reader;
   reader.ReadFile( filename.c_str() );
@@ -224,14 +224,14 @@ void Inner_region_with_model::read_geometry_file( std::string filename )
 
   geometry = reader.OneShape();
   if (geometry.IsNull() || geometry.ShapeType() != TopAbs_SOLID) {
-      std::cout << "Something wrong with model of inner_region_with_model: "
+      std::cout << "Something wrong with model of inner_region_STEP: "
   		<< name
   		<< std::endl;
       exit( EXIT_FAILURE );
   }
 }
 
-bool Inner_region_with_model::check_if_point_inside( double x, double y, double z )
+bool Inner_region_STEP::check_if_point_inside( double x, double y, double z )
 {
     gp_Pnt point(x, y, z);
     BRepClass3d_SolidClassifier solidClassifier( geometry, point, Precision::Confusion() );
@@ -252,7 +252,7 @@ bool Inner_region_with_model::check_if_point_inside( double x, double y, double 
     }
 }
 
-Inner_region_with_model::~Inner_region_with_model()
+Inner_region_STEP::~Inner_region_STEP()
 {
     // todo
 }

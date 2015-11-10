@@ -119,21 +119,21 @@ private:
 
 
 
-class Inner_region_with_model : public Inner_region
+class Inner_region_STEP : public Inner_region
 {
 public:
     TopoDS_Shape geometry;
     const double tolerance = 0.001;
 public:
-    Inner_region_with_model( Config &conf,
-			     Inner_region_with_model_config_part &inner_region_with_model_conf,
+    Inner_region_STEP( Config &conf,
+			     Inner_region_STEP_config_part &inner_region_STEP_conf,
 			     Spatial_mesh &spat_mesh );
     virtual bool check_if_point_inside( double x, double y, double z );
-    virtual ~Inner_region_with_model();
+    virtual ~Inner_region_STEP();
 private:
     void check_correctness_of_related_config_fields( Config &conf,
-						     Inner_region_with_model_config_part &inner_region_with_model_conf );
-    void get_values_from_config( Inner_region_with_model_config_part &inner_region_with_model_conf );    
+						     Inner_region_STEP_config_part &inner_region_STEP_conf );
+    void get_values_from_config( Inner_region_STEP_config_part &inner_region_STEP_conf );    
     void read_geometry_file( std::string filename );
 };
 
@@ -155,12 +155,12 @@ public:
 		regions.push_back( new Inner_region_sphere( conf,
 							    *sphere_conf,
 							    spat_mesh ) );
-	    } else if (	Inner_region_with_model_config_part *with_model_conf =
-			dynamic_cast<Inner_region_with_model_config_part*>(
+	    } else if (	Inner_region_STEP_config_part *with_model_conf =
+			dynamic_cast<Inner_region_STEP_config_part*>(
 			    &inner_region_conf ) ) {
-		regions.push_back( new Inner_region_with_model( conf,
-								*with_model_conf,
-								spat_mesh ) );
+		regions.push_back( new Inner_region_STEP( conf,
+							  *with_model_conf,
+							  spat_mesh ) );
 	    } else {
 		std::cout << "In Inner_regions_manager constructor: Unknown config type. Aborting" << std::endl; 
 		exit( EXIT_FAILURE );

@@ -2,7 +2,7 @@
 
 // Eval charge density on grid
 void Particle_to_mesh_map::weight_particles_charge_to_mesh( 
-    Spatial_mesh &spat_mesh, Particle_sources &particle_sources  )
+    Spatial_mesh &spat_mesh, Particle_sources_manager &particle_sources  )
 {
     // Rewrite:
     // forall particles {

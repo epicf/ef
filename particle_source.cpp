@@ -2,7 +2,7 @@
 
 void check_and_warn_if_not( const bool &should_be, const std::string &message );
 
-Single_particle_source::Single_particle_source( 
+Particle_source::Particle_source( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -11,7 +11,7 @@ Single_particle_source::Single_particle_source(
     generate_initial_particles();
 }
 
-void Single_particle_source::check_correctness_of_related_config_fields( 
+void Particle_source::check_correctness_of_related_config_fields( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -30,7 +30,7 @@ void Single_particle_source::check_correctness_of_related_config_fields(
     particle_source_mass_gt_zero( conf, src_conf );
 }
 
-void Single_particle_source::set_parameters_from_config( Source_config_part &src_conf )
+void Particle_source::set_parameters_from_config( Source_config_part &src_conf )
 {
     name = src_conf.particle_source_name;
     initial_number_of_particles = src_conf.particle_source_initial_number_of_particles;
@@ -53,19 +53,19 @@ void Single_particle_source::set_parameters_from_config( Source_config_part &src
     rnd_gen = std::default_random_engine( seed );
 }
 
-void Single_particle_source::generate_initial_particles()
+void Particle_source::generate_initial_particles()
 {
     //particles.reserve( initial_number_of_particles );
     generate_num_of_particles( initial_number_of_particles );
 }
 
-void Single_particle_source::generate_each_step()
+void Particle_source::generate_each_step()
 {
     //particles.reserve( particles.size() + particles_to_generate_each_step );
     generate_num_of_particles( particles_to_generate_each_step );
 }
     
-void Single_particle_source::generate_num_of_particles( int num_of_particles )
+void Particle_source::generate_num_of_particles( int num_of_particles )
 {
     Vec3d pos, mom;
     int id = 0;
@@ -79,7 +79,7 @@ void Single_particle_source::generate_num_of_particles( int num_of_particles )
 
 }
 
-int Single_particle_source::generate_particle_id( const int number )
+int Particle_source::generate_particle_id( const int number )
 {    
     // Preserve max id between calls to generator.
     static int last_id = 0;
@@ -87,7 +87,7 @@ int Single_particle_source::generate_particle_id( const int number )
     return last_id++;
 }
 
-Vec3d Single_particle_source::uniform_position_in_cube( 
+Vec3d Particle_source::uniform_position_in_cube( 
     const double xleft,  const double ytop, const double znear,
     const double xright, const double ybottom, const double zfar,
     std::default_random_engine &rnd_gen )
@@ -97,7 +97,7 @@ Vec3d Single_particle_source::uniform_position_in_cube(
 		       random_in_range( znear, zfar, rnd_gen ) );
 }
 
-double Single_particle_source::random_in_range( 
+double Particle_source::random_in_range( 
     const double low, const double up, 
     std::default_random_engine &rnd_gen )
 {
@@ -105,7 +105,7 @@ double Single_particle_source::random_in_range(
     return uniform_distr( rnd_gen );
 }
 
-Vec3d Single_particle_source::maxwell_momentum_distr(
+Vec3d Particle_source::maxwell_momentum_distr(
     const Vec3d mean_momentum, const double temperature, const double mass, 
     std::default_random_engine &rnd_gen )
 {    
@@ -128,14 +128,14 @@ Vec3d Single_particle_source::maxwell_momentum_distr(
     return mom;
 }
 
-void Single_particle_source::update_particles_position( double dt )
+void Particle_source::update_particles_position( double dt )
 {
     for ( auto &p : particles )
 	p.update_position( dt );
 }
 
 
-void Single_particle_source::print_particles()
+void Particle_source::print_particles()
 {
     std::cout << "Source name: " << name << std::endl;
     for ( auto& p : particles  ) {	
@@ -144,7 +144,7 @@ void Single_particle_source::print_particles()
     return;
 }
 
-void Single_particle_source::write_to_file( std::ofstream &output_file )
+void Particle_source::write_to_file( std::ofstream &output_file )
 {
     std::cout << "Source name = " << name << ", "
 	      << "number of particles = " << particles.size() 
@@ -171,7 +171,7 @@ void Single_particle_source::write_to_file( std::ofstream &output_file )
     return;
 }
 
-void Single_particle_source::particle_source_initial_number_of_particles_gt_zero( 
+void Particle_source::particle_source_initial_number_of_particles_gt_zero( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -180,7 +180,7 @@ void Single_particle_source::particle_source_initial_number_of_particles_gt_zero
 	"particle_source_initial_number_of_particles <= 0" );
 }
 
-void Single_particle_source::particle_source_particles_to_generate_each_step_ge_zero( 
+void Particle_source::particle_source_particles_to_generate_each_step_ge_zero( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -189,7 +189,7 @@ void Single_particle_source::particle_source_particles_to_generate_each_step_ge_
 	"particle_source_particles_to_generate_each_step < 0" );
 }
 
-void Single_particle_source::particle_source_x_left_ge_zero( 
+void Particle_source::particle_source_x_left_ge_zero( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -198,7 +198,7 @@ void Single_particle_source::particle_source_x_left_ge_zero(
 	"particle_source_x_left < 0" );
 }
 
-void Single_particle_source::particle_source_x_left_le_particle_source_x_right( 
+void Particle_source::particle_source_x_left_le_particle_source_x_right( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -207,7 +207,7 @@ void Single_particle_source::particle_source_x_left_le_particle_source_x_right(
 	"particle_source_x_left > particle_source_x_right" );
 }
 
-void Single_particle_source::particle_source_x_right_le_grid_x_size( 
+void Particle_source::particle_source_x_right_le_grid_x_size( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -216,7 +216,7 @@ void Single_particle_source::particle_source_x_right_le_grid_x_size(
 	"particle_source_x_right > grid_x_size" );
 }
 
-void Single_particle_source::particle_source_y_bottom_ge_zero( 
+void Particle_source::particle_source_y_bottom_ge_zero( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -225,7 +225,7 @@ void Single_particle_source::particle_source_y_bottom_ge_zero(
 	"particle_source_y_bottom < 0" );
 }
 
-void Single_particle_source::particle_source_y_bottom_le_particle_source_y_top( 
+void Particle_source::particle_source_y_bottom_le_particle_source_y_top( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -234,7 +234,7 @@ void Single_particle_source::particle_source_y_bottom_le_particle_source_y_top(
 	"particle_source_y_bottom > particle_source_y_top" );
 }
 
-void Single_particle_source::particle_source_y_top_le_grid_y_size( 
+void Particle_source::particle_source_y_top_le_grid_y_size( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -243,7 +243,7 @@ void Single_particle_source::particle_source_y_top_le_grid_y_size(
 	"particle_source_y_top > grid_y_size" );
 }
 
-void Single_particle_source::particle_source_z_near_ge_zero( 
+void Particle_source::particle_source_z_near_ge_zero( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -252,7 +252,7 @@ void Single_particle_source::particle_source_z_near_ge_zero(
 	"particle_source_z_near < 0" );
 }
 
-void Single_particle_source::particle_source_z_near_le_particle_source_z_far( 
+void Particle_source::particle_source_z_near_le_particle_source_z_far( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -261,7 +261,7 @@ void Single_particle_source::particle_source_z_near_le_particle_source_z_far(
 	"particle_source_z_near > particle_source_z_far" );
 }
 
-void Single_particle_source::particle_source_z_far_le_grid_z_size( 
+void Particle_source::particle_source_z_far_le_grid_z_size( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -270,7 +270,7 @@ void Single_particle_source::particle_source_z_far_le_grid_z_size(
 	"particle_source_z_far > grid_z_size" );
 }
 
-void Single_particle_source::particle_source_temperature_gt_zero( 
+void Particle_source::particle_source_temperature_gt_zero( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -279,7 +279,7 @@ void Single_particle_source::particle_source_temperature_gt_zero(
 	"particle_source_temperature < 0" );
 }
 
-void Single_particle_source::particle_source_mass_gt_zero( 
+void Particle_source::particle_source_mass_gt_zero( 
     Config &conf, 
     Source_config_part &src_conf )
 {
@@ -297,7 +297,7 @@ void check_and_warn_if_not( const bool &should_be, const std::string &message )
 }
 
 
-Particle_sources::Particle_sources( Config &conf )
+Particle_sources_manager::Particle_sources_manager( Config &conf )
 {
     for( auto &src_conf : conf.sources_config_part ) {
 	sources.emplace_back( conf, src_conf );

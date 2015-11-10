@@ -10,7 +10,7 @@ class Particle_to_mesh_map {
     virtual ~Particle_to_mesh_map() {};
   public:
     void weight_particles_charge_to_mesh( 
-	Spatial_mesh &spat_mesh, Particle_sources &particle_sources );
+	Spatial_mesh &spat_mesh, Particle_sources_manager &particle_sources );
     Vec3d force_on_particle( 
 	Spatial_mesh &spat_mesh, Particle &p );
   private:

@@ -10,7 +10,7 @@
 #include "particle.h"
 #include "vec3d.h"
 
-class Single_particle_source{
+class Particle_source{
 private:
     std::string name;
     //
@@ -34,12 +34,12 @@ private:
 public:
     std::vector<Particle> particles;
 public:
-    Single_particle_source( Config &conf, Source_config_part &src_conf  );
+    Particle_source( Config &conf, Source_config_part &src_conf  );
     void generate_each_step();
     void update_particles_position( double dt );	
     void print_particles();
     void write_to_file( std::ofstream &output_file );
-    virtual ~Single_particle_source() {};
+    virtual ~Particle_source() {};
 private:
     // Particle initialization
     void set_parameters_from_config( Source_config_part &src_conf );
@@ -85,12 +85,12 @@ private:
 };
 
 
-class Particle_sources{
+class Particle_sources_manager{
 public:
-    std::vector<Single_particle_source> sources;
+    std::vector<Particle_source> sources;
 public:
-    Particle_sources( Config &conf );
-    virtual ~Particle_sources() {};
+    Particle_sources_manager( Config &conf );
+    virtual ~Particle_sources_manager() {};
     void write_to_file( std::ofstream &output_file ) 
     {
 	output_file << "### Particles" << std::endl;
