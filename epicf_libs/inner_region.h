@@ -118,6 +118,40 @@ private:
 };
 
 
+class Inner_region_cylinder : public Inner_region{
+public:
+    double origin_x_start;
+    double origin_y_start;
+    double origin_z_start;
+    double origin_x_end;
+    double origin_y_end;
+    double origin_z_end;
+    double radius_in;
+    double radius_out;
+public:
+    Inner_region_cylinder( Config &conf,
+			 Inner_region_cylinder_config_part &inner_region_conf,
+			 Spatial_mesh &spat_mesh );
+    virtual ~Inner_region_cylinder() {};
+    void print() {
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "origin_x_start = " << origin_x_start << std::endl;
+	std::cout << "origin_y_start = " << origin_y_start << std::endl;
+	std::cout << "origin_z_start = " << origin_z_start << std::endl;
+	std::cout << "origin_x_end = " << origin_x_end << std::endl;
+	std::cout << "origin_y_end = " << origin_y_end << std::endl;
+	std::cout << "origin_z_end = " << origin_z_end << std::endl;
+	std::cout << "radius_in = " << radius_in << std::endl;
+	std::cout << "radius_out = " << radius_out << std::endl;
+    }
+    virtual bool check_if_point_inside( double x, double y, double z );
+private:
+    virtual void check_correctness_of_related_config_fields( Config &conf,
+							     Inner_region_cylinder_config_part &inner_region_sphere_conf );
+    virtual void get_values_from_config( Inner_region_cylinder_config_part &inner_region_sphere_conf );
+};
+
 
 class Inner_region_with_model : public Inner_region
 {
@@ -155,6 +189,11 @@ public:
 		regions.push_back( new Inner_region_sphere( conf,
 							    *sphere_conf,
 							    spat_mesh ) );
+	    } else if( Inner_region_cylinder_config_part *cylinder_conf =
+		dynamic_cast<Inner_region_cylinder_config_part*>( &inner_region_conf ) ){
+		regions.push_back( new Inner_region_cylinder( conf,
+							    *cylinder_conf,
+							    spat_mesh ) );	
 	    } else if (	Inner_region_with_model_config_part *with_model_conf =
 			dynamic_cast<Inner_region_with_model_config_part*>(
 			    &inner_region_conf ) ) {

@@ -178,6 +178,51 @@ bool Inner_region_sphere::check_if_point_inside( double x, double y, double z )
     return in;
 }
 
+// Cylinder
+
+Inner_region_cylinder::Inner_region_cylinder( Config &conf,
+					  Inner_region_cylinder_config_part &inner_region_cylinder_conf,
+					  Spatial_mesh &spat_mesh )
+{
+    check_correctness_of_related_config_fields( conf, inner_region_cylinder_conf );
+    get_values_from_config( inner_region_cylinder_conf );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
+void Inner_region_cylinder::check_correctness_of_related_config_fields(
+    Config &conf,
+    Inner_region_cylinder_config_part &inner_region_cylinder_conf )
+{
+    // check if region lies inside the domain
+}
+
+void Inner_region_cylinder::get_values_from_config( Inner_region_cylinder_config_part &inner_region_cylinder_conf )
+{
+    name = inner_region_cylinder_conf.inner_region_name;
+    potential = inner_region_cylinder_conf.inner_region_potential;
+    origin_x_start = inner_region_cylinder_conf.inner_region_cylinder_origin_x_start;
+    origin_y_start = inner_region_cylinder_conf.inner_region_cylinder_origin_y_start;
+    origin_z_start = inner_region_cylinder_conf.inner_region_cylinder_origin_z_start;
+    origin_x_end = inner_region_cylinder_conf.inner_region_cylinder_origin_x_end;
+    origin_y_end = inner_region_cylinder_conf.inner_region_cylinder_origin_y_end;
+    origin_z_end = inner_region_cylinder_conf.inner_region_cylinder_origin_z_end;
+    radius_in = inner_region_cylinder_conf.inner_region_cylinder_radius_in;
+    radius_out = inner_region_cylinder_conf.inner_region_cylinder_radius_out;
+}
+
+
+bool Inner_region_cylinder::check_if_point_inside( double x, double y, double z )
+{
+    double xdist = (x - origin_x_start);
+    double ydist = (y - origin_y_start);    
+    bool in = ( xdist*xdist+ydist*ydist <= radius_out*radius_out ) && 
+	( xdist*xdist+ydist*ydist >= radius_in*radius_in ) &&
+	( z <= origin_z_end ) && ( z >= origin_z_start ) ;;
+    return in;
+}
 
 // Step model
 

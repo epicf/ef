@@ -197,6 +197,45 @@ public:
     }
 };
 
+class Inner_region_cylinder_config_part : public Inner_region_config_part{
+public:
+    double inner_region_cylinder_origin_x_start;
+    double inner_region_cylinder_origin_x_end;
+    double inner_region_cylinder_origin_y_start;
+    double inner_region_cylinder_origin_y_end;
+    double inner_region_cylinder_origin_z_start;
+    double inner_region_cylinder_origin_z_end;
+    double inner_region_cylinder_radius_in;
+    double inner_region_cylinder_radius_out;
+public:
+    Inner_region_cylinder_config_part(){};
+    Inner_region_cylinder_config_part( std::string name, boost::property_tree::ptree &ptree ) :
+	inner_region_cylinder_origin_x_start( ptree.get<double>("inner_region_cylinder_origin_x_start") ),
+	inner_region_cylinder_origin_x_end( ptree.get<double>("inner_region_cylinder_origin_x_end") ),
+	inner_region_cylinder_origin_y_start( ptree.get<double>("inner_region_cylinder_origin_y_start") ),
+	inner_region_cylinder_origin_y_end( ptree.get<double>("inner_region_cylinder_origin_y_end") ),
+	inner_region_cylinder_origin_z_start( ptree.get<double>("inner_region_cylinder_origin_z_start") ),
+	inner_region_cylinder_origin_z_end( ptree.get<double>("inner_region_cylinder_origin_z_end") ),
+	inner_region_cylinder_radius_in( ptree.get<double>("inner_region_cylinder_radius_in") ),
+	inner_region_cylinder_radius_out( ptree.get<double>("inner_region_cylinder_radius_out") ){
+	    inner_region_name = name;
+	    inner_region_potential = ptree.get<double>("inner_region_cylinder_potential");
+	};
+    virtual ~Inner_region_cylinder_config_part() {};
+    void print() { 
+	std::cout << "Inner region: name = " << inner_region_name << std::endl;
+	std::cout << "inner_region_potential = " << inner_region_potential << std::endl;
+	std::cout << "inner_region_cylinder_origin_x_start = " << inner_region_cylinder_origin_x_start << std::endl;
+	std::cout << "inner_region_cylinder_origin_x_end = " << inner_region_cylinder_origin_x_end << std::endl;
+	std::cout << "inner_region_cylinder_origin_y_start = " << inner_region_cylinder_origin_y_start << std::endl;
+	std::cout << "inner_region_cylinder_origin_y_end = " << inner_region_cylinder_origin_y_end << std::endl;
+	std::cout << "inner_region_cylinder_origin_z_start = " << inner_region_cylinder_origin_z_start << std::endl;
+	std::cout << "inner_region_cylinder_origin_z_end = " << inner_region_cylinder_origin_z_end << std::endl;
+	std::cout << "inner_region_cylinder_radius_in = " << inner_region_cylinder_radius_in << std::endl;
+	std::cout << "inner_region_cylinder_radius_out = " << inner_region_cylinder_radius_out << std::endl;
+    }
+};
+
 class Inner_region_with_model_config_part : public Inner_region_config_part {
 public:
     std::string inner_region_with_model_file;
