@@ -21,4 +21,12 @@ class Particle {
     virtual ~Particle() {};
 };
 
+typedef struct {
+    int id;
+    double charge;
+    double mass;
+    Vec3d position;
+    Vec3d momentum;
+} HDF5_buffer_for_Particle;
+
 #endif /* _PARTICLE_H_ */

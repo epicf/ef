@@ -4,6 +4,8 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <hdf5.h>
+#include <hdf5_hl.h>
 #include "config.h"
 
 class Time_grid {
@@ -16,7 +18,8 @@ class Time_grid {
     Time_grid( Config &conf );
     void update_to_next_step();
     void print();
-    void write_to_file( std::ofstream &output_file );
+    void write_to_file_iostream( std::ofstream &output_file );
+    void write_to_file_hdf5( hid_t hdf5_file_id );
   private:
     // initialisation
     void check_correctness_of_related_config_fields( Config &conf );

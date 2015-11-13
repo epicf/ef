@@ -7,6 +7,8 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
+#include <mpi.h>
+#include <hdf5.h>
 #include "config.h"
 #include "time_grid.h"
 #include "spatial_mesh.h"
@@ -56,9 +58,14 @@ class Domain {
     // Boundaries and generation
     void apply_domain_boundary_conditions();
     bool out_of_bound( const Particle &p );
-    void generate_new_particles();
+    void generate_new_particles();    
     // Various functions
     void print_particles();
+    void write_iostream( Config &conf );
+    void write_hdf5( Config &conf );
+    void eval_and_write_fields_without_particles_iostream( Config &conf );
+    void eval_and_write_fields_without_particles_hdf5( Config &conf );
+    bool negative( hid_t hdf5_id );
 };
 
 #endif /* _DOMAIN_H_ */

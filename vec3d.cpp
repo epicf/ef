@@ -75,3 +75,30 @@ void vec3d_print( Vec3d v )
     printf("(%e, %e, %e)",
 	   vec3d_x(v), vec3d_y(v), vec3d_z(v) );
 }
+
+hid_t vec3d_hdf5_compound_type_for_memory()
+{
+    hid_t compound_type_for_mem;
+    herr_t status;
+    compound_type_for_mem = H5Tcreate( H5T_COMPOUND, sizeof(Vec3d) );
+    status = H5Tinsert( compound_type_for_mem, "vec_x",
+			HOFFSET( Vec3d, x ), H5T_NATIVE_DOUBLE );
+    status = H5Tinsert( compound_type_for_mem, "vec_y",
+			HOFFSET( Vec3d, x ) + sizeof(double), H5T_NATIVE_DOUBLE );
+    status = H5Tinsert( compound_type_for_mem, "vec_z",
+			HOFFSET( Vec3d, x ) + 2 * sizeof(double), H5T_NATIVE_DOUBLE );
+    return compound_type_for_mem;
+}
+
+hid_t vec3d_hdf5_compound_type_for_file()
+{
+    hid_t compound_type_for_file;
+    herr_t status;
+
+    compound_type_for_file = H5Tcreate( H5T_COMPOUND, 8 + 8 + 8 );
+    status = H5Tinsert( compound_type_for_file, "vec_x", 0, H5T_IEEE_F64BE);
+    status = H5Tinsert( compound_type_for_file, "vec_y", 8, H5T_IEEE_F64BE );
+    status = H5Tinsert( compound_type_for_file, "vec_z", 8 + 8, H5T_IEEE_F64BE );
+
+    return compound_type_for_file;
+}

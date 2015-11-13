@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <petscksp.h>
+#include <mpi.h>
 #include <boost/multi_array.hpp>
 #include <vector>
 #include "spatial_mesh.h"

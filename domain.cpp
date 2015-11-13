@@ -229,39 +229,94 @@ void Domain::write_step_to_save( Config &conf )
 
 void Domain::write( Config &conf )
 {
-    std::string output_filename_prefix = 
-	conf.output_filename_config_part.output_filename_prefix;
-    std::string output_filename_suffix = 
-	conf.output_filename_config_part.output_filename_suffix;
-    std::string file_name_to_write;
-    
-    file_name_to_write = construct_output_filename( output_filename_prefix, 
-						    time_grid.current_node,
-						    output_filename_suffix  );
-			           
-    std::ofstream output_file( file_name_to_write );
-    if ( !output_file.is_open() ) {
-	std::cout << "Error: can't open file \'" 
-		  << file_name_to_write 
-		  << "\' to save results of simulation!" 
-		  << std::endl;
-	std::cout << "Recheck \'output_filename_prefix\' key in config file." 
-		  << std::endl;
-	std::cout << "Make sure the directory you want to save to exists." 
-		  << std::endl;
-	exit( EXIT_FAILURE );
-    }
-    std::cout << "Writing step " << time_grid.current_node 
-	      << " to file " << file_name_to_write << std::endl;
-	    
-    time_grid.write_to_file( output_file );
-    spat_mesh.write_to_file( output_file );
-    external_magnetic_field.write_to_file( output_file );
-    particle_sources.write_to_file( output_file );
+    write_iostream( conf );
+    write_hdf5( conf );
+}
 
-    output_file.close();
+void Domain::write_iostream( Config &conf )
+{
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );    
+
+    if( mpi_process_rank == 0 ){    
+	std::string output_filename_prefix = 
+	    conf.output_filename_config_part.output_filename_prefix + "iostream_";
+	std::string output_filename_suffix = 
+	    conf.output_filename_config_part.output_filename_suffix;
+	std::string file_name_to_write;
+    
+	file_name_to_write = construct_output_filename( output_filename_prefix, 
+							time_grid.current_node,
+							output_filename_suffix  );
+			           
+	std::ofstream output_file( file_name_to_write );
+	if ( !output_file.is_open() ) {
+	    std::cout << "Error: can't open file \'" 
+		      << file_name_to_write 
+		      << "\' to save results of simulation!" 
+		      << std::endl;
+	    std::cout << "Recheck \'output_filename_prefix\' key in config file." 
+		      << std::endl;
+	    std::cout << "Make sure the directory you want to save to exists." 
+		      << std::endl;
+	    exit( EXIT_FAILURE );
+	}
+	std::cout << "Writing step " << time_grid.current_node 
+		  << " to file " << file_name_to_write << std::endl;
+	    
+	time_grid.write_to_file_iostream( output_file );
+	spat_mesh.write_to_file_iostream( output_file );
+	external_magnetic_field.write_to_file_iostream( output_file );
+	particle_sources.write_to_file_iostream( output_file );
+
+	output_file.close();
+    }
     return;
 }
+
+void Domain::write_hdf5( Config &conf )
+{
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );    
+
+    if( mpi_process_rank == 0 ){    
+	std::string output_filename_prefix = 
+	    conf.output_filename_config_part.output_filename_prefix + "hdf5_";
+	std::string output_filename_suffix = 
+	    conf.output_filename_config_part.output_filename_suffix;
+	std::string file_name_to_write;
+    
+	file_name_to_write = construct_output_filename( output_filename_prefix, 
+							time_grid.current_node,
+							output_filename_suffix  );
+
+	hid_t output_file = H5Fcreate( file_name_to_write.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
+	if ( negative( output_file ) ) {
+	    std::cout << "Error: can't open file \'" 
+		      << file_name_to_write 
+		      << "\' to save results of simulation!" 
+		      << std::endl;
+	    std::cout << "Recheck \'output_filename_prefix\' key in config file." 
+		      << std::endl;
+	    std::cout << "Make sure the directory you want to save to exists." 
+		      << std::endl;
+	    exit( EXIT_FAILURE );
+	}
+	std::cout << "Writing step " << time_grid.current_node 
+		  << " to file " << file_name_to_write << std::endl;
+	    
+	time_grid.write_to_file_hdf5( output_file );
+	spat_mesh.write_to_file_hdf5( output_file );
+	external_magnetic_field.write_to_file_hdf5( output_file );
+	particle_sources.write_to_file_hdf5( output_file );
+
+	herr_t status = H5Fclose( output_file );
+    }
+    return;
+}
+
 
 std::string construct_output_filename( const std::string output_filename_prefix, 
 				       const int current_time_step,
@@ -299,37 +354,97 @@ void Domain::print_particles()
 
 void Domain::eval_and_write_fields_without_particles( Config &conf )
 {
+    eval_and_write_fields_without_particles_iostream( conf );
+    eval_and_write_fields_without_particles_hdf5( conf );
+}
+
+void Domain::eval_and_write_fields_without_particles_iostream( Config &conf )
+{
     spat_mesh.clear_old_density_values();
     eval_potential_and_fields();
 
-    std::string output_filename_prefix = 
-	conf.output_filename_config_part.output_filename_prefix;
-    std::string output_filename_suffix = 
-	conf.output_filename_config_part.output_filename_suffix;
-    std::string file_name_to_write;
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );    
+
+    if( mpi_process_rank == 0 ){    
+	std::string output_filename_prefix = 
+	    conf.output_filename_config_part.output_filename_prefix + "iostream_";
+	std::string output_filename_suffix = 
+	    conf.output_filename_config_part.output_filename_suffix;
+	std::string file_name_to_write;
     
-    file_name_to_write = output_filename_prefix + 
-	"fieldsWithoutParticles" + 
-	output_filename_suffix;
+	file_name_to_write = output_filename_prefix + 
+	    "fieldsWithoutParticles" + 
+	    output_filename_suffix;
 
-    std::ofstream output_file( file_name_to_write );
-    if ( !output_file.is_open() ) {
-	std::cout << "Error: can't open file \'" 
-		  << file_name_to_write 
-		  << "\' to save results of initial field calculation!" 
-		  << std::endl;
-	std::cout << "Recheck \'output_filename_prefix\' key in config file." 
-		  << std::endl;
-	std::cout << "Make sure the directory you want to save to exists." 
-		  << std::endl;
-	exit( EXIT_FAILURE );
-    }
-    std::cout << "Writing initial fields" << " "
-	      << "to file " << file_name_to_write << std::endl;
+	std::ofstream output_file( file_name_to_write );
+	if ( !output_file.is_open() ) {
+	    std::cout << "Error: can't open file \'" 
+		      << file_name_to_write 
+		      << "\' to save results of initial field calculation!" 
+		      << std::endl;
+	    std::cout << "Recheck \'output_filename_prefix\' key in config file." 
+		      << std::endl;
+	    std::cout << "Make sure the directory you want to save to exists." 
+		      << std::endl;
+	    exit( EXIT_FAILURE );
+	}
+	std::cout << "Writing initial fields" << " "
+		  << "to file " << file_name_to_write << std::endl;
         
-    spat_mesh.write_to_file( output_file );
+	spat_mesh.write_to_file_iostream( output_file );
 
-    output_file.close();
+	output_file.close();
+    }
     
     return;
+}
+
+void Domain::eval_and_write_fields_without_particles_hdf5( Config &conf )
+{
+    spat_mesh.clear_old_density_values();
+    eval_potential_and_fields();
+
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );    
+
+    if( mpi_process_rank == 0 ){        
+	std::string output_filename_prefix = 
+	    conf.output_filename_config_part.output_filename_prefix + "hdf5_";
+	std::string output_filename_suffix = 
+	    conf.output_filename_config_part.output_filename_suffix;
+	std::string file_name_to_write;
+    
+	file_name_to_write = output_filename_prefix + 
+	    "fieldsWithoutParticles" + 
+	    output_filename_suffix;
+
+	hid_t output_file = H5Fcreate( file_name_to_write.c_str(),
+				       H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
+	if ( negative( output_file ) ) {
+	    std::cout << "Error: can't open file \'" 
+		      << file_name_to_write 
+		      << "\' to save results of initial field calculation!" 
+		      << std::endl;
+	    std::cout << "Recheck \'output_filename_prefix\' key in config file." 
+		      << std::endl;
+	    std::cout << "Make sure the directory you want to save to exists." 
+		      << std::endl;
+	    exit( EXIT_FAILURE );
+	}
+	std::cout << "Writing initial fields" << " "
+		  << "to file " << file_name_to_write << std::endl;
+	    
+	spat_mesh.write_to_file_hdf5( output_file );
+	
+	herr_t status = H5Fclose( output_file );
+    }    
+    return;
+}
+
+bool Domain::negative( hid_t hdf5_id )
+{
+    return hdf5_id < 0;
 }

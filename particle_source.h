@@ -6,6 +6,8 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <hdf5.h>
+#include <hdf5_hl.h>
 #include "config.h"
 #include "particle.h"
 #include "vec3d.h"
@@ -38,7 +40,8 @@ public:
     void generate_each_step();
     void update_particles_position( double dt );	
     void print_particles();
-    void write_to_file( std::ofstream &output_file );
+    void write_to_file_iostream( std::ofstream &output_file );
+    void write_to_file_hdf5( hid_t hdf5_file_id );
     virtual ~Particle_source() {};
 private:
     // Particle initialization
@@ -82,6 +85,10 @@ private:
 	Config &conf, Source_config_part &src_conf );
     void particle_source_mass_gt_zero( 
 	Config &conf, Source_config_part &src_conf );
+    // Write to file
+    void write_hdf5_particles( hid_t group_id, std::string table_of_particles_name );
+    void write_hdf5_source_parameters( hid_t group_id,
+				       std::string table_of_particles_name );
 };
 
 
@@ -91,12 +98,29 @@ public:
 public:
     Particle_sources_manager( Config &conf );
     virtual ~Particle_sources_manager() {};
-    void write_to_file( std::ofstream &output_file ) 
+    void write_to_file_iostream( std::ofstream &output_file ) 
     {
 	output_file << "### Particles" << std::endl;
 	for( auto &src : sources )
-	    src.write_to_file( output_file );
+	    src.write_to_file_iostream( output_file );
     }
+    void write_to_file_hdf5( hid_t hdf5_file_id )
+    {
+	hid_t group_id;
+	herr_t status;
+	int single_element = 1;
+	std::string hdf5_groupname = "/Particle_sources";
+	int n_of_sources = sources.size();
+	group_id = H5Gcreate2( hdf5_file_id, hdf5_groupname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+	H5LTset_attribute_int( hdf5_file_id, hdf5_groupname.c_str(),
+			       "number_of_sources", &n_of_sources, single_element );
+	
+	for( auto &src : sources )
+	    src.write_to_file_hdf5( group_id );
+
+	status = H5Gclose(group_id);
+    }; 
     void generate_each_step()
     {
 	for( auto &src : sources )

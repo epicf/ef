@@ -144,7 +144,7 @@ void Particle_source::print_particles()
     return;
 }
 
-void Particle_source::write_to_file( std::ofstream &output_file )
+void Particle_source::write_to_file_iostream( std::ofstream &output_file )
 {
     std::cout << "Source name = " << name << ", "
 	      << "number of particles = " << particles.size() 
@@ -170,6 +170,110 @@ void Particle_source::write_to_file( std::ofstream &output_file )
     }
     return;
 }
+
+void Particle_source::write_to_file_hdf5( hid_t group_id )
+{
+    std::cout << "Source name = " << name << ", "
+	      << "number of particles = " << particles.size() 
+	      << std::endl;
+    std::string table_of_particles_name = name;
+
+    write_hdf5_particles( group_id, table_of_particles_name );
+    write_hdf5_source_parameters( group_id, table_of_particles_name );
+    
+    return;
+}
+
+void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of_particles_name )
+{
+    herr_t status;
+    int n_of_particles = particles.size();
+    int nfields = 5; // id, charge, mass, position, momentum
+    int nrecords = n_of_particles;
+
+    // todo: dst_buf should be removed.
+    // currently it is used to avoid any problems of
+    // working with Particles class, which is a C++ class
+    // and not a plain C datastructure
+    HDF5_buffer_for_Particle *dst_buf = new HDF5_buffer_for_Particle[n_of_particles];
+
+    //size_t dst_size =  sizeof( Particle );
+    size_t dst_size = sizeof( HDF5_buffer_for_Particle );
+
+    size_t dst_offset[nfields];
+    // dst_offset[0] = HOFFSET( Particle, id );
+    // dst_offset[1] = HOFFSET( Particle, charge );
+    // dst_offset[2] = HOFFSET( Particle, mass );
+    // dst_offset[3] = HOFFSET( Particle, position );
+    // dst_offset[4] = HOFFSET( Particle, momentum );
+    dst_offset[0] = HOFFSET( HDF5_buffer_for_Particle, id );
+    dst_offset[1] = HOFFSET( HDF5_buffer_for_Particle, charge );
+    dst_offset[2] = HOFFSET( HDF5_buffer_for_Particle, mass );
+    dst_offset[3] = HOFFSET( HDF5_buffer_for_Particle, position );
+    dst_offset[4] = HOFFSET( HDF5_buffer_for_Particle, momentum );
+
+    const char *field_names[nfields];
+    field_names[0] = "id";
+    field_names[1] = "charge";
+    field_names[2] = "mass";
+    field_names[3] = "position";
+    field_names[4] = "momentum";
+
+    hid_t vec3d_compound_type_for_mem;
+    vec3d_compound_type_for_mem = vec3d_hdf5_compound_type_for_memory();
+
+    hid_t field_type[nfields];
+    field_type[0] = H5T_NATIVE_INT;
+    field_type[1] = H5T_NATIVE_DOUBLE;
+    field_type[2] = H5T_NATIVE_DOUBLE;
+    field_type[3] = vec3d_compound_type_for_mem;
+    field_type[4] = vec3d_compound_type_for_mem;
+
+    // todo: will become unnecessary when dst_buf is removed.
+    for( unsigned int i = 0; i < particles.size(); i++ ){
+	dst_buf[i].id = particles[i].id;
+	dst_buf[i].charge = particles[i].charge;
+	dst_buf[i].mass = particles[i].mass;
+	dst_buf[i].position = particles[i].position;
+	dst_buf[i].momentum = particles[i].momentum;
+    }	
+    
+    hsize_t    chunk_size = 10;
+    int        *fill_data = NULL;
+    int        compress  = 0;
+    
+    H5TBmake_table( table_of_particles_name.c_str(), group_id, table_of_particles_name.c_str(),
+		    nfields, nrecords,
+		    dst_size, field_names, dst_offset, field_type,
+		    chunk_size, fill_data, compress, dst_buf );
+
+    status = H5Tclose( vec3d_compound_type_for_mem );
+    delete[] dst_buf;
+}
+
+void Particle_source::write_hdf5_source_parameters( hid_t group_id,
+						    std::string table_of_particles_name )
+{
+    int single_element = 1;
+    double mean_mom_x = vec3d_x( mean_momentum );
+    double mean_mom_y = vec3d_y( mean_momentum );
+    double mean_mom_z = vec3d_z( mean_momentum );
+
+    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "xleft", &xleft, single_element );
+    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "xright", &xright, single_element );
+    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "ytop", &ytop, single_element );
+    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "ybottom", &ybottom, single_element );
+    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "zfar", &zfar, single_element );
+    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "znear", &znear, single_element );
+    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "temperature", &temperature, single_element );
+    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+			      "mean_momentum_x", &mean_mom_x, single_element );
+    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+			      "mean_momentum_y", &mean_mom_y, single_element );
+    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+			      "mean_momentum_z", &mean_mom_z, single_element );    
+}
+
 
 void Particle_source::particle_source_initial_number_of_particles_gt_zero( 
     Config &conf, 
