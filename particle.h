@@ -27,6 +27,7 @@ typedef struct {
     double mass;
     Vec3d position;
     Vec3d momentum;
+    int mpi_proc_rank;
 } HDF5_buffer_for_Particle;
 
 #endif /* _PARTICLE_H_ */

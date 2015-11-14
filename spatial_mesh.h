@@ -8,6 +8,7 @@
 #include <boost/multi_array.hpp>
 #include <hdf5.h>
 #include <hdf5_hl.h>
+#include <mpi.h>
 #include "config.h"
 #include "vec3d.h"
 

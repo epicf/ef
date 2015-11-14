@@ -188,7 +188,7 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
 {
     herr_t status;
     int n_of_particles = particles.size();
-    int nfields = 5; // id, charge, mass, position, momentum
+    int nfields = 6; // id, charge, mass, position, momentum, mpi_proc_rank
     int nrecords = n_of_particles;
 
     // todo: dst_buf should be removed.
@@ -211,6 +211,7 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
     dst_offset[2] = HOFFSET( HDF5_buffer_for_Particle, mass );
     dst_offset[3] = HOFFSET( HDF5_buffer_for_Particle, position );
     dst_offset[4] = HOFFSET( HDF5_buffer_for_Particle, momentum );
+    dst_offset[5] = HOFFSET( HDF5_buffer_for_Particle, mpi_proc_rank );
 
     const char *field_names[nfields];
     field_names[0] = "id";
@@ -218,6 +219,7 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
     field_names[2] = "mass";
     field_names[3] = "position";
     field_names[4] = "momentum";
+    field_names[5] = "mpi_proc";
 
     hid_t vec3d_compound_type_for_mem;
     vec3d_compound_type_for_mem = vec3d_hdf5_compound_type_for_memory();
@@ -228,14 +230,18 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
     field_type[2] = H5T_NATIVE_DOUBLE;
     field_type[3] = vec3d_compound_type_for_mem;
     field_type[4] = vec3d_compound_type_for_mem;
+    field_type[5] = H5T_NATIVE_INT;
 
     // todo: will become unnecessary when dst_buf is removed.
+    int mpi_process_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
     for( unsigned int i = 0; i < particles.size(); i++ ){
 	dst_buf[i].id = particles[i].id;
 	dst_buf[i].charge = particles[i].charge;
 	dst_buf[i].mass = particles[i].mass;
 	dst_buf[i].position = particles[i].position;
 	dst_buf[i].momentum = particles[i].momentum;
+	dst_buf[i].mpi_proc_rank = mpi_process_rank;
     }	
     
     hsize_t    chunk_size = 10;

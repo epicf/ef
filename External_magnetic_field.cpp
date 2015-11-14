@@ -64,6 +64,6 @@ void External_magnetic_field::write_to_file_hdf5( hid_t hdf5_file_id )
     H5LTset_attribute_double( hdf5_file_id, hdf5_groupname.c_str(),
 			      "speed_of_light", &speed_of_light, single_element );
     
-    status = H5Gclose(group_id);	
+    status = H5Gclose(group_id);
     return;
 }

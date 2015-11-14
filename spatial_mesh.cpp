@@ -238,7 +238,7 @@ void Spatial_mesh::write_to_file_hdf5( hid_t hdf5_file_id )
     hid_t group_id;
     herr_t status;
     std::string hdf5_groupname = "/Spatial_mesh";
-    group_id = H5Gcreate2( hdf5_file_id, hdf5_groupname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    group_id = H5Gcreate( hdf5_file_id, hdf5_groupname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     write_hdf5_attributes( group_id );
     write_hdf5_ongrid_values( group_id );
@@ -265,7 +265,9 @@ void Spatial_mesh::write_hdf5_attributes( hid_t group_id )
 
 void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
 {
-    hid_t compound_type_for_mem, compound_type_for_file, dspace, dset;
+    hid_t dspace, dset;
+    hid_t compound_type_for_mem, compound_type_for_file; 
+    hid_t plist_id;
     herr_t status;
     int rank = 1;
     hsize_t dims[rank];
@@ -273,26 +275,50 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
     
     compound_type_for_mem = vec3d_hdf5_compound_type_for_memory();
     compound_type_for_file = vec3d_hdf5_compound_type_for_file();
+    plist_id = H5Pcreate( H5P_DATASET_XFER );
+    //H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE );
+    H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_INDEPENDENT );    
     dspace = H5Screate_simple( rank, dims, NULL );
 
     dset = H5Dcreate( group_id, "./node_coordinates",
 		      compound_type_for_file, dspace,
 		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
-    status = H5Dwrite( dset, compound_type_for_mem, H5S_ALL, H5S_ALL, H5P_DEFAULT, node_coordinates.data() );
+    status = H5Dwrite( dset, compound_type_for_mem, H5S_ALL, H5S_ALL, plist_id, node_coordinates.data() );
     status = H5Dclose( dset );
 
-    H5LTmake_dataset_double( group_id, "./charge_density",
-			     rank, dims, charge_density.data() );
-    H5LTmake_dataset_double( group_id, "./potential",
-			     rank, dims, potential.data() );
+    dset = H5Dcreate( group_id, "./charge_density",
+		      H5T_IEEE_F64BE, dspace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, charge_density.data() );
+    status = H5Dclose( dset );
+
+    dset = H5Dcreate( group_id, "./potential",
+		      H5T_IEEE_F64BE, dspace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, plist_id, potential.data() );
+    status = H5Dclose( dset );
 
     dset = H5Dcreate( group_id, "./electric_field",
 		      compound_type_for_file, dspace,
 		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
-    status = H5Dwrite( dset, compound_type_for_mem, H5S_ALL, H5S_ALL, H5P_DEFAULT, electric_field.data() );
+    status = H5Dwrite( dset, compound_type_for_mem, H5S_ALL, H5S_ALL, plist_id, electric_field.data() );
     status = H5Dclose( dset );
 
+    int mpi_process_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+    int *mpi_proc_ranks = new int[ dims[0] ];
+    for( unsigned int i = 0; i < dims[0]; i++ ){
+	mpi_proc_ranks[i] = mpi_process_rank;
+    }
+    dset = H5Dcreate( group_id, "./mpi_proc",
+		      H5T_STD_I32BE, dspace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    status = H5Dwrite( dset, H5T_NATIVE_INT, H5S_ALL, H5S_ALL, plist_id, mpi_proc_ranks );
+    status = H5Dclose( dset );
+
+    
     status = H5Sclose( dspace );
+    status = H5Pclose( plist_id );
     status = H5Tclose( compound_type_for_file );
     status = H5Tclose( compound_type_for_mem );	
 }

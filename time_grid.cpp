@@ -98,7 +98,7 @@ void Time_grid::write_to_file_hdf5( hid_t hdf5_file_id )
     herr_t status;
     int single_element = 1;
     std::string hdf5_groupname = "/Time_grid";
-    group_id = H5Gcreate2( hdf5_file_id, hdf5_groupname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    group_id = H5Gcreate( hdf5_file_id, hdf5_groupname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     H5LTset_attribute_double( hdf5_file_id, hdf5_groupname.c_str(), "total_time", &total_time, single_element );
     H5LTset_attribute_double( hdf5_file_id, hdf5_groupname.c_str(), "current_time", &current_time, single_element );
@@ -108,7 +108,7 @@ void Time_grid::write_to_file_hdf5( hid_t hdf5_file_id )
     H5LTset_attribute_int( hdf5_file_id, hdf5_groupname.c_str(), "current_node", &current_node, single_element );
     H5LTset_attribute_int( hdf5_file_id, hdf5_groupname.c_str(), "node_to_save", &node_to_save, single_element );
 	
-    status = H5Gclose(group_id);	
+    status = H5Gclose(group_id);
     return;
 }
 
