@@ -158,13 +158,13 @@ void Particle_source::write_to_file_iostream( std::ofstream &output_file )
     output_file.setf( std::ios::right );
     for ( auto &p : particles ) {	
 	output_file << std::setw(10) << std::left << p.id
-		    << std::setw(12) << p.charge
-		    << std::setw(12) << p.mass
+//		    << std::setw(12) << p.charge
+//		    << std::setw(12) << p.mass
 		    << std::setw(12) << vec3d_x( p.position )
-		    << std::setw(12) << vec3d_y( p.position )
+//		    << std::setw(12) << vec3d_y( p.position )
 		    << std::setw(12) << vec3d_z( p.position )
-		    << std::setw(12) << vec3d_x( p.momentum )
-		    << std::setw(12) << vec3d_y( p.momentum )
+//		    << std::setw(12) << vec3d_x( p.momentum )
+//		    << std::setw(12) << vec3d_y( p.momentum )
 		    << std::setw(12) << vec3d_z( p.momentum )
 		    << std::endl;
     }

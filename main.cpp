@@ -1,8 +1,8 @@
 #include <iostream>
 #include <string>
-#include "config.h"
-#include "domain.h"
-#include "parse_cmd_line.h"
+#include "epicf_libs/config.h"
+#include "epicf_libs/domain.h"
+#include "epicf_libs/parse_cmd_line.h"
 
 void pic_simulation( Config &conf );
 

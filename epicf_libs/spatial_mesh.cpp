@@ -221,11 +221,11 @@ void Spatial_mesh::write_to_file_iostream( std::ofstream &output_file )
 		output_file << std::setw(8) << std::left << i 
 			    << std::setw(8) << std::left << j
 			    << std::setw(8) << std::left << k 
-			    << std::setw(14) << charge_density[i][j][k]
+//			    << std::setw(14) << charge_density[i][j][k]
 			    << std::setw(14) << potential[i][j][k]
-			    << std::setw(14) << vec3d_x( electric_field[i][j][k] ) 
-			    << std::setw(14) << vec3d_y( electric_field[i][j][k] )
-			    << std::setw(14) << vec3d_z( electric_field[i][j][k] ) 
+//			    << std::setw(14) << vec3d_x( electric_field[i][j][k] ) 
+//			    << std::setw(14) << vec3d_y( electric_field[i][j][k] )
+//			    << std::setw(14) << vec3d_z( electric_field[i][j][k] ) 
 			    << std::endl;
 	    }
 	}
