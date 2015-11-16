@@ -89,6 +89,8 @@ private:
     void write_hdf5_particles( hid_t group_id, std::string table_of_particles_name );
     void write_hdf5_source_parameters( hid_t group_id,
 				       std::string table_of_particles_name );
+    int n_of_elements_to_write_for_each_process_for_1d_dataset( int total_elements );
+    int data_offset_for_each_process_for_1d_dataset( int total_elements );
 };
 
 

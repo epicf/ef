@@ -186,55 +186,25 @@ void Particle_source::write_to_file_hdf5( hid_t group_id )
 
 void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of_particles_name )
 {
+    // todo: remove
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+    //
+    
+    hid_t filespace, memspace, dset;
+    hid_t compound_type_for_mem, compound_type_for_file; 
+    hid_t plist_id;
     herr_t status;
-    int n_of_particles = particles.size();
-    int nfields = 6; // id, charge, mass, position, momentum, mpi_proc_rank
-    int nrecords = n_of_particles;
-
+    int rank = 1;
+    hsize_t dims[rank], subset_dims[rank], subset_offset[rank];
+    dims[0] = particles.size();    
+    
     // todo: dst_buf should be removed.
     // currently it is used to avoid any problems of
     // working with Particles class, which is a C++ class
     // and not a plain C datastructure
-    HDF5_buffer_for_Particle *dst_buf = new HDF5_buffer_for_Particle[n_of_particles];
-
-    //size_t dst_size =  sizeof( Particle );
-    size_t dst_size = sizeof( HDF5_buffer_for_Particle );
-
-    size_t dst_offset[nfields];
-    // dst_offset[0] = HOFFSET( Particle, id );
-    // dst_offset[1] = HOFFSET( Particle, charge );
-    // dst_offset[2] = HOFFSET( Particle, mass );
-    // dst_offset[3] = HOFFSET( Particle, position );
-    // dst_offset[4] = HOFFSET( Particle, momentum );
-    dst_offset[0] = HOFFSET( HDF5_buffer_for_Particle, id );
-    dst_offset[1] = HOFFSET( HDF5_buffer_for_Particle, charge );
-    dst_offset[2] = HOFFSET( HDF5_buffer_for_Particle, mass );
-    dst_offset[3] = HOFFSET( HDF5_buffer_for_Particle, position );
-    dst_offset[4] = HOFFSET( HDF5_buffer_for_Particle, momentum );
-    dst_offset[5] = HOFFSET( HDF5_buffer_for_Particle, mpi_proc_rank );
-
-    const char *field_names[nfields];
-    field_names[0] = "id";
-    field_names[1] = "charge";
-    field_names[2] = "mass";
-    field_names[3] = "position";
-    field_names[4] = "momentum";
-    field_names[5] = "mpi_proc";
-
-    hid_t vec3d_compound_type_for_mem;
-    vec3d_compound_type_for_mem = vec3d_hdf5_compound_type_for_memory();
-
-    hid_t field_type[nfields];
-    field_type[0] = H5T_NATIVE_INT;
-    field_type[1] = H5T_NATIVE_DOUBLE;
-    field_type[2] = H5T_NATIVE_DOUBLE;
-    field_type[3] = vec3d_compound_type_for_mem;
-    field_type[4] = vec3d_compound_type_for_mem;
-    field_type[5] = H5T_NATIVE_INT;
-
-    // todo: will become unnecessary when dst_buf is removed.
-    int mpi_process_rank;
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+    HDF5_buffer_for_Particle *dst_buf = new HDF5_buffer_for_Particle[ particles.size() ];
     for( unsigned int i = 0; i < particles.size(); i++ ){
 	dst_buf[i].id = particles[i].id;
 	dst_buf[i].charge = particles[i].charge;
@@ -244,18 +214,78 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
 	dst_buf[i].mpi_proc_rank = mpi_process_rank;
     }	
     
-    hsize_t    chunk_size = 10;
-    int        *fill_data = NULL;
-    int        compress  = 0;
-    
-    H5TBmake_table( table_of_particles_name.c_str(), group_id, table_of_particles_name.c_str(),
-		    nfields, nrecords,
-		    dst_size, field_names, dst_offset, field_type,
-		    chunk_size, fill_data, compress, dst_buf );
+    compound_type_for_mem = HDF5_buffer_for_Particle_compound_type_for_memory();
+    compound_type_for_file = HDF5_buffer_for_Particle_compound_type_for_file();
+    plist_id = H5Pcreate( H5P_DATASET_XFER );
+    H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE );
 
-    status = H5Tclose( vec3d_compound_type_for_mem );
+    subset_dims[0] = n_of_elements_to_write_for_each_process_for_1d_dataset( dims[0] );
+    subset_offset[0] = data_offset_for_each_process_for_1d_dataset( dims[0] );
+
+    // todo: remove
+    std::cout << "particles "
+	      << "total = " << particles.size() << " "
+	      << "proc_n = " << mpi_process_rank << " "
+	      << "count = " << subset_dims[0] << " "
+	      << "offset = " << subset_offset[0] << std::endl;
+    //
+    
+    memspace = H5Screate_simple( rank, subset_dims, NULL );
+    filespace = H5Screate_simple( rank, dims, NULL );
+    H5Sselect_hyperslab( filespace, H5S_SELECT_SET, subset_offset, NULL, subset_dims, NULL );
+    
+    dset = H5Dcreate( group_id, ("./" + table_of_particles_name).c_str(),
+		      compound_type_for_file, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    status = H5Dwrite( dset, compound_type_for_mem, memspace, filespace, plist_id, dst_buf );
+    status = H5Dclose( dset );
+
+    status = H5Sclose( filespace );
+    status = H5Sclose( memspace );
+    status = H5Pclose( plist_id );
+    status = H5Tclose( compound_type_for_file );
+    status = H5Tclose( compound_type_for_mem );	
     delete[] dst_buf;
 }
+
+int Particle_source::n_of_elements_to_write_for_each_process_for_1d_dataset( int total_elements )
+{
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+
+    int n_of_elements_for_process = total_elements / mpi_n_of_proc;
+    int rest = total_elements % mpi_n_of_proc;
+    if( mpi_process_rank < rest ){
+	n_of_elements_for_process++;
+    }
+
+    return n_of_elements_for_process;
+}
+
+int Particle_source::data_offset_for_each_process_for_1d_dataset( int total_elements )
+{
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+
+    // todo: it is simpler to calclulate offset directly than
+    // to perform MPI broadcast of n_of_elements_for_each_proc. 
+    int offset;
+    int min_n_of_elements_for_process = total_elements / mpi_n_of_proc;
+    int max_n_of_elements_for_process = min_n_of_elements_for_process + 1;
+    int rest = total_elements % mpi_n_of_proc;
+
+    if( mpi_process_rank < rest ){
+	offset = mpi_process_rank * max_n_of_elements_for_process;
+    } else {
+	offset = rest * max_n_of_elements_for_process +
+	    ( mpi_process_rank - rest ) * min_n_of_elements_for_process;
+    }
+
+    return offset;
+}
+
 
 void Particle_source::write_hdf5_source_parameters( hid_t group_id,
 						    std::string table_of_particles_name )

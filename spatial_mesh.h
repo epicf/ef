@@ -50,6 +50,8 @@ class Spatial_mesh {
     // write hdf5
     void write_hdf5_attributes( hid_t group_id );
     void write_hdf5_ongrid_values( hid_t group_id );
+    int n_of_elements_to_write_for_each_process_for_1d_dataset( int total_elements );
+    int data_offset_for_each_process_for_1d_dataset( int total_elements );
     // config check
     void grid_x_size_gt_zero( Config &conf );
     void grid_x_step_gt_zero_le_grid_x_size( Config &conf );

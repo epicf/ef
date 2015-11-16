@@ -51,3 +51,53 @@ void Particle::print_short()
 	      << std::endl;
     return;
 }
+
+
+hid_t HDF5_buffer_for_Particle_compound_type_for_memory()
+{
+    hid_t compound_type_for_mem;
+    herr_t status;
+
+    hid_t vec3d_compound_type_for_mem;
+    vec3d_compound_type_for_mem = vec3d_hdf5_compound_type_for_memory();
+    
+    compound_type_for_mem = H5Tcreate( H5T_COMPOUND, sizeof(HDF5_buffer_for_Particle) );
+    status = H5Tinsert( compound_type_for_mem, "id",
+			HOFFSET( HDF5_buffer_for_Particle, id ), H5T_NATIVE_INT );
+    status = H5Tinsert( compound_type_for_mem, "charge",
+			HOFFSET( HDF5_buffer_for_Particle, charge ), H5T_NATIVE_DOUBLE );
+    status = H5Tinsert( compound_type_for_mem, "mass",
+			HOFFSET( HDF5_buffer_for_Particle, mass ), H5T_NATIVE_DOUBLE );
+    status = H5Tinsert( compound_type_for_mem, "position",
+			HOFFSET( HDF5_buffer_for_Particle, position ), vec3d_compound_type_for_mem );
+    status = H5Tinsert( compound_type_for_mem, "momentum",
+			HOFFSET( HDF5_buffer_for_Particle, momentum ), vec3d_compound_type_for_mem );
+    status = H5Tinsert( compound_type_for_mem, "mpi_proc_rank",
+			HOFFSET( HDF5_buffer_for_Particle, mpi_proc_rank ), H5T_NATIVE_INT );
+
+    status = H5Tclose( vec3d_compound_type_for_mem );
+    
+    return compound_type_for_mem;
+}
+
+hid_t HDF5_buffer_for_Particle_compound_type_for_file()
+{
+    hid_t compound_type_for_file;
+    herr_t status;
+
+    hid_t vec3d_compound_type_for_file;
+    vec3d_compound_type_for_file = vec3d_hdf5_compound_type_for_file();
+    
+    compound_type_for_file = H5Tcreate( H5T_COMPOUND, 4 + 8 + 8 + 3*8 + 3*8 + 4 );
+    status = H5Tinsert( compound_type_for_file, "id", 0, H5T_STD_I32BE );
+    status = H5Tinsert( compound_type_for_file, "charge", 4, H5T_IEEE_F64BE );
+    status = H5Tinsert( compound_type_for_file, "mass", 4 + 8, H5T_IEEE_F64BE );
+    status = H5Tinsert( compound_type_for_file, "position", 4 + 8 + 8, vec3d_compound_type_for_file );
+    status = H5Tinsert( compound_type_for_file, "momentum", 4 + 8 + 8 + 3*8, vec3d_compound_type_for_file );
+    status = H5Tinsert( compound_type_for_file, "mpi_proc_rank", 4 + 8 + 8 + 3*8 + 3*8, H5T_STD_I32BE );
+
+    status = H5Tclose( vec3d_compound_type_for_file );
+    
+    return compound_type_for_file;
+}
+
