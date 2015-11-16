@@ -8,16 +8,19 @@
 #include <vector>
 #include <hdf5.h>
 #include <hdf5_hl.h>
+#include <mpi.h>
 #include "config.h"
 #include "particle.h"
 #include "vec3d.h"
 
 class Particle_source{
-private:
+public:
     std::string name;
-    //
+    std::vector<Particle> particles;
+private:
     int initial_number_of_particles;
     int particles_to_generate_each_step;
+    unsigned int max_id;
     // Source position
     double xleft;
     double xright;
@@ -34,9 +37,7 @@ private:
     // Random number generator
     std::default_random_engine rnd_gen;
 public:
-    std::vector<Particle> particles;
-public:
-    Particle_source( Config &conf, Source_config_part &src_conf  );
+    Particle_source( Config &conf, Source_config_part &src_conf );
     void generate_each_step();
     void update_particles_position( double dt );	
     void print_particles();
@@ -49,7 +50,11 @@ private:
     void generate_initial_particles();
     // Todo: replace 'std::default_random_engine' type with something more general.
     void generate_num_of_particles( int num_of_particles );
-    int generate_particle_id( const int number );
+    void num_of_particles_for_each_process( int *num_of_particles_for_this_proc,
+					    int num_of_particles );
+    void populate_vec_of_ids( std::vector<int> &vec_of_ids,
+			      int num_of_particles_for_this_proc );
+    //int generate_particle_id( const int number, const int proc );
     Vec3d uniform_position_in_cube( const double xleft, const double ytop, const double znear,
 				    const double xright, const double ybottom, const double zfar,
 				    std::default_random_engine &rnd_gen );

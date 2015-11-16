@@ -18,6 +18,7 @@ int main( int argc, char *argv[] )
     ierr = MPI_Comm_size( PETSC_COMM_WORLD, &mpi_comm_size); CHKERRXX(ierr);
     MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
 
+
     //// Parse command line
     parse_cmd_line( argc, argv, config_file );
     //// Read config

@@ -68,7 +68,7 @@ void Time_grid::update_to_next_step()
 
 void Time_grid::print( )
 {
-    std::cout << "Time grid:" << std::endl;
+    std::cout << "### Time grid:" << std::endl;
     std::cout << "Total time = " << total_time << std::endl;
     std::cout << "Current time = " << current_time << std::endl;
     std::cout << "Time step size = " << time_step_size << std::endl;
@@ -81,7 +81,7 @@ void Time_grid::print( )
 
 void Time_grid::write_to_file_iostream( std::ofstream &output_file )
 {
-    output_file << "Time grid:" << std::endl;
+    output_file << "### Time grid:" << std::endl;
     output_file << "Total time = " << total_time << std::endl;
     output_file << "Current time = " << current_time << std::endl;
     output_file << "Time step size = " << time_step_size << std::endl;

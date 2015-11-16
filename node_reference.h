@@ -50,12 +50,12 @@ public:
     };
 
     // comparison operators are necessary for std::sort and std::unique to work
-    bool operator< ( const Node_reference &other_node ){
+    bool operator< ( const Node_reference &other_node ) const {
 	return ( x < other_node.x ) ||
 	       ( x == other_node.x && y < other_node.y ) ||
 	       ( x == other_node.x && y == other_node.y && z < other_node.z );
     };
-    bool operator== ( const Node_reference &other_node ){
+    bool operator== ( const Node_reference &other_node ) const {
 	return x == other_node.x && y == other_node.y && z == other_node.z;
     };
     

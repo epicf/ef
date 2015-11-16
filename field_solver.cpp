@@ -611,7 +611,7 @@ void Field_solver::set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh
     PetscInt num_of_elements = indices_of_inner_nodes_not_at_domain_edge.size();
     if( num_of_elements != 0 ){
 	PetscInt *global_indices = &indices_of_inner_nodes_not_at_domain_edge[0];
-	std::vector<PetscScalar> zeroes(num_of_elements, 0.0);
+	std::vector<PetscScalar> zeroes( num_of_elements, 0.0 );
     
 	ierr = VecSetValues( rhs, num_of_elements, global_indices, &zeroes[0], INSERT_VALUES );
 	CHKERRXX( ierr );

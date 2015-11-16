@@ -59,6 +59,7 @@ void Domain::prepare_leap_frog()
 
 void Domain::advance_one_time_step()
 {
+    particle_sources.print_particles();
     push_particles();
     apply_domain_constrains();
     eval_charge_density();
@@ -71,6 +72,7 @@ void Domain::eval_charge_density()
 {
     spat_mesh.clear_old_density_values();
     particle_to_mesh_map.weight_particles_charge_to_mesh( spat_mesh, particle_sources );
+    
     return;
 }
 

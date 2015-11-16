@@ -49,8 +49,15 @@ void Particle_source::set_parameters_from_config( Source_config_part &src_conf )
     charge = src_conf.particle_source_charge;
     mass = src_conf.particle_source_mass;    
     // Random number generator
-    unsigned seed = 0;
+    // Simple approach: use different seed for each proccess.
+    // Other way would be to synchronize the state of the rnd_gen
+    //    between each processes after each call to it.    
+    int mpi_process_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+    unsigned seed = 0 + 1000000*mpi_process_rank;
     rnd_gen = std::default_random_engine( seed );
+    // Initial id
+    max_id = 0;
 }
 
 void Particle_source::generate_initial_particles()
@@ -68,24 +75,69 @@ void Particle_source::generate_each_step()
 void Particle_source::generate_num_of_particles( int num_of_particles )
 {
     Vec3d pos, mom;
-    int id = 0;
-                
-    for ( int i = 0; i < num_of_particles; i++ ) {
-	id = generate_particle_id( i );
-	pos = uniform_position_in_cube( xleft, ytop, znear, xright, ybottom, zfar, rnd_gen );
+    std::vector<int> vec_of_ids;
+    int num_of_particles_for_this_proc;
+
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+
+    num_of_particles_for_each_process( &num_of_particles_for_this_proc,
+				       num_of_particles );
+    populate_vec_of_ids( vec_of_ids, num_of_particles_for_this_proc ); 
+    for ( int i = 0; i < num_of_particles_for_this_proc; i++ ) {
+	pos = uniform_position_in_cube( xleft, ytop, znear,
+					xright, ybottom, zfar,
+					rnd_gen );
 	mom = maxwell_momentum_distr( mean_momentum, temperature, mass, rnd_gen );
-	particles.emplace_back( id, charge, mass, pos, mom );
+	particles.emplace_back( vec_of_ids[i], charge, mass, pos, mom );
     }
-
 }
 
-int Particle_source::generate_particle_id( const int number )
-{    
-    // Preserve max id between calls to generator.
-    static int last_id = 0;
+void Particle_source::num_of_particles_for_each_process(
+    int *num_of_particles_for_this_proc,
+    int num_of_particles )
+{
+    int rest;
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
     
-    return last_id++;
+    *num_of_particles_for_this_proc = num_of_particles / mpi_n_of_proc;
+    rest = num_of_particles % mpi_n_of_proc;
+    if( mpi_process_rank < rest ){
+	(*num_of_particles_for_this_proc)++;
+	// Processes with lesser ranks will accumulate
+	// more particles.
+	// This seems unessential.
+    }    
 }
+
+void Particle_source::populate_vec_of_ids(
+    std::vector<int> &vec_of_ids, int num_of_particles_for_this_proc )
+{
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+
+    vec_of_ids.reserve( num_of_particles_for_this_proc );
+    
+    for( int proc = 0; proc < mpi_n_of_proc; proc++ ){
+	if( mpi_process_rank == proc ){
+	    for( int i = 0; i < num_of_particles_for_this_proc; i++ ){
+		vec_of_ids.push_back( max_id++ );
+	    }	    
+	}
+	MPI_Bcast( &max_id, 1, MPI_INT, proc, MPI_COMM_WORLD );
+    }
+}
+
+// int Particle_source::generate_particle_id( const int number, const int proc )
+// {
+//     max_id++;
+//     MPI_Bcast( &max_id, 1, MPI_UNSIGNED, proc, MPI_COMM_WORLD );
+//     return max_id;     
+// }
 
 Vec3d Particle_source::uniform_position_in_cube( 
     const double xleft,  const double ytop, const double znear,
