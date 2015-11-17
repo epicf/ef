@@ -41,8 +41,7 @@ public:
     void generate_each_step();
     void update_particles_position( double dt );	
     void print_particles();
-    void write_to_file_iostream( std::ofstream &output_file );
-    void write_to_file_hdf5( hid_t hdf5_file_id );
+    void write_to_file( hid_t hdf5_file_id );
     virtual ~Particle_source() {};
 private:
     // Particle initialization
@@ -50,8 +49,7 @@ private:
     void generate_initial_particles();
     // Todo: replace 'std::default_random_engine' type with something more general.
     void generate_num_of_particles( int num_of_particles );
-    void num_of_particles_for_each_process( int *num_of_particles_for_this_proc,
-					    int num_of_particles );
+    int num_of_particles_for_each_process( int num_of_particles );
     void populate_vec_of_ids( std::vector<int> &vec_of_ids,
 			      int num_of_particles_for_this_proc );
     //int generate_particle_id( const int number, const int proc );
@@ -94,8 +92,9 @@ private:
     void write_hdf5_particles( hid_t group_id, std::string table_of_particles_name );
     void write_hdf5_source_parameters( hid_t group_id,
 				       std::string table_of_particles_name );
-    int n_of_elements_to_write_for_each_process_for_1d_dataset( int total_elements );
-    int data_offset_for_each_process_for_1d_dataset( int total_elements );
+    void hdf5_status_check( herr_t status );
+    int total_particles_across_all_processes();
+    int data_offset_for_each_process_for_1d_dataset();
 };
 
 
@@ -105,13 +104,7 @@ public:
 public:
     Particle_sources_manager( Config &conf );
     virtual ~Particle_sources_manager() {};
-    void write_to_file_iostream( std::ofstream &output_file ) 
-    {
-	output_file << "### Particles" << std::endl;
-	for( auto &src : sources )
-	    src.write_to_file_iostream( output_file );
-    }
-    void write_to_file_hdf5( hid_t hdf5_file_id )
+    void write_to_file( hid_t hdf5_file_id )
     {
 	hid_t group_id;
 	herr_t status;
@@ -119,31 +112,41 @@ public:
 	std::string hdf5_groupname = "/Particle_sources";
 	int n_of_sources = sources.size();
 	group_id = H5Gcreate2( hdf5_file_id, hdf5_groupname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	hdf5_status_check( group_id );
 
-	H5LTset_attribute_int( hdf5_file_id, hdf5_groupname.c_str(),
+	status = H5LTset_attribute_int( hdf5_file_id, hdf5_groupname.c_str(),
 			       "number_of_sources", &n_of_sources, single_element );
+	hdf5_status_check( status );
 	
 	for( auto &src : sources )
-	    src.write_to_file_hdf5( group_id );
+	    src.write_to_file( group_id );
 
 	status = H5Gclose(group_id);
+	hdf5_status_check( status );
     }; 
     void generate_each_step()
     {
 	for( auto &src : sources )
 	    src.generate_each_step();
-    }
+    };
     void print_particles()
     {
 	for( auto &src : sources )
 	    src.print_particles();
-    }
-
+    };
     void update_particles_position( double dt )
     {
 	for( auto &src : sources )
 	    src.update_particles_position( dt );
-    }
+    };
+    void hdf5_status_check( herr_t status )
+    {
+	if( status < 0 ){
+	    std::cout << "Something went wrong while writing Particle_sources group. Aborting."
+		      << std::endl;
+	    exit( EXIT_FAILURE );
+	}
+    };
 };
 
 

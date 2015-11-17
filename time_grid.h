@@ -19,8 +19,7 @@ class Time_grid {
     Time_grid( Config &conf );
     void update_to_next_step();
     void print();
-    void write_to_file_iostream( std::ofstream &output_file );
-    void write_to_file_hdf5( hid_t hdf5_file_id );
+    void write_to_file( hid_t hdf5_file_id );
   private:
     // initialisation
     void check_correctness_of_related_config_fields( Config &conf );
@@ -34,6 +33,8 @@ class Time_grid {
     void time_step_size_gt_zero_le_total_time( Config &conf );
     void time_save_step_ge_time_step_size( Config &conf );
     void check_and_exit_if_not( const bool &should_be, const std::string &message );
+    // write to file
+    void hdf5_status_check( herr_t status );
 }; 
 
 #endif /* _TIME_GRID_H_ */

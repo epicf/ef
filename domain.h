@@ -61,11 +61,8 @@ class Domain {
     void generate_new_particles();    
     // Various functions
     void print_particles();
-    void write_iostream( Config &conf );
-    void write_hdf5( Config &conf );
-    void eval_and_write_fields_without_particles_iostream( Config &conf );
-    void eval_and_write_fields_without_particles_hdf5( Config &conf );
     bool negative( hid_t hdf5_id );
+    void hdf5_status_check( herr_t status );
 };
 
 #endif /* _DOMAIN_H_ */

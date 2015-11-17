@@ -81,12 +81,16 @@ hid_t vec3d_hdf5_compound_type_for_memory()
     hid_t compound_type_for_mem;
     herr_t status;
     compound_type_for_mem = H5Tcreate( H5T_COMPOUND, sizeof(Vec3d) );
+    vec3d_hdf5_status_check( compound_type_for_mem );
     status = H5Tinsert( compound_type_for_mem, "vec_x",
 			HOFFSET( Vec3d, x ), H5T_NATIVE_DOUBLE );
+    vec3d_hdf5_status_check( status );
     status = H5Tinsert( compound_type_for_mem, "vec_y",
 			HOFFSET( Vec3d, x ) + sizeof(double), H5T_NATIVE_DOUBLE );
+    vec3d_hdf5_status_check( status );
     status = H5Tinsert( compound_type_for_mem, "vec_z",
 			HOFFSET( Vec3d, x ) + 2 * sizeof(double), H5T_NATIVE_DOUBLE );
+    vec3d_hdf5_status_check( status );
     return compound_type_for_mem;
 }
 
@@ -94,11 +98,25 @@ hid_t vec3d_hdf5_compound_type_for_file()
 {
     hid_t compound_type_for_file;
     herr_t status;
-
-    compound_type_for_file = H5Tcreate( H5T_COMPOUND, 8 + 8 + 8 );
+    int double_size_in_file = 8;
+    
+    compound_type_for_file = H5Tcreate( H5T_COMPOUND, 3 * double_size_in_file );
+    vec3d_hdf5_status_check( compound_type_for_file );
     status = H5Tinsert( compound_type_for_file, "vec_x", 0, H5T_IEEE_F64BE);
-    status = H5Tinsert( compound_type_for_file, "vec_y", 8, H5T_IEEE_F64BE );
-    status = H5Tinsert( compound_type_for_file, "vec_z", 8 + 8, H5T_IEEE_F64BE );
+    vec3d_hdf5_status_check( status );
+    status = H5Tinsert( compound_type_for_file, "vec_y", double_size_in_file, H5T_IEEE_F64BE );
+    vec3d_hdf5_status_check( status );
+    status = H5Tinsert( compound_type_for_file, "vec_z", 2 * double_size_in_file, H5T_IEEE_F64BE );
+    vec3d_hdf5_status_check( status );
 
     return compound_type_for_file;
+}
+
+void vec3d_hdf5_status_check( herr_t status )
+{
+    if( status < 0 ){
+	std::cout << "Something went wrong while creating compound datatypes for Vec3d. Aborting."
+		  << std::endl;
+	exit( EXIT_FAILURE );
+    }
 }

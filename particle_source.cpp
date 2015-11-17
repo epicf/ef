@@ -54,7 +54,7 @@ void Particle_source::set_parameters_from_config( Source_config_part &src_conf )
     //    between each processes after each call to it.    
     int mpi_process_rank;
     MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-    unsigned seed = 0 + 1000000*mpi_process_rank;
+    unsigned seed = 0 + 1000000 * mpi_process_rank;
     rnd_gen = std::default_random_engine( seed );
     // Initial id
     max_id = 0;
@@ -82,8 +82,7 @@ void Particle_source::generate_num_of_particles( int num_of_particles )
     MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
     MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
 
-    num_of_particles_for_each_process( &num_of_particles_for_this_proc,
-				       num_of_particles );
+    num_of_particles_for_this_proc = num_of_particles_for_each_process( num_of_particles );
     populate_vec_of_ids( vec_of_ids, num_of_particles_for_this_proc ); 
     for ( int i = 0; i < num_of_particles_for_this_proc; i++ ) {
 	pos = uniform_position_in_cube( xleft, ytop, znear,
@@ -94,23 +93,22 @@ void Particle_source::generate_num_of_particles( int num_of_particles )
     }
 }
 
-void Particle_source::num_of_particles_for_each_process(
-    int *num_of_particles_for_this_proc,
-    int num_of_particles )
+int Particle_source::num_of_particles_for_each_process( int total_num_of_particles )
 {
     int rest;
     int mpi_n_of_proc, mpi_process_rank;
     MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
     MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
     
-    *num_of_particles_for_this_proc = num_of_particles / mpi_n_of_proc;
-    rest = num_of_particles % mpi_n_of_proc;
+    int num_of_particles_for_this_proc = total_num_of_particles / mpi_n_of_proc;
+    rest = total_num_of_particles % mpi_n_of_proc;
     if( mpi_process_rank < rest ){
-	(*num_of_particles_for_this_proc)++;
+	num_of_particles_for_this_proc++;
 	// Processes with lesser ranks will accumulate
 	// more particles.
 	// This seems unessential.
-    }    
+    }
+    return num_of_particles_for_this_proc;
 }
 
 void Particle_source::populate_vec_of_ids(
@@ -196,38 +194,17 @@ void Particle_source::print_particles()
     return;
 }
 
-void Particle_source::write_to_file_iostream( std::ofstream &output_file )
+void Particle_source::write_to_file( hid_t group_id )
 {
-    std::cout << "Source name = " << name << ", "
-	      << "number of particles = " << particles.size() 
-	      << std::endl;
-    output_file << "Source name = " << name << std::endl;
-    output_file << "Total number of particles = " << particles.size() << std::endl;
-    output_file << "id, charge, mass, position(x,y,z), momentum(px,py,pz)" << std::endl;
-    output_file.fill(' ');
-    output_file.setf( std::ios::scientific );
-    output_file.precision( 3 );    
-    output_file.setf( std::ios::right );
-    for ( auto &p : particles ) {	
-	output_file << std::setw(10) << std::left << p.id
-		    << std::setw(12) << p.charge
-		    << std::setw(12) << p.mass
-		    << std::setw(12) << vec3d_x( p.position )
-		    << std::setw(12) << vec3d_y( p.position )
-		    << std::setw(12) << vec3d_z( p.position )
-		    << std::setw(12) << vec3d_x( p.momentum )
-		    << std::setw(12) << vec3d_y( p.momentum )
-		    << std::setw(12) << vec3d_z( p.momentum )
-		    << std::endl;
-    }
-    return;
-}
+    // todo: print total N of particles
+    // int mpi_process_rank;
+    // MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+    // if( mpi_process_rank == 0 ){
 
-void Particle_source::write_to_file_hdf5( hid_t group_id )
-{
     std::cout << "Source name = " << name << ", "
-	      << "number of particles = " << particles.size() 
+	      << "number of particles = " << particles.size()
 	      << std::endl;
+    
     std::string table_of_particles_name = name;
 
     write_hdf5_particles( group_id, table_of_particles_name );
@@ -243,14 +220,13 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
     MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
     MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
     //
-    
+    herr_t status;
     hid_t filespace, memspace, dset;
     hid_t compound_type_for_mem, compound_type_for_file; 
     hid_t plist_id;
-    herr_t status;
     int rank = 1;
     hsize_t dims[rank], subset_dims[rank], subset_offset[rank];
-    dims[0] = particles.size();    
+    dims[0] = total_particles_across_all_processes();
     
     // todo: dst_buf should be removed.
     // currently it is used to avoid any problems of
@@ -265,14 +241,14 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
 	dst_buf[i].momentum = particles[i].momentum;
 	dst_buf[i].mpi_proc_rank = mpi_process_rank;
     }	
-    
+     
     compound_type_for_mem = HDF5_buffer_for_Particle_compound_type_for_memory();
     compound_type_for_file = HDF5_buffer_for_Particle_compound_type_for_file();
-    plist_id = H5Pcreate( H5P_DATASET_XFER );
-    H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE );
+    plist_id = H5Pcreate( H5P_DATASET_XFER ); hdf5_status_check( plist_id );
+    status = H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE ); hdf5_status_check( status );
 
-    subset_dims[0] = n_of_elements_to_write_for_each_process_for_1d_dataset( dims[0] );
-    subset_offset[0] = data_offset_for_each_process_for_1d_dataset( dims[0] );
+    subset_dims[0] = particles.size();
+    subset_offset[0] = data_offset_for_each_process_for_1d_dataset();
 
     // todo: remove
     std::cout << "particles "
@@ -282,59 +258,59 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
 	      << "offset = " << subset_offset[0] << std::endl;
     //
     
-    memspace = H5Screate_simple( rank, subset_dims, NULL );
-    filespace = H5Screate_simple( rank, dims, NULL );
-    H5Sselect_hyperslab( filespace, H5S_SELECT_SET, subset_offset, NULL, subset_dims, NULL );
+    memspace = H5Screate_simple( rank, subset_dims, NULL ); hdf5_status_check( memspace );
+    filespace = H5Screate_simple( rank, dims, NULL ); hdf5_status_check( filespace );
+    status = H5Sselect_hyperslab( filespace, H5S_SELECT_SET, subset_offset, NULL, subset_dims, NULL );
+    hdf5_status_check( status );
     
     dset = H5Dcreate( group_id, ("./" + table_of_particles_name).c_str(),
 		      compound_type_for_file, filespace,
-		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
-    status = H5Dwrite( dset, compound_type_for_mem, memspace, filespace, plist_id, dst_buf );
-    status = H5Dclose( dset );
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
+    status = H5Dwrite( dset, compound_type_for_mem,
+		       memspace, filespace, plist_id, dst_buf ); hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
 
-    status = H5Sclose( filespace );
-    status = H5Sclose( memspace );
-    status = H5Pclose( plist_id );
-    status = H5Tclose( compound_type_for_file );
-    status = H5Tclose( compound_type_for_mem );	
+    status = H5Sclose( filespace ); hdf5_status_check( status );
+    status = H5Sclose( memspace ); hdf5_status_check( status );
+    status = H5Pclose( plist_id ); hdf5_status_check( status );
+    status = H5Tclose( compound_type_for_file ); hdf5_status_check( status );
+    status = H5Tclose( compound_type_for_mem );	hdf5_status_check( status );
     delete[] dst_buf;
 }
 
-int Particle_source::n_of_elements_to_write_for_each_process_for_1d_dataset( int total_elements )
+int Particle_source::total_particles_across_all_processes()
 {
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+    int n_of_particles = particles.size();
+    int total_n_of_particles;
+    int single_element = 1;
 
-    int n_of_elements_for_process = total_elements / mpi_n_of_proc;
-    int rest = total_elements % mpi_n_of_proc;
-    if( mpi_process_rank < rest ){
-	n_of_elements_for_process++;
-    }
+    MPI_Allreduce( &n_of_particles, &total_n_of_particles, single_element,
+		   MPI_INT, MPI_SUM, MPI_COMM_WORLD );
 
-    return n_of_elements_for_process;
+    return total_n_of_particles;
 }
 
-int Particle_source::data_offset_for_each_process_for_1d_dataset( int total_elements )
-{
+int Particle_source::data_offset_for_each_process_for_1d_dataset()
+{    
     int mpi_n_of_proc, mpi_process_rank;
     MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
     MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
 
-    // todo: it is simpler to calclulate offset directly than
-    // to perform MPI broadcast of n_of_elements_for_each_proc. 
-    int offset;
-    int min_n_of_elements_for_process = total_elements / mpi_n_of_proc;
-    int max_n_of_elements_for_process = min_n_of_elements_for_process + 1;
-    int rest = total_elements % mpi_n_of_proc;
+    int offset = 0;
+    int n_of_particles = particles.size();
+    int single_element = 1;
+    int *n_of_particles_at_each_proc = new int[ mpi_n_of_proc ];
 
-    if( mpi_process_rank < rest ){
-	offset = mpi_process_rank * max_n_of_elements_for_process;
-    } else {
-	offset = rest * max_n_of_elements_for_process +
-	    ( mpi_process_rank - rest ) * min_n_of_elements_for_process;
+    MPI_Allgather( &n_of_particles, single_element, MPI_INT,
+		   n_of_particles_at_each_proc, single_element, MPI_INT,
+		   MPI_COMM_WORLD );
+    
+    for( int i = 1; i <= mpi_process_rank; i++ ){
+	offset = offset + n_of_particles_at_each_proc[i - 1];
     }
 
+    delete[] n_of_particles_at_each_proc;
+    
     return offset;
 }
 
@@ -342,24 +318,42 @@ int Particle_source::data_offset_for_each_process_for_1d_dataset( int total_elem
 void Particle_source::write_hdf5_source_parameters( hid_t group_id,
 						    std::string table_of_particles_name )
 {
+    herr_t status;
     int single_element = 1;
     double mean_mom_x = vec3d_x( mean_momentum );
     double mean_mom_y = vec3d_y( mean_momentum );
     double mean_mom_z = vec3d_z( mean_momentum );
 
-    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "xleft", &xleft, single_element );
-    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "xright", &xright, single_element );
-    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "ytop", &ytop, single_element );
-    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "ybottom", &ybottom, single_element );
-    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "zfar", &zfar, single_element );
-    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "znear", &znear, single_element );
-    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(), "temperature", &temperature, single_element );
-    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-			      "mean_momentum_x", &mean_mom_x, single_element );
-    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-			      "mean_momentum_y", &mean_mom_y, single_element );
-    H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-			      "mean_momentum_z", &mean_mom_z, single_element );    
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+				       "xleft", &xleft, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+				       "xright", &xright, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+				       "ytop", &ytop, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+				       "ybottom", &ybottom, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+				       "zfar", &zfar, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+				       "znear", &znear, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+				       "temperature", &temperature, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+				       "mean_momentum_x", &mean_mom_x, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+				       "mean_momentum_y", &mean_mom_y, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+				       "mean_momentum_z", &mean_mom_z, single_element );
+    hdf5_status_check( status );
 }
 
 
@@ -480,6 +474,16 @@ void Particle_source::particle_source_mass_gt_zero(
 	"particle_source_mass < 0" );
 }
 
+void Particle_source::hdf5_status_check( herr_t status )
+{
+    if( status < 0 ){
+	std::cout << "Something went wrong while writing Particle_source "
+		  << name << "."
+		  << "Aborting." << std::endl;
+	exit( EXIT_FAILURE );
+    }
+}
+
 void check_and_warn_if_not( const bool &should_be, const std::string &message )
 {
     if( !should_be ){
@@ -487,7 +491,6 @@ void check_and_warn_if_not( const bool &should_be, const std::string &message )
     }
     return;
 }
-
 
 Particle_sources_manager::Particle_sources_manager( Config &conf )
 {

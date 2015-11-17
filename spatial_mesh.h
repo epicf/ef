@@ -27,8 +27,7 @@ class Spatial_mesh {
     void clear_old_density_values();
     void set_boundary_conditions( Config &conf );
     void print();
-    void write_to_file_iostream( std::ofstream &output_file );
-    void write_to_file_hdf5( hid_t hdf5_file_id );
+    void write_to_file( hid_t hdf5_file_id );
     virtual ~Spatial_mesh();
     double node_number_to_coordinate_x( int i );
     double node_number_to_coordinate_y( int j );
@@ -52,6 +51,7 @@ class Spatial_mesh {
     void write_hdf5_ongrid_values( hid_t group_id );
     int n_of_elements_to_write_for_each_process_for_1d_dataset( int total_elements );
     int data_offset_for_each_process_for_1d_dataset( int total_elements );
+    void hdf5_status_check( herr_t status );
     // config check
     void grid_x_size_gt_zero( Config &conf );
     void grid_x_step_gt_zero_le_grid_x_size( Config &conf );
