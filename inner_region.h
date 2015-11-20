@@ -5,6 +5,7 @@
 #include <iostream>
 #include <algorithm>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <petscksp.h>
 #include "config.h"
 #include "spatial_mesh.h"
 #include "node_reference.h"
@@ -29,7 +30,10 @@ public:
     std::vector<Node_reference> inner_nodes_not_at_domain_edge;
     std::vector<Node_reference> near_boundary_nodes;
     std::vector<Node_reference> near_boundary_nodes_not_at_domain_edge;
-    // possible todo: add_boundary_nodes    
+    // possible todo: add_boundary_nodes
+    // Approx solution and RHS inside region;
+    // Should be used in MatZeroRows call, but it seems, it has no effect
+    Vec phi_inside_region, rhs_inside_region;
 public:
     virtual ~Inner_region() {};
     virtual void print() {

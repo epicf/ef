@@ -143,38 +143,40 @@ void Field_solver::cross_out_nodes_occupied_by_objects( Mat *A,
     PetscInt num_of_rows_to_remove = occupied_nodes_global_indices.size();
     if( num_of_rows_to_remove != 0 ){
 	PetscInt *rows_global_indices = &occupied_nodes_global_indices[0];
-	PetscScalar diag = 1.0;	
-	Vec phi_inside_region, rhs_inside_region; /* Approx solution and RHS at zeroed rows */
-	phi_inside_region = rhs_inside_region = NULL;
+	PetscScalar diag = 1.0;
+	/* Approx solution and RHS at zeroed rows */
+	inner_region.phi_inside_region = NULL;
+	inner_region.rhs_inside_region = NULL;
 
 	// looks like setting phi_inside_region and
 	// rhs_inside_region has no effect	
 	
 	// todo: separate function
 	// std::string vec_name = "Phi inside " + inner_region.name;
-	// alloc_petsc_vector( &phi_inside_region,
+	// alloc_petsc_vector( &inner_region.phi_inside_region,
 	// 		    (nx-2) * (ny-2) * (nz-2),
 	// 		    vec_name.c_str() );
-	// VecSet( phi_inside_region, inner_region.potential );    
-	// ierr = VecAssemblyBegin( phi_inside_region ); CHKERRXX( ierr );
-	// ierr = VecAssemblyEnd( phi_inside_region ); CHKERRXX( ierr );
+	// VecSet( inner_region.phi_inside_region, inner_region.potential );    
+	// ierr = VecAssemblyBegin( inner_region.phi_inside_region ); CHKERRXX( ierr );
+	// ierr = VecAssemblyEnd( inner_region.phi_inside_region ); CHKERRXX( ierr );
 
 	// todo: separate function
 	// vec_name = "RHS inside " + inner_region.name;
 	// PetscScalar charge_density_inside_conductor = 0.0;
-	// alloc_petsc_vector( &rhs_inside_region,
+	// alloc_petsc_vector( &inner_region.rhs_inside_region,
 	// 		    (nx-2) * (ny-2) * (nz-2),
 	// 		    vec_name.c_str() );
-	// VecSet( rhs_inside_region, charge_density_inside_conductor );    
-	// ierr = VecAssemblyBegin( rhs_inside_region ); CHKERRXX( ierr );
-	// ierr = VecAssemblyEnd( rhs_inside_region ); CHKERRXX( ierr );
+	// VecSet( inner_region.rhs_inside_region, charge_density_inside_conductor );    
+	// ierr = VecAssemblyBegin( inner_region.rhs_inside_region ); CHKERRXX( ierr );
+	// ierr = VecAssemblyEnd( inner_region.rhs_inside_region ); CHKERRXX( ierr );
 	
 	ierr = MatZeroRows( *A, num_of_rows_to_remove, rows_global_indices,
-			    diag, phi_inside_region, rhs_inside_region); CHKERRXX( ierr );
+			    diag,
+			    inner_region.phi_inside_region,
+			    inner_region.rhs_inside_region); CHKERRXX( ierr );
 
-	// ierr = VecDestroy( &phi_inside_region ); CHKERRXX( ierr );
-	// ierr = VecDestroy( &rhs_inside_region ); CHKERRXX( ierr );
-	// todo: without vecdestroy call there is memory leak	
+	// VecDestroy for phi_inside_region and rhs_inside_region
+	// should be called in inner_region destructor.
     }
 }
 
@@ -534,7 +536,11 @@ void Field_solver::init_rhs_vector( Spatial_mesh &spat_mesh,
 				    Inner_regions_manager &inner_regions )
 {
     init_rhs_vector_in_full_domain( spat_mesh );
+
+    // This should be done in 'cross_out_nodes_occupied_by_objects' by
+    // MatZeroRows function but it seems it doesn't work
     set_rhs_at_nodes_occupied_by_objects( spat_mesh, inner_regions );
+
     modify_rhs_near_object_boundaries( spat_mesh, inner_regions );
 }
 
@@ -656,6 +662,10 @@ void Field_solver::modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh,
     if( number_of_elements != 0 ){
 	PetscInt *indices = &indices_of_nodes_near_boundaries[0];
 	PetscScalar *values = &rhs_modification_for_nodes_near_boundaries[0];
+	// ADD_VALUES gathers values from all processes.
+	// Therefore, only a single process
+	// should be responsible for calculation of rhs_modification
+	// for a given node.
 	ierr = VecSetValues( rhs, number_of_elements,
 			     indices, values, ADD_VALUES ); CHKERRXX( ierr );
 	CHKERRXX( ierr );
@@ -676,29 +686,38 @@ void Field_solver::indicies_of_near_boundary_nodes_and_rhs_modifications(
     int max_possible_nodes_where_to_modify_rhs = inner_region.near_boundary_nodes_not_at_domain_edge.size();
     indices_of_nodes_near_boundaries.reserve( max_possible_nodes_where_to_modify_rhs );
     rhs_modification_for_nodes_near_boundaries.reserve( max_possible_nodes_where_to_modify_rhs );
+
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
     
     for( auto &node : inner_region.near_boundary_nodes_not_at_domain_edge ){
 	PetscScalar rhs_mod = 0.0;
-	for( auto &adj_node : node.adjacent_nodes() ){
-	    // possible todo: separate function for rhs_mod evaluation?
-	    if( !adj_node.at_domain_edge( nx, ny, nz ) &&
-		inner_region.check_if_node_inside( adj_node, dx, dy, dz ) ){
-		if( adj_node.left_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dy * dy * dz * dz;
-		} else if( adj_node.right_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dy * dy * dz * dz;
-		} else if( adj_node.top_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dx * dx * dz * dz;
-		} else if( adj_node.bottom_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dx * dx * dz * dz;
-		} else if( adj_node.near_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dx * dx * dy * dy;
-		} else if( adj_node.far_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dx * dx * dy * dy;
+	// todo: parallelize instead of making one process
+	// to do all the work. 
+	if( mpi_process_rank == 0 ){
+	    for( auto &adj_node : node.adjacent_nodes() ){
+		// possible todo: separate function for rhs_mod evaluation?
+		if( !adj_node.at_domain_edge( nx, ny, nz ) &&
+		    inner_region.check_if_node_inside( adj_node, dx, dy, dz ) ){
+		    if( adj_node.left_from( node ) ) {
+			rhs_mod += -inner_region.potential * dy * dy * dz * dz;
+		    } else if( adj_node.right_from( node ) ) {
+			rhs_mod += -inner_region.potential * dy * dy * dz * dz;
+		    } else if( adj_node.top_from( node ) ) {
+			rhs_mod += -inner_region.potential * dx * dx * dz * dz;
+		    } else if( adj_node.bottom_from( node ) ) {
+			rhs_mod += -inner_region.potential * dx * dx * dz * dz;
+		    } else if( adj_node.near_from( node ) ) {
+			rhs_mod += -inner_region.potential * dx * dx * dy * dy;
+		    } else if( adj_node.far_from( node ) ) {
+			rhs_mod += -inner_region.potential * dx * dx * dy * dy;
+		    }
 		}
 	    }
 	}
-	indices_of_nodes_near_boundaries.push_back( node_global_index_in_matrix( node, nx, ny, nz ) );
+	indices_of_nodes_near_boundaries.push_back(
+	    node_global_index_in_matrix( node, nx, ny, nz ) );
 	rhs_modification_for_nodes_near_boundaries.push_back( rhs_mod );
     }
 }

@@ -208,6 +208,9 @@ void Particle_source::write_to_file( hid_t group_id )
     std::string table_of_particles_name = name;
 
     write_hdf5_particles( group_id, table_of_particles_name );
+    // todo: attempt to create attribute for empty dataset results in segfault
+    // check on test example
+    // ask hdf5 mail-list if confirmed
     write_hdf5_source_parameters( group_id, table_of_particles_name );
     
     return;
@@ -240,8 +243,8 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
 	dst_buf[i].position = particles[i].position;
 	dst_buf[i].momentum = particles[i].momentum;
 	dst_buf[i].mpi_proc_rank = mpi_process_rank;
-    }	
-     
+    }     
+
     compound_type_for_mem = HDF5_buffer_for_Particle_compound_type_for_memory();
     compound_type_for_file = HDF5_buffer_for_Particle_compound_type_for_file();
     plist_id = H5Pcreate( H5P_DATASET_XFER ); hdf5_status_check( plist_id );
@@ -264,17 +267,17 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
     hdf5_status_check( status );
     
     dset = H5Dcreate( group_id, ("./" + table_of_particles_name).c_str(),
-		      compound_type_for_file, filespace,
-		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
+    		      compound_type_for_file, filespace,
+    		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
     status = H5Dwrite( dset, compound_type_for_mem,
-		       memspace, filespace, plist_id, dst_buf ); hdf5_status_check( status );
+    		       memspace, filespace, plist_id, dst_buf ); hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
 
     status = H5Sclose( filespace ); hdf5_status_check( status );
     status = H5Sclose( memspace ); hdf5_status_check( status );
     status = H5Pclose( plist_id ); hdf5_status_check( status );
     status = H5Tclose( compound_type_for_file ); hdf5_status_check( status );
-    status = H5Tclose( compound_type_for_mem );	hdf5_status_check( status );
+    status = H5Tclose( compound_type_for_mem );	hdf5_status_check( status );    
     delete[] dst_buf;
 }
 
@@ -324,35 +327,50 @@ void Particle_source::write_hdf5_source_parameters( hid_t group_id,
     double mean_mom_y = vec3d_y( mean_momentum );
     double mean_mom_z = vec3d_z( mean_momentum );
 
+    // hid_t plist_id = H5Pcreate( H5P_DATASET_XFER ); 
+    // status = H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE );
+
+    // hid_t dataset_id = H5Dopen2(group_id, table_of_particles_name.c_str(), H5P_DEFAULT);
+    // hsize_t dims = 1;
+    // hid_t dataspace_id = H5Screate_simple(1, &dims, NULL);
+    // hid_t dataspace_id = H5Screate( H5S_SCALAR );
+    // hid_t attribute_id = H5Acreate2 (dataset_id, "xleft", H5T_IEEE_F64BE, dataspace_id, 
+    // 				     H5P_DEFAULT, H5P_DEFAULT);
+    // status = H5Awrite(attribute_id, H5T_NATIVE_INT, &xleft);
+    // status = H5Aclose(attribute_id);
+    // status = H5Sclose(dataspace_id);
+    // status = H5Dclose(dataset_id);
+    // MPI_Barrier( MPI_COMM_WORLD );
+
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-				       "xleft", &xleft, single_element );
+    				       "xleft", &xleft, single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-				       "xright", &xright, single_element );
+    				       "xright", &xright, single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-				       "ytop", &ytop, single_element );
+    				       "ytop", &ytop, single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-				       "ybottom", &ybottom, single_element );
+    				       "ybottom", &ybottom, single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-				       "zfar", &zfar, single_element );
+    				       "zfar", &zfar, single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-				       "znear", &znear, single_element );
+    				       "znear", &znear, single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-				       "temperature", &temperature, single_element );
+    				       "temperature", &temperature, single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-				       "mean_momentum_x", &mean_mom_x, single_element );
+    				       "mean_momentum_x", &mean_mom_x, single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-				       "mean_momentum_y", &mean_mom_y, single_element );
+    				       "mean_momentum_y", &mean_mom_y, single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
-				       "mean_momentum_z", &mean_mom_z, single_element );
+    				       "mean_momentum_z", &mean_mom_z, single_element );
     hdf5_status_check( status );
 }
 

@@ -254,5 +254,8 @@ bool Inner_region_STEP::check_if_point_inside( double x, double y, double z )
 
 Inner_region_STEP::~Inner_region_STEP()
 {
+    // PetscErrorCode ierr;
+    // ierr = VecDestroy( &phi_inside_region ); CHKERRXX( ierr );
+    // ierr = VecDestroy( &rhs_inside_region ); CHKERRXX( ierr );
     // todo
 }
