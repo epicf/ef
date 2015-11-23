@@ -2,6 +2,7 @@
 #define _VEC_H_
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <hdf5.h>
 
 typedef struct {

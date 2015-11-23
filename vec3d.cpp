@@ -115,8 +115,7 @@ hid_t vec3d_hdf5_compound_type_for_file()
 void vec3d_hdf5_status_check( herr_t status )
 {
     if( status < 0 ){
-	std::cout << "Something went wrong while creating compound datatypes for Vec3d. Aborting."
-		  << std::endl;
+	printf( "Something went wrong while creating compound datatypes for Vec3d. Aborting.\n" );
 	exit( EXIT_FAILURE );
     }
 }
