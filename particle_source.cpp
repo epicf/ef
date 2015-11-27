@@ -208,10 +208,15 @@ void Particle_source::write_to_file( hid_t group_id )
     std::string table_of_particles_name = name;
 
     write_hdf5_particles( group_id, table_of_particles_name );
-    // todo: attempt to create attribute for empty dataset results in segfault
-    // check on test example
-    // ask hdf5 mail-list if confirmed
-    write_hdf5_source_parameters( group_id, table_of_particles_name );
+
+    if( total_particles_across_all_processes() != 0 ){
+	// todo: attempt to create an attribute for the empty dataset results in error
+	write_hdf5_source_parameters( group_id, table_of_particles_name );
+    } else {
+	std::cout << "Warning: Number of particles of " << name << " source is zero." << std::endl;
+	std::cout << "Warning: Skipping attributes for " << name << std::endl;
+	std::cout << "Known bug: attemp to write an attribute for an empty dataset would result in error." << std::endl;
+    }
     
     return;
 }
