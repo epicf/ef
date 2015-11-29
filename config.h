@@ -132,8 +132,8 @@ public:
 	{};	
     virtual ~Inner_region_config_part() {};
     virtual void print() {
-	std::cout << "Inner_region_STEP_name = " << inner_region_name << std::endl;
-	std::cout << "Inner_region_STEP_potential = " << inner_region_potential << std::endl;
+	std::cout << "Inner_region_name = " << inner_region_name << std::endl;
+	std::cout << "Inner_region_potential = " << inner_region_potential << std::endl;
     }
 };
 
@@ -215,6 +215,75 @@ class Inner_region_STEP_config_part : public Inner_region_config_part {
     }
 };
 
+
+class Charged_inner_region_config_part {
+public:
+    std::string charged_inner_region_name;
+    double charged_inner_region_charge_density;
+public:
+    Charged_inner_region_config_part(){};
+    Charged_inner_region_config_part( std::string name, boost::property_tree::ptree &ptree ) :
+	charged_inner_region_name( name ),
+	charged_inner_region_charge_density( ptree.get<double>("charged_inner_region_charge_density") )
+	{};	
+    virtual ~Charged_inner_region_config_part() {};
+    virtual void print() {
+	std::cout << "Charged_inner_region_name = "
+		  << charged_inner_region_name << std::endl;
+	std::cout << "Charged_inner_region_charge_density = "
+		  << charged_inner_region_charge_density << std::endl;
+    }
+};
+
+class Charged_inner_region_box_config_part : public Charged_inner_region_config_part{
+public:
+    double charged_inner_region_box_x_left;
+    double charged_inner_region_box_x_right;
+    double charged_inner_region_box_y_bottom;
+    double charged_inner_region_box_y_top;
+    double charged_inner_region_box_z_near;
+    double charged_inner_region_box_z_far;
+public:
+    Charged_inner_region_box_config_part(){};
+    Charged_inner_region_box_config_part( std::string name,
+					  boost::property_tree::ptree &ptree ) :
+	charged_inner_region_box_x_left(
+	    ptree.get<double>("charged_inner_region_box_x_left") ),
+	charged_inner_region_box_x_right(
+	    ptree.get<double>("charged_inner_region_box_x_right") ),
+        charged_inner_region_box_y_bottom(
+	    ptree.get<double>("charged_inner_region_box_y_bottom") ),
+	charged_inner_region_box_y_top(
+	    ptree.get<double>("charged_inner_region_box_y_top") ),
+	charged_inner_region_box_z_near(
+	    ptree.get<double>("charged_inner_region_box_z_near") ),
+	charged_inner_region_box_z_far(
+	    ptree.get<double>("charged_inner_region_box_z_far") ) {
+	    charged_inner_region_name = name;
+	    charged_inner_region_charge_density =
+		ptree.get<double>("charged_inner_region_box_charge_density");
+	};
+    virtual ~Charged_inner_region_box_config_part() {};
+    void print() { 
+	std::cout << "Charged inner region: name = "
+		  << charged_inner_region_name << std::endl;
+	std::cout << "charged_inner_region_charge_density = "
+		  << charged_inner_region_charge_density << std::endl;
+	std::cout << "charged_inner_region_box_x_left = "
+		  << charged_inner_region_box_x_left << std::endl;
+	std::cout << "charged_inner_region_box_x_right = "
+		  << charged_inner_region_box_x_right << std::endl;
+	std::cout << "charged_inner_region_box_y_bottom = "
+		  << charged_inner_region_box_y_bottom << std::endl;
+	std::cout << "charged_inner_region_box_y_top = "
+		  << charged_inner_region_box_y_top << std::endl;
+	std::cout << "charged_inner_region_box_z_near = "
+		  << charged_inner_region_box_z_near << std::endl;
+	std::cout << "charged_inner_region_box_z_far = "
+		  << charged_inner_region_box_z_far << std::endl;
+    }
+};
+
 class Boundary_config_part {
 public:
     double boundary_phi_left;
@@ -290,6 +359,7 @@ public:
     Mesh_config_part mesh_config_part;
     std::vector<Source_config_part> sources_config_part;
     boost::ptr_vector<Inner_region_config_part> inner_regions_config_part;
+    boost::ptr_vector<Charged_inner_region_config_part> charged_inner_regions_config_part;
     Boundary_config_part boundary_config_part;
     External_magnetic_field_config_part external_magnetic_field_config_part;
     Output_filename_config_part output_filename_config_part;
@@ -305,6 +375,9 @@ public:
 	}
 	for ( auto &ir : inner_regions_config_part ) {
 	    ir.print();
+	}
+	for ( auto &cir : charged_inner_regions_config_part ) {
+	    cir.print();
 	}
 	boundary_config_part.print();
 	output_filename_config_part.print();

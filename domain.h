@@ -13,6 +13,7 @@
 #include "time_grid.h"
 #include "spatial_mesh.h"
 #include "inner_region.h"
+#include "charged_inner_region.h"
 #include "particle_to_mesh_map.h"
 #include "field_solver.h"
 #include "External_magnetic_field.h"
@@ -29,6 +30,7 @@ class Domain {
     Time_grid time_grid;
     Spatial_mesh spat_mesh;
     Inner_regions_manager inner_regions;
+    Charged_inner_regions_manager charged_inner_regions;
     Particle_to_mesh_map particle_to_mesh_map;
     Field_solver field_solver;    
     Particle_sources_manager particle_sources;
@@ -45,6 +47,7 @@ class Domain {
     void prepare_leap_frog();
     void advance_one_time_step();
     void eval_charge_density();
+    void add_charge_from_charged_inner_regions();
     void eval_potential_and_fields();
     void push_particles();
     void apply_domain_constrains();

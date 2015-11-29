@@ -29,6 +29,10 @@ Config::Config( const std::string &filename )
 		std::string inner_region_name = section_name.substr( section_name.find(".") + 1 );
 		inner_regions_config_part.push_back(
 		    new Inner_region_STEP_config_part( inner_region_name, sections.second ));
+	    } else if ( section_name.find( "Charged_inner_region_box." ) != std::string::npos ) {
+		std::string charged_inner_region_name = section_name.substr( section_name.find(".") + 1 );
+		charged_inner_regions_config_part.push_back(
+		    new Charged_inner_region_box_config_part( charged_inner_region_name, sections.second ) );
 	    } else if ( section_name.find( "Boundary conditions" ) != std::string::npos ) {
 		boundary_config_part = Boundary_config_part( sections.second );
 	    } else if ( section_name.find( "External magnetic field" ) != std::string::npos ) {
