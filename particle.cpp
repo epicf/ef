@@ -67,12 +67,6 @@ hid_t HDF5_buffer_for_Particle_compound_type_for_memory()
     status = H5Tinsert( compound_type_for_mem, "id",
 			HOFFSET( HDF5_buffer_for_Particle, id ), H5T_NATIVE_INT );
         HDF5_buffer_for_Particle_hdf5_status_check( status );
-    status = H5Tinsert( compound_type_for_mem, "charge",
-			HOFFSET( HDF5_buffer_for_Particle, charge ), H5T_NATIVE_DOUBLE );
-        HDF5_buffer_for_Particle_hdf5_status_check( status );
-    status = H5Tinsert( compound_type_for_mem, "mass",
-			HOFFSET( HDF5_buffer_for_Particle, mass ), H5T_NATIVE_DOUBLE );
-        HDF5_buffer_for_Particle_hdf5_status_check( status );
     status = H5Tinsert( compound_type_for_mem, "position",
 			HOFFSET( HDF5_buffer_for_Particle, position ), vec3d_compound_type_for_mem );
         HDF5_buffer_for_Particle_hdf5_status_check( status );
@@ -97,20 +91,16 @@ hid_t HDF5_buffer_for_Particle_compound_type_for_file()
     hid_t vec3d_compound_type_for_file;
     vec3d_compound_type_for_file = vec3d_hdf5_compound_type_for_file();
     
-    compound_type_for_file = H5Tcreate( H5T_COMPOUND, 4 + 8 + 8 + 3*8 + 3*8 + 4 );
+    compound_type_for_file = H5Tcreate( H5T_COMPOUND, 4 + 3*8 + 3*8 + 4 );
         HDF5_buffer_for_Particle_hdf5_status_check( compound_type_for_file );
 
     status = H5Tinsert( compound_type_for_file, "id", 0, H5T_STD_I32BE );
         HDF5_buffer_for_Particle_hdf5_status_check( status );
-    status = H5Tinsert( compound_type_for_file, "charge", 4, H5T_IEEE_F64BE );
+    status = H5Tinsert( compound_type_for_file, "position", 4, vec3d_compound_type_for_file );
         HDF5_buffer_for_Particle_hdf5_status_check( status );
-    status = H5Tinsert( compound_type_for_file, "mass", 4 + 8, H5T_IEEE_F64BE );
+    status = H5Tinsert( compound_type_for_file, "momentum", 4 + 3*8, vec3d_compound_type_for_file );
         HDF5_buffer_for_Particle_hdf5_status_check( status );
-    status = H5Tinsert( compound_type_for_file, "position", 4 + 8 + 8, vec3d_compound_type_for_file );
-        HDF5_buffer_for_Particle_hdf5_status_check( status );
-    status = H5Tinsert( compound_type_for_file, "momentum", 4 + 8 + 8 + 3*8, vec3d_compound_type_for_file );
-        HDF5_buffer_for_Particle_hdf5_status_check( status );
-    status = H5Tinsert( compound_type_for_file, "mpi_proc_rank", 4 + 8 + 8 + 3*8 + 3*8, H5T_STD_I32BE );
+    status = H5Tinsert( compound_type_for_file, "mpi_proc_rank", 4 + 3*8 + 3*8, H5T_STD_I32BE );
         HDF5_buffer_for_Particle_hdf5_status_check( status );
 
     status = H5Tclose( vec3d_compound_type_for_file );

@@ -243,8 +243,6 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
     HDF5_buffer_for_Particle *dst_buf = new HDF5_buffer_for_Particle[ particles.size() ];
     for( unsigned int i = 0; i < particles.size(); i++ ){
 	dst_buf[i].id = particles[i].id;
-	dst_buf[i].charge = particles[i].charge;
-	dst_buf[i].mass = particles[i].mass;
 	dst_buf[i].position = particles[i].position;
 	dst_buf[i].momentum = particles[i].momentum;
 	dst_buf[i].mpi_proc_rank = mpi_process_rank;
@@ -332,21 +330,6 @@ void Particle_source::write_hdf5_source_parameters( hid_t group_id,
     double mean_mom_y = vec3d_y( mean_momentum );
     double mean_mom_z = vec3d_z( mean_momentum );
 
-    // hid_t plist_id = H5Pcreate( H5P_DATASET_XFER ); 
-    // status = H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE );
-
-    // hid_t dataset_id = H5Dopen2(group_id, table_of_particles_name.c_str(), H5P_DEFAULT);
-    // hsize_t dims = 1;
-    // hid_t dataspace_id = H5Screate_simple(1, &dims, NULL);
-    // hid_t dataspace_id = H5Screate( H5S_SCALAR );
-    // hid_t attribute_id = H5Acreate2 (dataset_id, "xleft", H5T_IEEE_F64BE, dataspace_id, 
-    // 				     H5P_DEFAULT, H5P_DEFAULT);
-    // status = H5Awrite(attribute_id, H5T_NATIVE_INT, &xleft);
-    // status = H5Aclose(attribute_id);
-    // status = H5Sclose(dataspace_id);
-    // status = H5Dclose(dataset_id);
-    // MPI_Barrier( MPI_COMM_WORLD );
-
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
     				       "xleft", &xleft, single_element );
     hdf5_status_check( status );
@@ -376,6 +359,12 @@ void Particle_source::write_hdf5_source_parameters( hid_t group_id,
     hdf5_status_check( status );
     status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
     				       "mean_momentum_z", &mean_mom_z, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+    				       "charge", &charge, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, table_of_particles_name.c_str(),
+    				       "mass", &mass, single_element );
     hdf5_status_check( status );
 }
 

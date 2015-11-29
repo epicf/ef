@@ -23,8 +23,6 @@ class Particle {
 
 typedef struct {
     int id;
-    double charge;
-    double mass;
     Vec3d position;
     Vec3d momentum;
     int mpi_proc_rank;
