@@ -13,7 +13,7 @@ Domain::Domain( Config &conf ) :
     time_grid( conf ),
     spat_mesh( conf ),
     inner_regions( conf, spat_mesh ),
-    particle_to_mesh_map( ),
+    particle_to_mesh_map(),
     field_solver( spat_mesh, inner_regions ),
     particle_sources( conf ),
     external_magnetic_field( conf )
@@ -26,8 +26,9 @@ Domain::Domain( Config &conf ) :
 //
 
 void Domain::run_pic( Config &conf )
-{
-    int mpi_process_rank;
+{    
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
     MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
     
     int total_time_iterations, current_node;
@@ -42,8 +43,23 @@ void Domain::run_pic( Config &conf )
 	    std::cout << "Time step from " << i << " to " << i+1
 		      << " of " << total_time_iterations << std::endl;
 	}
+
+	MPI_Barrier( MPI_COMM_WORLD );
+	double t0, t1, t2; 
+	t0 = MPI_Wtime(); 
     	advance_one_time_step();
+	t1 = MPI_Wtime(); 
     	write_step_to_save( conf );
+	t2 = MPI_Wtime();
+	for( int i = 0; i < mpi_n_of_proc; i++ ){
+	    if( i == mpi_process_rank ){
+		std::cout << "Proc. " <<  mpi_process_rank << ", "
+			  << "advance_one_time_step time is " << t1 - t0 << std::endl;
+		std::cout << "Proc. " <<  mpi_process_rank << ", "
+			  << "write_step_to_save time is " << t2 - t1 << std::endl;
+	    }
+	}
+	MPI_Barrier( MPI_COMM_WORLD );
     }
 
     return;
@@ -59,11 +75,45 @@ void Domain::prepare_leap_frog()
 
 void Domain::advance_one_time_step()
 {
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
+
+    MPI_Barrier( MPI_COMM_WORLD );
+    double t0, t1, t2, t3, t4, t5;  
+    t0 = MPI_Wtime();    
+
     push_particles();
+    t1 = MPI_Wtime();    
+
     apply_domain_constrains();
+    t2 = MPI_Wtime();    
+
     eval_charge_density();
+    t3 = MPI_Wtime();    
+
     eval_potential_and_fields();
-    update_time_grid();
+    t4 = MPI_Wtime();    
+
+    update_time_grid();    
+    t5 = MPI_Wtime();
+
+    // for( int i = 0; i < mpi_n_of_proc; i++ ){
+    // 	if( i == mpi_process_rank ){
+    // 	    printf( "\t Proc. %d, push_particles: time is %f \n",
+    // 		    mpi_process_rank, t1 - t0 );
+    // 	    printf( "\t Proc. %d, apply_domain_constr: time is %f \n",
+    // 		    mpi_process_rank, t2 - t1 );
+    // 	    printf( "\t Proc. %d, eval_charge_dnst: time is %f \n",
+    // 		    mpi_process_rank, t3 - t2 );
+    // 	    printf( "\t Proc. %d, eval_potential_and_fields: time is %f \n",
+    // 		    mpi_process_rank, t4 - t3 );
+    // 	    printf( "\t Proc. %d, update_time_grid: time is %f \n",
+    // 		    mpi_process_rank, t5 - t4 );
+    // 	}
+    // }
+    // MPI_Barrier( MPI_COMM_WORLD );
+    
     return;
 }
 
@@ -77,8 +127,31 @@ void Domain::eval_charge_density()
 
 void Domain::eval_potential_and_fields()
 {
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
+
+    MPI_Barrier( MPI_COMM_WORLD );
+    
+    double t0, t1, t2;  
+    t0 = MPI_Wtime();    
+
     field_solver.eval_potential( spat_mesh, inner_regions );
+    t1 = MPI_Wtime();    
+
     field_solver.eval_fields_from_potential( spat_mesh );
+    t2 = MPI_Wtime();
+
+    for( int i = 0; i < mpi_n_of_proc; i++ ){
+    	if( i == mpi_process_rank ){
+    	    printf( "\t\t Proc. %d, field_solver.eval_potential: time is %f \n",
+    		    mpi_process_rank, t1 - t0 );
+    	    // printf( "\t\t Proc. %d, field_solver.eval_fields_from_potential: time is %f \n",
+    	    // 	    mpi_process_rank, t2 - t1 );
+    	}
+    }
+    MPI_Barrier( MPI_COMM_WORLD );
+    
     return;
 }
 

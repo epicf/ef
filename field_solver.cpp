@@ -520,14 +520,43 @@ void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh,
 {
     PetscErrorCode ierr;
 
-    init_rhs_vector( spat_mesh, inner_regions );    
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
+
+    MPI_Barrier( MPI_COMM_WORLD );
+    
+    double t0, t1, t2, t3, t4;  
+    t0 = MPI_Wtime();    
+
+    init_rhs_vector( spat_mesh, inner_regions );
+    t1 = MPI_Wtime();    
+
     ierr = KSPSolve( ksp, rhs, phi_vec); CHKERRXX( ierr );
+    t2 = MPI_Wtime();
     
     // This should be done in 'cross_out_nodes_occupied_by_objects' by
     // MatZeroRows function but it seems it doesn't work
     set_solution_at_nodes_of_inner_regions( spat_mesh, inner_regions );
+    t3 = MPI_Wtime();    
     
     transfer_solution_to_spat_mesh( spat_mesh );
+    t4 = MPI_Wtime();
+
+    for( int i = 0; i < mpi_n_of_proc; i++ ){
+    	if( i == mpi_process_rank ){
+    	    printf( "\t\t\t Proc. %d, field_solver.solve_poisson_eqn.init_rhs: time is %f \n",
+    		    mpi_process_rank, t1 - t0 );
+    	    printf( "\t\t\t Proc. %d, field_solver.solve_poisson_eqn.KSPSolve: time is %f \n",
+    	    	    mpi_process_rank, t2 - t1 );
+	    printf( "\t\t\t Proc. %d, field_solver.solve_poisson_eqn.set_solution_at_inner_nodes: time is %f \n",
+    	    	    mpi_process_rank, t3 - t2 );
+    	    printf( "\t\t\t Proc. %d, field_solver.solve_poisson_eqn.transfer_sol_to_spat_mesh: time is %f \n",
+    	    	    mpi_process_rank, t4 - t3 );
+    	}
+    }
+    MPI_Barrier( MPI_COMM_WORLD );
+
     
     return;
 }
