@@ -257,11 +257,11 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
     subset_offset[0] = data_offset_for_each_process_for_1d_dataset();
 
     // todo: remove
-    std::cout << "particles "
-	      << "total = " << particles.size() << " "
-	      << "proc_n = " << mpi_process_rank << " "
-	      << "count = " << subset_dims[0] << " "
-	      << "offset = " << subset_offset[0] << std::endl;
+    // std::cout << "particles "
+    // 	      << "total = " << particles.size() << " "
+    // 	      << "proc_n = " << mpi_process_rank << " "
+    // 	      << "count = " << subset_dims[0] << " "
+    // 	      << "offset = " << subset_offset[0] << std::endl;
     //
     
     memspace = H5Screate_simple( rank, subset_dims, NULL ); hdf5_status_check( memspace );
