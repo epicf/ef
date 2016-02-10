@@ -266,10 +266,10 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
     int mpi_n_of_proc, mpi_process_rank;
     MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
     MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-    std::cout << "total = " << dims[0] << " "
-	      << "proc_n = " << mpi_process_rank << " "
-	      << "count = " << subset_dims[0] << " "
-	      << "offset = " << subset_offset[0] << std::endl;
+    // std::cout << "total = " << dims[0] << " "
+    // 	      << "proc_n = " << mpi_process_rank << " "
+    // 	      << "count = " << subset_dims[0] << " "
+    // 	      << "offset = " << subset_offset[0] << std::endl;
     
     memspace = H5Screate_simple( rank, subset_dims, NULL ); hdf5_status_check( memspace );
     filespace = H5Screate_simple( rank, dims, NULL ); hdf5_status_check( filespace );

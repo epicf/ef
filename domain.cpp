@@ -158,25 +158,31 @@ void Domain::update_position( double dt )
 void Domain::apply_domain_boundary_conditions()
 {
     for( auto &src : particle_sources.sources ) {
-	src.particles.erase( 
-	    std::remove_if( 
-		std::begin( src.particles ), 
-		std::end( src.particles ), 
-		[this]( Particle &p ){ return out_of_bound(p); } ), 
-	    std::end( src.particles ) );
+    	auto remove_starting_from = std::remove_if( 
+    	    std::begin( src.particles ), 
+    	    std::end( src.particles ), 
+    	    [this]( Particle &p ){ return out_of_bound(p); } ); 
+    	// cout << "Out of bound from " << src.name << ":" << " "
+    	//      << std::end( src.particles ) - remove_starting_from << std::endl;
+    	src.particles.erase(
+    	    remove_starting_from,
+    	    std::end( src.particles ) );
     }
+
     return;
 }
 
 void Domain::remove_particles_inside_inner_regions()
 {
     for( auto &src : particle_sources.sources ) {
-	src.particles.erase( 
-	    std::remove_if( 
-		std::begin( src.particles ), 
-		std::end( src.particles ), 
-		[this]( Particle &p ){ return inner_regions.check_if_particle_inside( p ); } ), 
-	    std::end( src.particles ) );
+	auto remove_starting_from = std::remove_if( 
+	    std::begin( src.particles ), 
+	    std::end( src.particles ), 
+	    [this]( Particle &p ){
+		return inner_regions.check_if_particle_inside_and_count_charge( p );
+	    } ); 
+	inner_regions.sync_absorbed_charge_and_particles_across_proc();
+	src.particles.erase( remove_starting_from, std::end( src.particles ) );
     }
     return;
 }
@@ -192,6 +198,7 @@ bool Domain::out_of_bound( const Particle &p )
 	( x >= spat_mesh.x_volume_size ) || ( x <= 0 ) ||
 	( y >= spat_mesh.y_volume_size ) || ( y <= 0 ) ||
 	( z >= spat_mesh.z_volume_size ) || ( z <= 0 ) ;
+	
     return out;
 
 }
@@ -269,6 +276,7 @@ void Domain::write( Config &conf )
     spat_mesh.write_to_file( output_file );
     external_magnetic_field.write_to_file( output_file );
     particle_sources.write_to_file( output_file );
+    inner_regions.write_to_file( output_file );
 
     status = H5Pclose( plist_id ); hdf5_status_check( status );
     status = H5Fclose( output_file ); hdf5_status_check( status );
