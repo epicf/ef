@@ -13,11 +13,13 @@ Domain::Domain( Config &conf ) :
     time_grid( conf ),
     spat_mesh( conf ),
     inner_regions( conf, spat_mesh ),
+    charged_inner_regions( conf, spat_mesh ),
     particle_to_mesh_map( ),
     field_solver( spat_mesh, inner_regions ),
     particle_sources( conf ),
     external_magnetic_field( conf )
 {
+    charged_inner_regions.print();
     return;
 }
 
@@ -69,10 +71,30 @@ void Domain::advance_one_time_step()
 
 void Domain::eval_charge_density()
 {
-    spat_mesh.clear_old_density_values();
+    spat_mesh.clear_old_density_values();    
     particle_to_mesh_map.weight_particles_charge_to_mesh( spat_mesh, particle_sources );
+    // add_charge_from_charged_inner_regions()
+    // should go after particle_to_mesh_map.weight_particles_charge_to_mesh()
+    // otherwise inner_region charge would be counted N_of_proc times.
+    // way to avoid: gather charge from particle at separate array, then transfer
+    // to spat_mesh.charge_density. 
+    add_charge_from_charged_inner_regions(); 
     
     return;
+}
+
+void Domain::add_charge_from_charged_inner_regions()
+{
+    // todo: move funtion to spat_mesh or somewhere else.    
+    int i,j,k;
+    for( auto &region : charged_inner_regions.regions ){
+	for( auto &inner_node : region.inner_nodes_not_at_domain_edge ){
+	    i = inner_node.x;
+	    j = inner_node.y;
+	    k = inner_node.z;
+	    spat_mesh.charge_density[i][j][k] += region.charge_density;
+	}
+    }
 }
 
 void Domain::eval_potential_and_fields()
@@ -324,6 +346,7 @@ void Domain::eval_and_write_fields_without_particles( Config &conf )
     herr_t status;
 
     spat_mesh.clear_old_density_values();
+    add_charge_from_charged_inner_regions();
     eval_potential_and_fields();
 
     std::string output_filename_prefix = 
