@@ -240,37 +240,127 @@ std::vector<PetscInt> Field_solver::adjacent_nodes_not_at_domain_edge_and_inside
     return resulting_global_indices;
 }
 
-void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d, int nx, int ny, int nz,
-					  PetscInt rstart, PetscInt rend )
-{    
+
+void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d,
+			        int nx, int ny, int nz,
+			        PetscInt rstart, PetscInt rend )
+{
     PetscErrorCode ierr;
-    Mat d2dx2_2d;
-    int nrow_2d = ( nx - 2 ) * ( ny - 2 );
-    int ncol_2d = nrow_2d;
-    PetscInt nonzero_per_row_2d = 5; // approx
+    //int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    //int ncol = nrow;
+    int at_boundary_pattern_size = 2;
+    int no_boundaries_pattern_size = 3;
+    PetscScalar at_left_boundary_pattern[at_boundary_pattern_size];
+    PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
+    PetscScalar at_right_boundary_pattern[at_boundary_pattern_size];
+    PetscInt cols[ no_boundaries_pattern_size ]; 
+    at_left_boundary_pattern[0] = -2.0;
+    at_left_boundary_pattern[1] = 1.0;
+    no_boundaries_pattern[0] = 1.0;
+    no_boundaries_pattern[1] = -2.0;
+    no_boundaries_pattern[2] = 1.0;
+    at_right_boundary_pattern[0] = 1.0;
+    at_right_boundary_pattern[1] = -2.0;
 
-    alloc_petsc_matrix_seqaij( &d2dx2_2d, nrow_2d, ncol_2d, nonzero_per_row_2d );
-    construct_d2dx2_in_2d( &d2dx2_2d, nx, ny );
-    multiply_pattern_along_diagonal( d2dx2_3d, &d2dx2_2d, (nx-2)*(ny-2), nz-2, rstart, rend );
-    ierr = MatDestroy( &d2dx2_2d ); CHKERRXX( ierr );
-
+    int i, j, k;
+    for( int row_idx = rstart; row_idx < rend; row_idx++ ) {
+	global_index_in_matrix_to_node_ijk( row_idx, &i, &j, &k, nx, ny, nz );
+	if ( i == 1 ) {
+	    // left boundary
+	    cols[0] = row_idx;
+	    cols[1] = row_idx + 1;
+	    ierr = MatSetValues( *d2dx2_3d,
+				 1, &row_idx,
+				 at_boundary_pattern_size, cols,
+				 at_left_boundary_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	} else if ( i == nx - 2 ) {
+	    // right boundary
+	    cols[0] = row_idx - 1;
+	    cols[1] = row_idx;
+	    ierr = MatSetValues( *d2dx2_3d,
+				 1, &row_idx,
+				 at_boundary_pattern_size, cols,
+				 at_right_boundary_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	} else {
+	    // center
+	    cols[0] = row_idx - 1;
+	    cols[1] = row_idx;
+	    cols[2] = row_idx + 1;
+	    ierr = MatSetValues( *d2dx2_3d,
+				 1, &row_idx,
+				 no_boundaries_pattern_size, cols, 
+				 no_boundaries_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	}
+	//printf( "d2dx2 loop: i = %d \n", i );
+    }		
+    
+    ierr = MatAssemblyBegin( *d2dx2_3d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
+    ierr = MatAssemblyEnd( *d2dx2_3d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
     return;
 }
 
-void Field_solver::construct_d2dy2_in_3d( Mat *d2dy2_3d, int nx, int ny, int nz,
-					  PetscInt rstart, PetscInt rend )
+
+void Field_solver::construct_d2dy2_in_3d( Mat *d2dy2_3d,
+			        int nx, int ny, int nz,
+			        PetscInt rstart, PetscInt rend )
 {
     PetscErrorCode ierr;
-    Mat d2dy2_2d;
-    int nrow_2d = ( nx - 2 ) * ( ny - 2 );
-    int ncol_2d = nrow_2d;
-    PetscInt nonzero_per_row_2d = 5; // approx
-
-    alloc_petsc_matrix_seqaij( &d2dy2_2d, nrow_2d, ncol_2d, nonzero_per_row_2d );
-    construct_d2dy2_in_2d( &d2dy2_2d, nx, ny );
-    multiply_pattern_along_diagonal( d2dy2_3d, &d2dy2_2d, (nx-2)*(ny-2), nz-2, rstart, rend );
-    ierr = MatDestroy( &d2dy2_2d ); CHKERRXX( ierr );
-
+    //int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    //int ncol = nrow;
+    int at_boundary_pattern_size = 2;
+    int no_boundaries_pattern_size = 3;
+    PetscScalar at_top_boundary_pattern[at_boundary_pattern_size];
+    PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
+    PetscScalar at_bottom_boundary_pattern[at_boundary_pattern_size];
+    PetscInt cols[ no_boundaries_pattern_size ];
+    at_bottom_boundary_pattern[0] = -2.0;
+    at_bottom_boundary_pattern[1] = 1.0;
+    no_boundaries_pattern[0] = 1.0;
+    no_boundaries_pattern[1] = -2.0;
+    no_boundaries_pattern[2] = 1.0;
+    at_top_boundary_pattern[0] = 1.0;
+    at_top_boundary_pattern[1] = -2.0;
+  
+    int i, j, k;
+    for( int row_idx = rstart; row_idx < rend; row_idx++ ) {
+	global_index_in_matrix_to_node_ijk( row_idx, &i, &j, &k, nx, ny, nz );
+	if ( j == 1 ) {
+	    // bottom boundary
+	    cols[0] = row_idx;
+	    cols[1] = row_idx + ( nx - 2 );
+	    ierr = MatSetValues( *d2dy2_3d,
+				 1, &row_idx,
+				 at_boundary_pattern_size, cols,
+				 at_bottom_boundary_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	} else if ( j == ny - 2 ) {
+	    // top boundary
+	    cols[0] = row_idx - ( nx - 2 );
+	    cols[1] = row_idx;
+	    ierr = MatSetValues( *d2dy2_3d,
+				 1, &row_idx,
+				 at_boundary_pattern_size, cols,
+				 at_top_boundary_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	} else {
+	    // center
+	    cols[0] = row_idx - ( nx - 2 );
+	    cols[1] = row_idx;
+	    cols[2] = row_idx + ( nx - 2 );
+	    ierr = MatSetValues( *d2dy2_3d,
+				 1, &row_idx,
+				 no_boundaries_pattern_size, cols, 
+				 no_boundaries_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	}
+	//printf( "d2dx2 loop: i = %d \n", i );
+    }		
+    
+    ierr = MatAssemblyBegin( *d2dy2_3d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
+    ierr = MatAssemblyEnd( *d2dy2_3d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
     return;
 }
 
@@ -331,158 +421,6 @@ void Field_solver::construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz,
     return;
 }
 
-
-void Field_solver::multiply_pattern_along_diagonal( Mat *result, Mat *pattern, int pattern_size, int n_times,
-						    PetscInt rstart, PetscInt rend )
-{
-    PetscErrorCode ierr;    
-    //int result_nrow = pattern_size * n_times;
-    //int result_ncol = result_nrow;
-    int pattern_i;
-    // int pattern_j;
-    PetscInt pattern_nonzero_cols_number;
-    const PetscInt *pattern_nonzero_cols;
-    const PetscScalar *pattern_nonzero_vals;
-    
-    for( int i = rstart; i < rend; i++ ) {
-	pattern_i = i%pattern_size;
-	ierr = MatGetRow( *pattern,
-			  pattern_i, &pattern_nonzero_cols_number, &pattern_nonzero_cols,
-			  &pattern_nonzero_vals); CHKERRXX( ierr );
-
-	std::vector<PetscInt> result_nonzero_cols(pattern_nonzero_cols_number);
-
-	for( int t = 0; t < pattern_nonzero_cols_number; t++  ){
-	    result_nonzero_cols[t] = pattern_nonzero_cols[t] + ( i / pattern_size ) * pattern_size;
-	}
-
-	ierr = MatSetValues( *result,
-			     1, &i,
-			     pattern_nonzero_cols_number, &result_nonzero_cols[0],
-			     pattern_nonzero_vals, INSERT_VALUES); CHKERRXX( ierr );
-	MatRestoreRow( *pattern,
-		       pattern_i, &pattern_nonzero_cols_number, &pattern_nonzero_cols,
-		       &pattern_nonzero_vals ); CHKERRXX( ierr );
-    }
-
-    ierr = MatAssemblyBegin( *result, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    ierr = MatAssemblyEnd( *result, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    
-    return;
-}
-
-
-void Field_solver::construct_d2dx2_in_2d( Mat *d2dx2_2d, int nx, int ny )
-{
-    PetscErrorCode ierr;
-    int nrow = ( nx - 2 ) * ( ny - 2 );
-    //int ncol = nrow;
-    const int at_boundary_pattern_size = 2;
-    const int no_boundaries_pattern_size = 3;
-    PetscScalar at_left_boundary_pattern[at_boundary_pattern_size];
-    PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
-    PetscScalar at_right_boundary_pattern[at_boundary_pattern_size];
-    PetscInt cols[ no_boundaries_pattern_size ]; 
-    at_left_boundary_pattern[0] = -2.0;
-    at_left_boundary_pattern[1] = 1.0;
-    no_boundaries_pattern[0] = 1.0;
-    no_boundaries_pattern[1] = -2.0;
-    no_boundaries_pattern[2] = 1.0;
-    at_right_boundary_pattern[0] = 1.0;
-    at_right_boundary_pattern[1] = -2.0;
-    
-    for( int i = 0; i < nrow; i++ ) {	
-	if ( (i + 1) % ( nx - 2 ) == 1 ) {
-	    // left boundary
-	    cols[0] = i;
-	    cols[1] = i+1;
-	    ierr = MatSetValues( *d2dx2_2d,
-				 1, &i,
-				 at_boundary_pattern_size, cols,
-				 at_left_boundary_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	} else if ( (i + 1) % ( nx - 2 ) == 0 ) {
-	    // right boundary
-	    cols[0] = i-1;
-	    cols[1] = i;
-	    ierr = MatSetValues( *d2dx2_2d,
-				 1, &i,
-				 at_boundary_pattern_size, cols,
-				 at_right_boundary_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	} else {
-	    // center
-	    cols[0] = i-1;
-	    cols[1] = i;
-	    cols[2] = i+1;
-	    ierr = MatSetValues( *d2dx2_2d,
-				 1, &i,
-				 no_boundaries_pattern_size, cols, 
-				 no_boundaries_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	}
-    }		
-    
-    ierr = MatAssemblyBegin( *d2dx2_2d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    ierr = MatAssemblyEnd( *d2dx2_2d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    return;
-}
-
-void Field_solver::construct_d2dy2_in_2d( Mat *d2dy2_2d, int nx, int ny )
-{
-    PetscErrorCode ierr;    
-    int nrow = ( nx - 2 ) * ( ny - 2 );
-    //int ncol = nrow;
-    const int at_boundary_pattern_size = 2;
-    const int no_boundaries_pattern_size = 3;
-    PetscScalar at_top_boundary_pattern[at_boundary_pattern_size];
-    PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
-    PetscScalar at_bottom_boundary_pattern[at_boundary_pattern_size];
-    PetscInt cols[ no_boundaries_pattern_size ]; 
-    at_bottom_boundary_pattern[0] = -2.0;
-    at_bottom_boundary_pattern[1] = 1.0;
-    no_boundaries_pattern[0] = 1.0;
-    no_boundaries_pattern[1] = -2.0;
-    no_boundaries_pattern[2] = 1.0;
-    at_top_boundary_pattern[0] = 1.0;
-    at_top_boundary_pattern[1] = -2.0;
-  
-    for( int i = 0; i < nrow; i++ ) {	
-	if ( i < nx - 2 ) {
-	    // bottom boundary
-	    cols[0] = i;
-	    cols[1] = i + ( nx - 2 );
-	    ierr = MatSetValues( *d2dy2_2d,
-				 1, &i,
-				 at_boundary_pattern_size, cols,
-				 at_bottom_boundary_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	} else if ( i >= ( nx - 2 ) * ( ny - 3 ) ) {
-	    // top boundary
-	    cols[0] = i - ( nx - 2 );
-	    cols[1] = i;
-	    ierr = MatSetValues( *d2dy2_2d,
-				 1, &i,
-				 at_boundary_pattern_size, cols,
-				 at_top_boundary_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	} else {
-	    // center
-	    cols[0] = i - ( nx - 2 );
-	    cols[1] = i;
-	    cols[2] = i + ( nx - 2 );
-	    ierr = MatSetValues( *d2dy2_2d,
-				 1, &i,
-				 no_boundaries_pattern_size, cols, 
-				 no_boundaries_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	}
-    }		
-    
-    ierr = MatAssemblyBegin( *d2dy2_2d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    ierr = MatAssemblyEnd( *d2dy2_2d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    return;
-}
 
 void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A )
 {

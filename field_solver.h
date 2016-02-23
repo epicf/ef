@@ -63,10 +63,6 @@ class Field_solver {
     void construct_d2dx2_in_3d( Mat *d2dx2_3d, int nx, int ny, int nz, PetscInt rstart, PetscInt rend );
     void construct_d2dy2_in_3d( Mat *d2dy2_3d, int nx, int ny, int nz, PetscInt rstart, PetscInt rend );
     void construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz, PetscInt rstart, PetscInt rend );
-    void multiply_pattern_along_diagonal( Mat *result, Mat *pattern, int pattern_size, int n_times,
-					  PetscInt rstart, PetscInt rend );
-    void construct_d2dx2_in_2d( Mat *d2dx2, int nx, int ny );
-    void construct_d2dy2_in_2d( Mat *d2dy2, int nx, int ny );
     // Solve potential
     void solve_poisson_eqn( Spatial_mesh &spat_mesh,
 			    Inner_regions_manager &inner_regions ); 
