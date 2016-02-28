@@ -385,6 +385,7 @@ void Domain::eval_and_write_fields_without_particles( Config &conf )
     }
     
     spat_mesh.write_to_file( output_file );
+    inner_regions.write_to_file( output_file );
 
     status = H5Pclose( plist_id ); hdf5_status_check( status );
     status = H5Fclose( output_file ); hdf5_status_check( status );

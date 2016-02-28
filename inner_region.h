@@ -27,6 +27,7 @@
 class Inner_region{
 public:
     std::string name;
+    std::string object_type;
     double potential;
     int total_absorbed_particles;
     double total_absorbed_charge;
@@ -67,7 +68,7 @@ public:
 	    node.print();
     };
     // Write to file
-    void write_to_file( hid_t regions_group_id );
+    virtual void write_to_file( hid_t regions_group_id );
     void hdf5_status_check( herr_t status );
 
 private:
@@ -105,6 +106,7 @@ private:
     virtual void check_correctness_of_related_config_fields( Config &conf,
 							     Inner_region_box_config_part &inner_region_box_conf );
     virtual void get_values_from_config( Inner_region_box_config_part &inner_region_box_conf );
+    virtual void write_to_file( hid_t regions_group_id );
 };
 
 
@@ -132,6 +134,7 @@ private:
     virtual void check_correctness_of_related_config_fields( Config &conf,
 							     Inner_region_sphere_config_part &inner_region_sphere_conf );
     virtual void get_values_from_config( Inner_region_sphere_config_part &inner_region_sphere_conf );
+    virtual void write_to_file( hid_t regions_group_id );
 };
 
 

@@ -126,6 +126,9 @@ void Inner_region::write_to_file( hid_t regions_group_id )
     current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
 					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     hdf5_status_check( current_region_group_id );
+
+    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
+				       "object_type", object_type.c_str() );
     
     status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
 				       "potential", &potential, single_element ); hdf5_status_check( status );
@@ -168,6 +171,7 @@ Inner_region_box::Inner_region_box( Config &conf,
 {
     check_correctness_of_related_config_fields( conf, inner_region_box_conf );
     get_values_from_config( inner_region_box_conf );
+    object_type = "box";
     total_absorbed_particles = 0;
     total_absorbed_charge = 0;
     absorbed_particles_current_timestep_current_proc = 0;
@@ -208,6 +212,68 @@ bool Inner_region_box::check_if_point_inside( double x, double y, double z )
 }
 
 
+void Inner_region_box::write_to_file( hid_t regions_group_id )
+{
+    hid_t current_region_group_id;
+    herr_t status;
+    int single_element = 1;
+    std::string current_region_groupname = name;
+    
+    current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
+					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hdf5_status_check( current_region_group_id );
+
+    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
+				       "object_type", object_type.c_str() );
+    
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "potential", &potential, single_element ); hdf5_status_check( status );
+
+    status = H5LTset_attribute_int( regions_group_id, current_region_groupname.c_str(),
+				    "total_absorbed_particles", &total_absorbed_particles, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "total_absorbed_charge", &total_absorbed_charge, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "x_left", &x_left, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "x_right", &x_right, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "y_bottom", &y_bottom, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "y_top", &y_top, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "z_near", &z_near, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "z_far", &z_far, single_element );
+    hdf5_status_check( status );
+    
+    status = H5Gclose(current_region_group_id); hdf5_status_check( status );
+    return;
+    
+    // todo: separate functions
+    // write_hdf5_absorbed_charge( group_id, region_name );
+
+    // todo: call Inner_region::write_to_file()
+    // to write common properties.
+    // then write rest of parameters
+    // write_hdf5_region_parameters( group_id, region_name );
+}
+
+
 
 // Sphere
 
@@ -217,6 +283,7 @@ Inner_region_sphere::Inner_region_sphere( Config &conf,
 {
     check_correctness_of_related_config_fields( conf, inner_region_sphere_conf );
     get_values_from_config( inner_region_sphere_conf );
+    object_type = "sphere";
     total_absorbed_particles = 0;
     total_absorbed_charge = 0;
     absorbed_particles_current_timestep_current_proc = 0;
@@ -255,6 +322,61 @@ bool Inner_region_sphere::check_if_point_inside( double x, double y, double z )
 }
 
 
+void Inner_region_sphere::write_to_file( hid_t regions_group_id )
+{
+    hid_t current_region_group_id;
+    herr_t status;
+    int single_element = 1;
+    std::string current_region_groupname = name;
+    
+    current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
+					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hdf5_status_check( current_region_group_id );
+
+    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
+				       "object_type", object_type.c_str() );
+    
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "potential", &potential, single_element ); hdf5_status_check( status );
+
+    status = H5LTset_attribute_int( regions_group_id, current_region_groupname.c_str(),
+				    "total_absorbed_particles", &total_absorbed_particles, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "total_absorbed_charge", &total_absorbed_charge, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "origin_x", &origin_x, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "origin_y", &origin_y, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "origin_z", &origin_z, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "radius", &radius, single_element );
+    hdf5_status_check( status );
+    
+    status = H5Gclose(current_region_group_id); hdf5_status_check( status );
+    return;
+    
+    // todo: separate functions
+    // write_hdf5_absorbed_charge( group_id, region_name );
+
+    // todo: call Inner_region::write_to_file()
+    // to write common properties.
+    // then write rest of parameters
+    // write_hdf5_region_parameters( group_id, region_name );
+}
+
+
+
 // Step model
 
 Inner_region_STEP::Inner_region_STEP( Config &conf,
@@ -263,6 +385,7 @@ Inner_region_STEP::Inner_region_STEP( Config &conf,
 {
     check_correctness_of_related_config_fields( conf, inner_region_STEP_conf );
     get_values_from_config( inner_region_STEP_conf );
+    object_type = "STEP";
     total_absorbed_particles = 0;
     total_absorbed_charge = 0;
     absorbed_particles_current_timestep_current_proc = 0;
