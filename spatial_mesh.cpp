@@ -8,7 +8,6 @@ Spatial_mesh::Spatial_mesh( Config &conf )
     init_z_grid( conf );
     allocate_ongrid_values();
     fill_node_coordinates();
-    set_boundary_conditions( conf );
 }
 
 
@@ -96,50 +95,6 @@ void Spatial_mesh::clear_old_density_values()
     std::fill( charge_density.data(),
 	       charge_density.data() + charge_density.num_elements(),
 	       0.0 );
-
-    return;
-}
-
-
-void Spatial_mesh::set_boundary_conditions( Config &conf )
-{
-    set_boundary_conditions( conf.boundary_config_part.boundary_phi_left, 
-			     conf.boundary_config_part.boundary_phi_right,
-			     conf.boundary_config_part.boundary_phi_top, 
-			     conf.boundary_config_part.boundary_phi_bottom,
-			     conf.boundary_config_part.boundary_phi_near, 
-			     conf.boundary_config_part.boundary_phi_far );
-}
-
-
-void Spatial_mesh::set_boundary_conditions( const double phi_left, const double phi_right,
-					    const double phi_top, const double phi_bottom,
-					    const double phi_near, const double phi_far )
-{
-    int nx = x_n_nodes;
-    int ny = y_n_nodes;
-    int nz = z_n_nodes;    	
-
-    for ( int i = 0; i < nx; i++ ) {
-	for ( int k = 0; k < nz; k++ ) {
-	    potential[i][0][k] = phi_bottom;
-	    potential[i][ny-1][k] = phi_top;
-	}
-    }
-    
-    for ( int j = 0; j < ny; j++ ) {
-	for ( int k = 0; k < nz; k++ ) {
-	    potential[0][j][k] = phi_left;
-	    potential[nx-1][j][k] = phi_right;
-	}
-    }
-
-    for ( int i = 0; i < nx; i++ ) {
-	for ( int j = 0; j < ny; j++ ) {
-	    potential[i][j][0] = phi_near;
-	    potential[i][j][nz-1] = phi_far;
-	}
-    }
 
     return;
 }

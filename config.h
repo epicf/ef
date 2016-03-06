@@ -284,35 +284,6 @@ public:
     }
 };
 
-class Boundary_config_part {
-public:
-    double boundary_phi_left;
-    double boundary_phi_right;
-    double boundary_phi_bottom;
-    double boundary_phi_top;
-    double boundary_phi_near;
-    double boundary_phi_far;
-public:
-    Boundary_config_part(){};
-    Boundary_config_part( boost::property_tree::ptree &ptree ) :
-	boundary_phi_left( ptree.get<double>("boundary_phi_left") ),
-	boundary_phi_right( ptree.get<double>("boundary_phi_right") ),
-	boundary_phi_bottom( ptree.get<double>("boundary_phi_bottom") ),
-	boundary_phi_top( ptree.get<double>("boundary_phi_top") ),
-	boundary_phi_near( ptree.get<double>("boundary_phi_near") ),
-	boundary_phi_far( ptree.get<double>("boundary_phi_far") )
-	{} ;
-    virtual ~Boundary_config_part() {};
-    void print() {
-	std::cout << "boundary_phi_left = " << boundary_phi_left << std::endl;
-	std::cout << "boundary_phi_right = " << boundary_phi_right << std::endl;
-	std::cout << "boundary_phi_bottom = " << boundary_phi_bottom << std::endl;
-	std::cout << "boundary_phi_top = " << boundary_phi_top << std::endl;
-	std::cout << "boundary_phi_near = " << boundary_phi_near << std::endl;
-	std::cout << "boundary_phi_far = " << boundary_phi_far << std::endl;
-    }
-};
-
 class External_magnetic_field_config_part {
 public:
     double magnetic_field_x;
@@ -360,7 +331,6 @@ public:
     std::vector<Source_config_part> sources_config_part;
     boost::ptr_vector<Inner_region_config_part> inner_regions_config_part;
     boost::ptr_vector<Charged_inner_region_config_part> charged_inner_regions_config_part;
-    Boundary_config_part boundary_config_part;
     External_magnetic_field_config_part external_magnetic_field_config_part;
     Output_filename_config_part output_filename_config_part;
 public:
@@ -379,7 +349,6 @@ public:
 	for ( auto &cir : charged_inner_regions_config_part ) {
 	    cir.print();
 	}
-	boundary_config_part.print();
 	output_filename_config_part.print();
 	external_magnetic_field_config_part.print();
 	std::cout << "======" << std::endl;

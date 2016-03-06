@@ -1,0 +1,35 @@
+rm( list=ls() )
+library(rhdf5)
+library(ggplot2)
+
+#file <- "out_noparticles_prll_fieldsWithoutParticles.h5"
+file <- "out_noparticles_diffMatrixCreation_prll_fieldsWithoutParticles.h5"
+potential <- h5read( file, "/Spatial_mesh/node_coordinates" )
+potential$phi <- h5read( file, "/Spatial_mesh/potential" )
+
+spherical_potential <- function( x, y, z ){
+    x0 <- 5.0
+    y0 <- 5.0
+    z0 <- 5.0
+    r <- 0.203
+    phi0 <- 300
+    dist <- sqrt( (x - x0) * (x - x0) + (y - y0) * (y - y0) + (z - z0) * (z - z0) )
+    potential <- ifelse( dist <= r, phi0 , phi0 * r / dist )
+    return( potential )
+}
+
+potential$an <- spherical_potential( potential$vec_x, potential$vec_y, potential$vec_z )
+
+
+line_along_z_idx <- ( potential$vec_x == 5.0 ) & ( potential$vec_y == 5.0 )
+line_along_z<- potential[ line_along_z_idx, ]
+
+#plot( line_along_z$vec_z, line_along_z$phi )
+#lines( line_along_z$vec_z, line_along_z$an, add=T )
+
+g <- ggplot( line_along_z, aes(vec_z) )
+g <- g + geom_point( aes( y=phi, colour="num" ), )
+g <- g + geom_line( aes( y=an, colour="an" ) )
+g <- g + xlab("Z")
+g <- g + labs( title = "potential along z" )
+g

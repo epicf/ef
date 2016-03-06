@@ -30,7 +30,6 @@ class Field_solver {
 			     PetscInt nrow_local, PetscInt ncol_local,
 			     PetscInt nrow, PetscInt ncol,
 			     PetscInt nonzero_per_row );
-    void alloc_petsc_matrix_seqaij( Mat *A, PetscInt nrow, PetscInt ncol, PetscInt nonzero_per_row );
     void construct_equation_matrix( Mat *A,
 				    Spatial_mesh &spat_mesh,				    
 				    Inner_regions_manager &inner_regions,

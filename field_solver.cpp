@@ -6,7 +6,7 @@ Field_solver::Field_solver( Spatial_mesh &spat_mesh,
     int nx = spat_mesh.x_n_nodes;
     int ny = spat_mesh.y_n_nodes;
     int nz = spat_mesh.z_n_nodes;
-    PetscInt nrows = (nx-2)*(ny-2)*(nz-2);
+    PetscInt nrows = nx * ny * nz;
     PetscInt ncols = nrows;
 
     PetscErrorCode ierr;
@@ -67,16 +67,6 @@ void Field_solver::alloc_petsc_matrix( Mat *A,
     return;
 }
 
-void Field_solver::alloc_petsc_matrix_seqaij( Mat *A, PetscInt nrow,
-					      PetscInt ncol, PetscInt nonzero_per_row )
-{
-    PetscErrorCode ierr;
-    ierr = MatCreateSeqAIJ( PETSC_COMM_SELF, nrow, ncol,
-    			    nonzero_per_row, NULL,  A ); CHKERRXX( ierr );
-    ierr = MatSetUp( *A ); CHKERRXX( ierr );
-    return;
-}
-
 
 void Field_solver::construct_equation_matrix( Mat *A,
 					      Spatial_mesh &spat_mesh,
@@ -103,7 +93,7 @@ void Field_solver::construct_equation_matrix_in_full_domain( Mat *A,
 {
     PetscErrorCode ierr;
     Mat d2dy2, d2dz2;
-    int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    int nrow = nx * ny * nz;
     int ncol = nrow;
     PetscInt nonzero_per_row = 7; // approx
 
@@ -246,7 +236,7 @@ void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d,
 			        PetscInt rstart, PetscInt rend )
 {
     PetscErrorCode ierr;
-    //int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    //int nrow = nx * ny * nz;
     //int ncol = nrow;
     int at_boundary_pattern_size = 2;
     int no_boundaries_pattern_size = 3;
@@ -255,17 +245,17 @@ void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d,
     PetscScalar at_right_boundary_pattern[at_boundary_pattern_size];
     PetscInt cols[ no_boundaries_pattern_size ]; 
     at_left_boundary_pattern[0] = -2.0;
-    at_left_boundary_pattern[1] = 1.0;
+    at_left_boundary_pattern[1] = 2.0;
     no_boundaries_pattern[0] = 1.0;
     no_boundaries_pattern[1] = -2.0;
     no_boundaries_pattern[2] = 1.0;
-    at_right_boundary_pattern[0] = 1.0;
+    at_right_boundary_pattern[0] = 2.0;
     at_right_boundary_pattern[1] = -2.0;
 
     int i, j, k;
     for( int row_idx = rstart; row_idx < rend; row_idx++ ) {
 	global_index_in_matrix_to_node_ijk( row_idx, &i, &j, &k, nx, ny, nz );
-	if ( i == 1 ) {
+	if ( i == 0 ) {
 	    // left boundary
 	    cols[0] = row_idx;
 	    cols[1] = row_idx + 1;
@@ -274,7 +264,7 @@ void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d,
 				 at_boundary_pattern_size, cols,
 				 at_left_boundary_pattern, INSERT_VALUES );
 	    CHKERRXX( ierr );
-	} else if ( i == nx - 2 ) {
+	} else if ( i == nx - 1 ) {
 	    // right boundary
 	    cols[0] = row_idx - 1;
 	    cols[1] = row_idx;
@@ -294,7 +284,6 @@ void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d,
 				 no_boundaries_pattern, INSERT_VALUES );
 	    CHKERRXX( ierr );
 	}
-	//printf( "d2dx2 loop: i = %d \n", i );
     }		
     
     ierr = MatAssemblyBegin( *d2dx2_3d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
@@ -308,7 +297,7 @@ void Field_solver::construct_d2dy2_in_3d( Mat *d2dy2_3d,
 			        PetscInt rstart, PetscInt rend )
 {
     PetscErrorCode ierr;
-    //int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    //int nrow = nx * ny * nz;
     //int ncol = nrow;
     int at_boundary_pattern_size = 2;
     int no_boundaries_pattern_size = 3;
@@ -317,28 +306,28 @@ void Field_solver::construct_d2dy2_in_3d( Mat *d2dy2_3d,
     PetscScalar at_bottom_boundary_pattern[at_boundary_pattern_size];
     PetscInt cols[ no_boundaries_pattern_size ];
     at_bottom_boundary_pattern[0] = -2.0;
-    at_bottom_boundary_pattern[1] = 1.0;
+    at_bottom_boundary_pattern[1] = 2.0;
     no_boundaries_pattern[0] = 1.0;
     no_boundaries_pattern[1] = -2.0;
     no_boundaries_pattern[2] = 1.0;
-    at_top_boundary_pattern[0] = 1.0;
+    at_top_boundary_pattern[0] = 2.0;
     at_top_boundary_pattern[1] = -2.0;
   
     int i, j, k;
     for( int row_idx = rstart; row_idx < rend; row_idx++ ) {
 	global_index_in_matrix_to_node_ijk( row_idx, &i, &j, &k, nx, ny, nz );
-	if ( j == 1 ) {
+	if ( j == 0 ) {
 	    // bottom boundary
 	    cols[0] = row_idx;
-	    cols[1] = row_idx + ( nx - 2 );
+	    cols[1] = row_idx + nx;
 	    ierr = MatSetValues( *d2dy2_3d,
 				 1, &row_idx,
 				 at_boundary_pattern_size, cols,
 				 at_bottom_boundary_pattern, INSERT_VALUES );
 	    CHKERRXX( ierr );
-	} else if ( j == ny - 2 ) {
+	} else if ( j == ny - 1 ) {
 	    // top boundary
-	    cols[0] = row_idx - ( nx - 2 );
+	    cols[0] = row_idx - nx;
 	    cols[1] = row_idx;
 	    ierr = MatSetValues( *d2dy2_3d,
 				 1, &row_idx,
@@ -347,16 +336,15 @@ void Field_solver::construct_d2dy2_in_3d( Mat *d2dy2_3d,
 	    CHKERRXX( ierr );
 	} else {
 	    // center
-	    cols[0] = row_idx - ( nx - 2 );
+	    cols[0] = row_idx - nx;
 	    cols[1] = row_idx;
-	    cols[2] = row_idx + ( nx - 2 );
+	    cols[2] = row_idx + nx;
 	    ierr = MatSetValues( *d2dy2_3d,
 				 1, &row_idx,
 				 no_boundaries_pattern_size, cols, 
 				 no_boundaries_pattern, INSERT_VALUES );
 	    CHKERRXX( ierr );
 	}
-	//printf( "d2dx2 loop: i = %d \n", i );
     }		
     
     ierr = MatAssemblyBegin( *d2dy2_3d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
@@ -368,7 +356,7 @@ void Field_solver::construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz,
 					  PetscInt rstart, PetscInt rend )
 {
     PetscErrorCode ierr;    
-    //int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    //int nrow = nx * ny * nz;
     //int ncol = nrow;
     const int at_boundary_pattern_size = 2;
     const int no_boundaries_pattern_size = 3;
@@ -377,39 +365,41 @@ void Field_solver::construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz,
     PetscScalar at_far_boundary_pattern[at_boundary_pattern_size];
     PetscInt cols[ no_boundaries_pattern_size ]; 
     at_near_boundary_pattern[0] = -2.0;
-    at_near_boundary_pattern[1] = 1.0;
+    at_near_boundary_pattern[1] = 2.0;
     no_boundaries_pattern[0] = 1.0;
     no_boundaries_pattern[1] = -2.0;
     no_boundaries_pattern[2] = 1.0;
-    at_far_boundary_pattern[0] = 1.0;
+    at_far_boundary_pattern[0] = 2.0;
     at_far_boundary_pattern[1] = -2.0;
   
-    for( int i = rstart; i < rend; i++ ) {	
-	if ( i < ( nx - 2 ) * ( ny - 2 ) ) {
+    int i, j, k;
+    for( int row_idx = rstart; row_idx < rend; row_idx++ ) {
+	global_index_in_matrix_to_node_ijk( row_idx, &i, &j, &k, nx, ny, nz );
+	if ( k == 0 ) {
 	    // near boundary
-	    cols[0] = i;
-	    cols[1] = i + ( nx - 2 ) * ( ny - 2 );
+	    cols[0] = row_idx;
+	    cols[1] = row_idx + nx * ny;
 	    ierr = MatSetValues( *d2dz2_3d,
-				 1, &i,
+				 1, &row_idx,
 				 at_boundary_pattern_size, cols,
 				 at_near_boundary_pattern, INSERT_VALUES );
 	    CHKERRXX( ierr );
-	} else if ( i >= ( nx - 2 ) * ( ny - 2 ) * ( nz - 3 ) ) {
+	} else if ( k == nz - 1 ) {
 	    // far boundary
-	    cols[0] = i - ( nx - 2 ) * ( ny - 2 );
-	    cols[1] = i;
+	    cols[0] = row_idx - nx * ny;
+	    cols[1] = row_idx;
 	    ierr = MatSetValues( *d2dz2_3d,
-				 1, &i,
+				 1, &row_idx,
 				 at_boundary_pattern_size, cols,
 				 at_far_boundary_pattern, INSERT_VALUES );
 	    CHKERRXX( ierr );
 	} else {
 	    // center
-	    cols[0] = i - ( nx - 2 ) * ( ny - 2 );
-	    cols[1] = i;
-	    cols[2] = i + ( nx - 2 ) * ( ny - 2 );
+	    cols[0] = row_idx - nx * ny;
+	    cols[1] = row_idx;
+	    cols[2] = row_idx + nx * ny;
 	    ierr = MatSetValues( *d2dz2_3d,
-				 1, &i,
+				 1, &row_idx,
 				 no_boundaries_pattern_size, cols, 
 				 no_boundaries_pattern, INSERT_VALUES );
 	    CHKERRXX( ierr );
@@ -497,27 +487,12 @@ void Field_solver::init_rhs_vector_in_full_domain( Spatial_mesh &spat_mesh )
 
     // todo: split into separate functions
     // start processing rho from the near top left corner
-    for ( int k = 1; k <= nz-2; k++ ) {
-	for ( int j = 1; j <= ny-2; j++ ) { 
-	    for ( int i = 1; i <= nx-2; i++ ) {
-		// - 4 * pi * rho * dx^2 * dy^2
+    for ( int k = 0; k <= nz-1; k++ ) {
+	for ( int j = 0; j <= ny-1; j++ ) { 
+	    for ( int i = 0; i <= nx-1; i++ ) {
+		// - 4 * pi * rho * dx^2 * dy^2 * dz^2
 		rhs_at_node = -4.0 * M_PI * spat_mesh.charge_density[i][j][k];
 		rhs_at_node = rhs_at_node * dx * dx * dy * dy * dz * dz;
-		// left and right boundary
-		rhs_at_node = rhs_at_node
-		    - dy * dy * dz * dz *
-		    ( kronecker_delta(i,1) * spat_mesh.potential[0][j][k] +
-		      kronecker_delta(i,nx-2) * spat_mesh.potential[nx-1][j][k] );
-		// top and bottom boundary
-		rhs_at_node = rhs_at_node
-		    - dx * dx * dz * dz *
-		    ( kronecker_delta(j,1) * spat_mesh.potential[i][0][k] +
-		      kronecker_delta(j,ny-2) * spat_mesh.potential[i][ny-1][k] );
-		// near and far boundary
-		rhs_at_node = rhs_at_node
-		    - dx * dx * dy * dy *
-		    ( kronecker_delta(k,1) * spat_mesh.potential[i][j][0] +
-		      kronecker_delta(k,nz-2) * spat_mesh.potential[i][j][nz-1] );
 		// set rhs vector values
 		ierr = VecSetValue( rhs,
 				    node_ijk_to_global_index_in_matrix( i, j, k, nx, ny, nz ),
@@ -580,7 +555,6 @@ void Field_solver::modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh,
     int nx = spat_mesh.x_n_nodes;
     int ny = spat_mesh.y_n_nodes;
     int nz = spat_mesh.z_n_nodes;
-    //int nrow = (nx-2)*(ny-2);
     double dx = spat_mesh.x_cell_size;
     double dy = spat_mesh.y_cell_size;
     double dz = spat_mesh.z_cell_size;
@@ -728,14 +702,14 @@ int Field_solver::node_ijk_to_global_index_in_matrix( int i, int j, int k,
     //   then along X axis to the right
     //   then along Y axis to the top
     //   then along Z axis far
-    if ( ( i <= 0 ) || ( i >= nx-1 ) ||
-	 ( j <= 0 ) || ( j >= ny-1 ) ||
-	 ( k <= 0 ) || ( k >= nz-1 ) ) {
+    if ( ( i < 0 ) || ( i > nx-1 ) ||
+	 ( j < 0 ) || ( j > ny-1 ) ||
+	 ( k < 0 ) || ( k > nz-1 ) ) {
 	printf("incorrect index at node_ijk_to_global_index_in_matrix: i = %d, j=%d, k=%d \n", i,j,k);
 	printf("this is not supposed to happen; aborting \n");
 	exit( EXIT_FAILURE );
     } else {
-	return (i - 1) + (j - 1) * ( nx - 2 ) + ( k - 1 ) * ( nx - 2 ) * ( ny - 2 );
+	return i + j * nx + k * nx * ny;
     }    
 }
 
@@ -743,12 +717,12 @@ void Field_solver::global_index_in_matrix_to_node_ijk( int global_index,
 						       int *i, int *j, int *k,
 						       int nx, int ny, int nz )
 {
-    // global_index = (i - 1) + (j - 1) * ( nx - 2 ) + ( k - 1 ) * ( nx - 2 ) * ( ny - 2 );
+    // global_index = i + j * nx + k * nx * ny;
     int i_and_j_part;
-    *k = global_index / ( ( nx - 2 ) * ( ny - 2 ) ) + 1;
-    i_and_j_part = global_index % ( ( nx - 2 ) * ( ny - 2 ) );
-    *j = i_and_j_part / ( nx - 2 ) + 1;
-    *i = i_and_j_part % ( nx - 2 ) + 1;
+    *k = global_index / ( nx * ny );
+    i_and_j_part = global_index % ( nx * ny );
+    *j = i_and_j_part / nx;
+    *i = i_and_j_part % nx;
     //todo: remove test
     // if( node_ijk_to_global_index_in_matrix( *i, *j, *k, nx, ny, nz ) != global_index ){
     // 	printf( "mistake in global_index_in_matrix_to_node_ijk; aborting" );

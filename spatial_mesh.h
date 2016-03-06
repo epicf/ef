@@ -25,7 +25,6 @@ class Spatial_mesh {
   public:
     Spatial_mesh( Config &conf );
     void clear_old_density_values();
-    void set_boundary_conditions( Config &conf );
     void print();
     void write_to_file( hid_t hdf5_file_id );
     virtual ~Spatial_mesh();
@@ -40,9 +39,6 @@ class Spatial_mesh {
     void init_z_grid( Config &conf );
     void allocate_ongrid_values();
     void fill_node_coordinates();
-    void set_boundary_conditions( const double phi_left, const double phi_right,
-				  const double phi_top, const double phi_bottom,
-				  const double phi_near, const double phi_far );
     // print
     void print_grid();
     void print_ongrid_values();
