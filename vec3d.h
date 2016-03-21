@@ -2,6 +2,8 @@
 #define _VEC_H_
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <hdf5.h>
 
 typedef struct {
     double x[3];
@@ -19,5 +21,8 @@ double vec3d_dot_product( Vec3d v1, Vec3d v2 );
 Vec3d vec3d_cross_product( Vec3d v1, Vec3d v2 );
 Vec3d vec3d_times_scalar( Vec3d v, double a );
 void vec3d_print( Vec3d v );
+hid_t vec3d_hdf5_compound_type_for_memory();
+hid_t vec3d_hdf5_compound_type_for_file();
+void vec3d_hdf5_status_check( herr_t status );
 
 #endif /* _VEC_H_ */

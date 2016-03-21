@@ -143,38 +143,40 @@ void Field_solver::cross_out_nodes_occupied_by_objects( Mat *A,
     PetscInt num_of_rows_to_remove = occupied_nodes_global_indices.size();
     if( num_of_rows_to_remove != 0 ){
 	PetscInt *rows_global_indices = &occupied_nodes_global_indices[0];
-	PetscScalar diag = 1.0;	
-	Vec phi_inside_region, rhs_inside_region; /* Approx solution and RHS at zeroed rows */
-	phi_inside_region = rhs_inside_region = NULL;
+	PetscScalar diag = 1.0;
+	/* Approx solution and RHS at zeroed rows */
+	inner_region.phi_inside_region = NULL;
+	inner_region.rhs_inside_region = NULL;
 
 	// looks like setting phi_inside_region and
 	// rhs_inside_region has no effect	
 	
 	// todo: separate function
 	// std::string vec_name = "Phi inside " + inner_region.name;
-	// alloc_petsc_vector( &phi_inside_region,
+	// alloc_petsc_vector( &inner_region.phi_inside_region,
 	// 		    (nx-2) * (ny-2) * (nz-2),
 	// 		    vec_name.c_str() );
-	// VecSet( phi_inside_region, inner_region.potential );    
-	// ierr = VecAssemblyBegin( phi_inside_region ); CHKERRXX( ierr );
-	// ierr = VecAssemblyEnd( phi_inside_region ); CHKERRXX( ierr );
+	// VecSet( inner_region.phi_inside_region, inner_region.potential );    
+	// ierr = VecAssemblyBegin( inner_region.phi_inside_region ); CHKERRXX( ierr );
+	// ierr = VecAssemblyEnd( inner_region.phi_inside_region ); CHKERRXX( ierr );
 
 	// todo: separate function
 	// vec_name = "RHS inside " + inner_region.name;
 	// PetscScalar charge_density_inside_conductor = 0.0;
-	// alloc_petsc_vector( &rhs_inside_region,
+	// alloc_petsc_vector( &inner_region.rhs_inside_region,
 	// 		    (nx-2) * (ny-2) * (nz-2),
 	// 		    vec_name.c_str() );
-	// VecSet( rhs_inside_region, charge_density_inside_conductor );    
-	// ierr = VecAssemblyBegin( rhs_inside_region ); CHKERRXX( ierr );
-	// ierr = VecAssemblyEnd( rhs_inside_region ); CHKERRXX( ierr );
+	// VecSet( inner_region.rhs_inside_region, charge_density_inside_conductor );    
+	// ierr = VecAssemblyBegin( inner_region.rhs_inside_region ); CHKERRXX( ierr );
+	// ierr = VecAssemblyEnd( inner_region.rhs_inside_region ); CHKERRXX( ierr );
 	
 	ierr = MatZeroRows( *A, num_of_rows_to_remove, rows_global_indices,
-			    diag, phi_inside_region, rhs_inside_region); CHKERRXX( ierr );
+			    diag,
+			    inner_region.phi_inside_region,
+			    inner_region.rhs_inside_region); CHKERRXX( ierr );
 
-	// ierr = VecDestroy( &phi_inside_region ); CHKERRXX( ierr );
-	// ierr = VecDestroy( &rhs_inside_region ); CHKERRXX( ierr );
-	// todo: without vecdestroy call there is memory leak	
+	// VecDestroy for phi_inside_region and rhs_inside_region
+	// should be called in inner_region destructor.
     }
 }
 
@@ -238,37 +240,127 @@ std::vector<PetscInt> Field_solver::adjacent_nodes_not_at_domain_edge_and_inside
     return resulting_global_indices;
 }
 
-void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d, int nx, int ny, int nz,
-					  PetscInt rstart, PetscInt rend )
-{    
+
+void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d,
+			        int nx, int ny, int nz,
+			        PetscInt rstart, PetscInt rend )
+{
     PetscErrorCode ierr;
-    Mat d2dx2_2d;
-    int nrow_2d = ( nx - 2 ) * ( ny - 2 );
-    int ncol_2d = nrow_2d;
-    PetscInt nonzero_per_row_2d = 5; // approx
+    //int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    //int ncol = nrow;
+    int at_boundary_pattern_size = 2;
+    int no_boundaries_pattern_size = 3;
+    PetscScalar at_left_boundary_pattern[at_boundary_pattern_size];
+    PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
+    PetscScalar at_right_boundary_pattern[at_boundary_pattern_size];
+    PetscInt cols[ no_boundaries_pattern_size ]; 
+    at_left_boundary_pattern[0] = -2.0;
+    at_left_boundary_pattern[1] = 1.0;
+    no_boundaries_pattern[0] = 1.0;
+    no_boundaries_pattern[1] = -2.0;
+    no_boundaries_pattern[2] = 1.0;
+    at_right_boundary_pattern[0] = 1.0;
+    at_right_boundary_pattern[1] = -2.0;
 
-    alloc_petsc_matrix_seqaij( &d2dx2_2d, nrow_2d, ncol_2d, nonzero_per_row_2d );
-    construct_d2dx2_in_2d( &d2dx2_2d, nx, ny );
-    multiply_pattern_along_diagonal( d2dx2_3d, &d2dx2_2d, (nx-2)*(ny-2), nz-2, rstart, rend );
-    ierr = MatDestroy( &d2dx2_2d ); CHKERRXX( ierr );
-
+    int i, j, k;
+    for( int row_idx = rstart; row_idx < rend; row_idx++ ) {
+	global_index_in_matrix_to_node_ijk( row_idx, &i, &j, &k, nx, ny, nz );
+	if ( i == 1 ) {
+	    // left boundary
+	    cols[0] = row_idx;
+	    cols[1] = row_idx + 1;
+	    ierr = MatSetValues( *d2dx2_3d,
+				 1, &row_idx,
+				 at_boundary_pattern_size, cols,
+				 at_left_boundary_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	} else if ( i == nx - 2 ) {
+	    // right boundary
+	    cols[0] = row_idx - 1;
+	    cols[1] = row_idx;
+	    ierr = MatSetValues( *d2dx2_3d,
+				 1, &row_idx,
+				 at_boundary_pattern_size, cols,
+				 at_right_boundary_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	} else {
+	    // center
+	    cols[0] = row_idx - 1;
+	    cols[1] = row_idx;
+	    cols[2] = row_idx + 1;
+	    ierr = MatSetValues( *d2dx2_3d,
+				 1, &row_idx,
+				 no_boundaries_pattern_size, cols, 
+				 no_boundaries_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	}
+	//printf( "d2dx2 loop: i = %d \n", i );
+    }		
+    
+    ierr = MatAssemblyBegin( *d2dx2_3d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
+    ierr = MatAssemblyEnd( *d2dx2_3d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
     return;
 }
 
-void Field_solver::construct_d2dy2_in_3d( Mat *d2dy2_3d, int nx, int ny, int nz,
-					  PetscInt rstart, PetscInt rend )
+
+void Field_solver::construct_d2dy2_in_3d( Mat *d2dy2_3d,
+			        int nx, int ny, int nz,
+			        PetscInt rstart, PetscInt rend )
 {
     PetscErrorCode ierr;
-    Mat d2dy2_2d;
-    int nrow_2d = ( nx - 2 ) * ( ny - 2 );
-    int ncol_2d = nrow_2d;
-    PetscInt nonzero_per_row_2d = 5; // approx
-
-    alloc_petsc_matrix_seqaij( &d2dy2_2d, nrow_2d, ncol_2d, nonzero_per_row_2d );
-    construct_d2dy2_in_2d( &d2dy2_2d, nx, ny );
-    multiply_pattern_along_diagonal( d2dy2_3d, &d2dy2_2d, (nx-2)*(ny-2), nz-2, rstart, rend );
-    ierr = MatDestroy( &d2dy2_2d ); CHKERRXX( ierr );
-
+    //int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    //int ncol = nrow;
+    int at_boundary_pattern_size = 2;
+    int no_boundaries_pattern_size = 3;
+    PetscScalar at_top_boundary_pattern[at_boundary_pattern_size];
+    PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
+    PetscScalar at_bottom_boundary_pattern[at_boundary_pattern_size];
+    PetscInt cols[ no_boundaries_pattern_size ];
+    at_bottom_boundary_pattern[0] = -2.0;
+    at_bottom_boundary_pattern[1] = 1.0;
+    no_boundaries_pattern[0] = 1.0;
+    no_boundaries_pattern[1] = -2.0;
+    no_boundaries_pattern[2] = 1.0;
+    at_top_boundary_pattern[0] = 1.0;
+    at_top_boundary_pattern[1] = -2.0;
+  
+    int i, j, k;
+    for( int row_idx = rstart; row_idx < rend; row_idx++ ) {
+	global_index_in_matrix_to_node_ijk( row_idx, &i, &j, &k, nx, ny, nz );
+	if ( j == 1 ) {
+	    // bottom boundary
+	    cols[0] = row_idx;
+	    cols[1] = row_idx + ( nx - 2 );
+	    ierr = MatSetValues( *d2dy2_3d,
+				 1, &row_idx,
+				 at_boundary_pattern_size, cols,
+				 at_bottom_boundary_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	} else if ( j == ny - 2 ) {
+	    // top boundary
+	    cols[0] = row_idx - ( nx - 2 );
+	    cols[1] = row_idx;
+	    ierr = MatSetValues( *d2dy2_3d,
+				 1, &row_idx,
+				 at_boundary_pattern_size, cols,
+				 at_top_boundary_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	} else {
+	    // center
+	    cols[0] = row_idx - ( nx - 2 );
+	    cols[1] = row_idx;
+	    cols[2] = row_idx + ( nx - 2 );
+	    ierr = MatSetValues( *d2dy2_3d,
+				 1, &row_idx,
+				 no_boundaries_pattern_size, cols, 
+				 no_boundaries_pattern, INSERT_VALUES );
+	    CHKERRXX( ierr );
+	}
+	//printf( "d2dx2 loop: i = %d \n", i );
+    }		
+    
+    ierr = MatAssemblyBegin( *d2dy2_3d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
+    ierr = MatAssemblyEnd( *d2dy2_3d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
     return;
 }
 
@@ -330,158 +422,6 @@ void Field_solver::construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz,
 }
 
 
-void Field_solver::multiply_pattern_along_diagonal( Mat *result, Mat *pattern, int pattern_size, int n_times,
-						    PetscInt rstart, PetscInt rend )
-{
-    PetscErrorCode ierr;    
-    //int result_nrow = pattern_size * n_times;
-    //int result_ncol = result_nrow;
-    int pattern_i;
-    // int pattern_j;
-    PetscInt pattern_nonzero_cols_number;
-    const PetscInt *pattern_nonzero_cols;
-    const PetscScalar *pattern_nonzero_vals;
-    
-    for( int i = rstart; i < rend; i++ ) {
-	pattern_i = i%pattern_size;
-	ierr = MatGetRow( *pattern,
-			  pattern_i, &pattern_nonzero_cols_number, &pattern_nonzero_cols,
-			  &pattern_nonzero_vals); CHKERRXX( ierr );
-
-	std::vector<PetscInt> result_nonzero_cols(pattern_nonzero_cols_number);
-
-	for( int t = 0; t < pattern_nonzero_cols_number; t++  ){
-	    result_nonzero_cols[t] = pattern_nonzero_cols[t] + ( i / pattern_size ) * pattern_size;
-	}
-
-	ierr = MatSetValues( *result,
-			     1, &i,
-			     pattern_nonzero_cols_number, &result_nonzero_cols[0],
-			     pattern_nonzero_vals, INSERT_VALUES); CHKERRXX( ierr );
-	MatRestoreRow( *pattern,
-		       pattern_i, &pattern_nonzero_cols_number, &pattern_nonzero_cols,
-		       &pattern_nonzero_vals ); CHKERRXX( ierr );
-    }
-
-    ierr = MatAssemblyBegin( *result, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    ierr = MatAssemblyEnd( *result, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    
-    return;
-}
-
-
-void Field_solver::construct_d2dx2_in_2d( Mat *d2dx2_2d, int nx, int ny )
-{
-    PetscErrorCode ierr;
-    int nrow = ( nx - 2 ) * ( ny - 2 );
-    //int ncol = nrow;
-    const int at_boundary_pattern_size = 2;
-    const int no_boundaries_pattern_size = 3;
-    PetscScalar at_left_boundary_pattern[at_boundary_pattern_size];
-    PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
-    PetscScalar at_right_boundary_pattern[at_boundary_pattern_size];
-    PetscInt cols[ no_boundaries_pattern_size ]; 
-    at_left_boundary_pattern[0] = -2.0;
-    at_left_boundary_pattern[1] = 1.0;
-    no_boundaries_pattern[0] = 1.0;
-    no_boundaries_pattern[1] = -2.0;
-    no_boundaries_pattern[2] = 1.0;
-    at_right_boundary_pattern[0] = 1.0;
-    at_right_boundary_pattern[1] = -2.0;
-    
-    for( int i = 0; i < nrow; i++ ) {	
-	if ( (i + 1) % ( nx - 2 ) == 1 ) {
-	    // left boundary
-	    cols[0] = i;
-	    cols[1] = i+1;
-	    ierr = MatSetValues( *d2dx2_2d,
-				 1, &i,
-				 at_boundary_pattern_size, cols,
-				 at_left_boundary_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	} else if ( (i + 1) % ( nx - 2 ) == 0 ) {
-	    // right boundary
-	    cols[0] = i-1;
-	    cols[1] = i;
-	    ierr = MatSetValues( *d2dx2_2d,
-				 1, &i,
-				 at_boundary_pattern_size, cols,
-				 at_right_boundary_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	} else {
-	    // center
-	    cols[0] = i-1;
-	    cols[1] = i;
-	    cols[2] = i+1;
-	    ierr = MatSetValues( *d2dx2_2d,
-				 1, &i,
-				 no_boundaries_pattern_size, cols, 
-				 no_boundaries_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	}
-    }		
-    
-    ierr = MatAssemblyBegin( *d2dx2_2d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    ierr = MatAssemblyEnd( *d2dx2_2d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    return;
-}
-
-void Field_solver::construct_d2dy2_in_2d( Mat *d2dy2_2d, int nx, int ny )
-{
-    PetscErrorCode ierr;    
-    int nrow = ( nx - 2 ) * ( ny - 2 );
-    //int ncol = nrow;
-    const int at_boundary_pattern_size = 2;
-    const int no_boundaries_pattern_size = 3;
-    PetscScalar at_top_boundary_pattern[at_boundary_pattern_size];
-    PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
-    PetscScalar at_bottom_boundary_pattern[at_boundary_pattern_size];
-    PetscInt cols[ no_boundaries_pattern_size ]; 
-    at_bottom_boundary_pattern[0] = -2.0;
-    at_bottom_boundary_pattern[1] = 1.0;
-    no_boundaries_pattern[0] = 1.0;
-    no_boundaries_pattern[1] = -2.0;
-    no_boundaries_pattern[2] = 1.0;
-    at_top_boundary_pattern[0] = 1.0;
-    at_top_boundary_pattern[1] = -2.0;
-  
-    for( int i = 0; i < nrow; i++ ) {	
-	if ( i < nx - 2 ) {
-	    // bottom boundary
-	    cols[0] = i;
-	    cols[1] = i + ( nx - 2 );
-	    ierr = MatSetValues( *d2dy2_2d,
-				 1, &i,
-				 at_boundary_pattern_size, cols,
-				 at_bottom_boundary_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	} else if ( i >= ( nx - 2 ) * ( ny - 3 ) ) {
-	    // top boundary
-	    cols[0] = i - ( nx - 2 );
-	    cols[1] = i;
-	    ierr = MatSetValues( *d2dy2_2d,
-				 1, &i,
-				 at_boundary_pattern_size, cols,
-				 at_top_boundary_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	} else {
-	    // center
-	    cols[0] = i - ( nx - 2 );
-	    cols[1] = i;
-	    cols[2] = i + ( nx - 2 );
-	    ierr = MatSetValues( *d2dy2_2d,
-				 1, &i,
-				 no_boundaries_pattern_size, cols, 
-				 no_boundaries_pattern, INSERT_VALUES );
-	    CHKERRXX( ierr );
-	}
-    }		
-    
-    ierr = MatAssemblyBegin( *d2dy2_2d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    ierr = MatAssemblyEnd( *d2dy2_2d, MAT_FINAL_ASSEMBLY ); CHKERRXX( ierr );
-    return;
-}
-
 void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A )
 {
     PetscReal rtol = 1.e-12;
@@ -534,7 +474,11 @@ void Field_solver::init_rhs_vector( Spatial_mesh &spat_mesh,
 				    Inner_regions_manager &inner_regions )
 {
     init_rhs_vector_in_full_domain( spat_mesh );
+
+    // This should be done in 'cross_out_nodes_occupied_by_objects' by
+    // MatZeroRows function but it seems it doesn't work
     set_rhs_at_nodes_occupied_by_objects( spat_mesh, inner_regions );
+
     modify_rhs_near_object_boundaries( spat_mesh, inner_regions );
 }
 
@@ -611,7 +555,7 @@ void Field_solver::set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh
     PetscInt num_of_elements = indices_of_inner_nodes_not_at_domain_edge.size();
     if( num_of_elements != 0 ){
 	PetscInt *global_indices = &indices_of_inner_nodes_not_at_domain_edge[0];
-	std::vector<PetscScalar> zeroes(num_of_elements, 0.0);
+	std::vector<PetscScalar> zeroes( num_of_elements, 0.0 );
     
 	ierr = VecSetValues( rhs, num_of_elements, global_indices, &zeroes[0], INSERT_VALUES );
 	CHKERRXX( ierr );
@@ -656,6 +600,10 @@ void Field_solver::modify_rhs_near_object_boundaries( Spatial_mesh &spat_mesh,
     if( number_of_elements != 0 ){
 	PetscInt *indices = &indices_of_nodes_near_boundaries[0];
 	PetscScalar *values = &rhs_modification_for_nodes_near_boundaries[0];
+	// ADD_VALUES gathers values from all processes.
+	// Therefore, only a single process
+	// should be responsible for calculation of rhs_modification
+	// for a given node.
 	ierr = VecSetValues( rhs, number_of_elements,
 			     indices, values, ADD_VALUES ); CHKERRXX( ierr );
 	CHKERRXX( ierr );
@@ -676,29 +624,38 @@ void Field_solver::indicies_of_near_boundary_nodes_and_rhs_modifications(
     int max_possible_nodes_where_to_modify_rhs = inner_region.near_boundary_nodes_not_at_domain_edge.size();
     indices_of_nodes_near_boundaries.reserve( max_possible_nodes_where_to_modify_rhs );
     rhs_modification_for_nodes_near_boundaries.reserve( max_possible_nodes_where_to_modify_rhs );
+
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
     
     for( auto &node : inner_region.near_boundary_nodes_not_at_domain_edge ){
 	PetscScalar rhs_mod = 0.0;
-	for( auto &adj_node : node.adjacent_nodes() ){
-	    // possible todo: separate function for rhs_mod evaluation?
-	    if( !adj_node.at_domain_edge( nx, ny, nz ) &&
-		inner_region.check_if_node_inside( adj_node, dx, dy, dz ) ){
-		if( adj_node.left_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dy * dy * dz * dz;
-		} else if( adj_node.right_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dy * dy * dz * dz;
-		} else if( adj_node.top_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dx * dx * dz * dz;
-		} else if( adj_node.bottom_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dx * dx * dz * dz;
-		} else if( adj_node.near_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dx * dx * dy * dy;
-		} else if( adj_node.far_from( node ) ) {
-		    rhs_mod += -inner_region.potential * dx * dx * dy * dy;
+	// todo: parallelize instead of making one process
+	// to do all the work. 
+	if( mpi_process_rank == 0 ){
+	    for( auto &adj_node : node.adjacent_nodes() ){
+		// possible todo: separate function for rhs_mod evaluation?
+		if( !adj_node.at_domain_edge( nx, ny, nz ) &&
+		    inner_region.check_if_node_inside( adj_node, dx, dy, dz ) ){
+		    if( adj_node.left_from( node ) ) {
+			rhs_mod += -inner_region.potential * dy * dy * dz * dz;
+		    } else if( adj_node.right_from( node ) ) {
+			rhs_mod += -inner_region.potential * dy * dy * dz * dz;
+		    } else if( adj_node.top_from( node ) ) {
+			rhs_mod += -inner_region.potential * dx * dx * dz * dz;
+		    } else if( adj_node.bottom_from( node ) ) {
+			rhs_mod += -inner_region.potential * dx * dx * dz * dz;
+		    } else if( adj_node.near_from( node ) ) {
+			rhs_mod += -inner_region.potential * dx * dx * dy * dy;
+		    } else if( adj_node.far_from( node ) ) {
+			rhs_mod += -inner_region.potential * dx * dx * dy * dy;
+		    }
 		}
 	    }
 	}
-	indices_of_nodes_near_boundaries.push_back( node_global_index_in_matrix( node, nx, ny, nz ) );
+	indices_of_nodes_near_boundaries.push_back(
+	    node_global_index_in_matrix( node, nx, ny, nz ) );
 	rhs_modification_for_nodes_near_boundaries.push_back( rhs_mod );
     }
 }

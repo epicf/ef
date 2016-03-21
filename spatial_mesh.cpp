@@ -7,6 +7,7 @@ Spatial_mesh::Spatial_mesh( Config &conf )
     init_y_grid( conf );
     init_z_grid( conf );
     allocate_ongrid_values();
+    fill_node_coordinates();
     set_boundary_conditions( conf );
 }
 
@@ -66,16 +67,28 @@ void Spatial_mesh::init_z_grid( Config &conf )
     return;
 }
 
-void Spatial_mesh::allocate_ongrid_values( )
+void Spatial_mesh::allocate_ongrid_values()
 {
     int nx = x_n_nodes;
     int ny = y_n_nodes;
     int nz = z_n_nodes;
+    node_coordinates.resize( boost::extents[nx][ny][nz] );
     charge_density.resize( boost::extents[nx][ny][nz] );
     potential.resize( boost::extents[nx][ny][nz] );
     electric_field.resize( boost::extents[nx][ny][nz] );
 
     return;
+}
+
+void Spatial_mesh::fill_node_coordinates()
+{
+    for ( int i = 0; i < x_n_nodes; i++ ) {
+	for ( int j = 0; j < y_n_nodes; j++ ) {
+	    for ( int k = 0; k < z_n_nodes; k++ ) {
+		node_coordinates[i][j][k] = vec3d_init( i * x_cell_size, j * y_cell_size, k * z_cell_size );
+	    }
+	}
+    }
 }
 
 void Spatial_mesh::clear_old_density_values()
@@ -181,43 +194,178 @@ void Spatial_mesh::print_ongrid_values()
     return;
 }
 
-void Spatial_mesh::write_to_file( std::ofstream &output_file )
+void Spatial_mesh::write_to_file( hid_t hdf5_file_id )
 {
-    int nx = x_n_nodes;
-    int ny = y_n_nodes;
-    int nz = z_n_nodes;
+    hid_t group_id;
+    herr_t status;
+    std::string hdf5_groupname = "/Spatial_mesh";
+    group_id = H5Gcreate( hdf5_file_id, hdf5_groupname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hdf5_status_check( group_id );
 
-    output_file << "### Grid" << std::endl;
-    output_file << "X volume size = " << x_volume_size << std::endl;
-    output_file << "Y volume size = " << y_volume_size << std::endl;
-    output_file << "Z volume size = " << z_volume_size << std::endl;
-    output_file << "X cell size = " << x_cell_size << std::endl;
-    output_file << "Y cell size = " << y_cell_size << std::endl;
-    output_file << "Z cell size = " << z_cell_size << std::endl;
-    output_file << "X nodes = " << x_n_nodes << std::endl;
-    output_file << "Y nodes = " << y_n_nodes << std::endl;
-    output_file << "Z nodes = " << z_n_nodes << std::endl;
-    output_file << "x_node, y_node, z_node, charge_density, potential, electric_field(x,y,z)" << std::endl;
-    output_file.fill(' ');
-    output_file.setf( std::ios::scientific );
-    output_file.precision( 2 );
-    output_file.setf( std::ios::right );
-    for ( int i = 0; i < nx; i++ ) {
-	for ( int j = 0; j < ny; j++ ) {
-	    for ( int k = 0; k < nz; k++ ) {
-		output_file << std::setw(8) << std::left << i 
-			    << std::setw(8) << std::left << j
-			    << std::setw(8) << std::left << k 
-			    << std::setw(14) << charge_density[i][j][k]
-			    << std::setw(14) << potential[i][j][k]
-			    << std::setw(14) << vec3d_x( electric_field[i][j][k] ) 
-			    << std::setw(14) << vec3d_y( electric_field[i][j][k] )
-			    << std::setw(14) << vec3d_z( electric_field[i][j][k] ) 
-			    << std::endl;
-	    }
-	}
-    }
+    write_hdf5_attributes( group_id );
+    write_hdf5_ongrid_values( group_id );
+        
+    status = H5Gclose(group_id); hdf5_status_check( status );
     return;
+}
+
+void Spatial_mesh::write_hdf5_attributes( hid_t group_id )
+{
+    herr_t status;
+    int single_element = 1;
+    std::string hdf5_current_group = "./";
+
+    status = H5LTset_attribute_double( group_id, hdf5_current_group.c_str(),
+			      "x_volume_size", &x_volume_size, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, hdf5_current_group.c_str(),
+			      "y_volume_size", &y_volume_size, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, hdf5_current_group.c_str(),
+			      "z_volume_size", &z_volume_size, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, hdf5_current_group.c_str(),
+			      "x_cell_size", &x_cell_size, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, hdf5_current_group.c_str(),
+			      "y_cell_size", &y_cell_size, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( group_id, hdf5_current_group.c_str(),
+			      "z_cell_size", &z_cell_size, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_int( group_id, hdf5_current_group.c_str(),
+			   "x_n_nodes", &x_n_nodes, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_int( group_id, hdf5_current_group.c_str(),
+			   "y_n_nodes", &y_n_nodes, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_int( group_id, hdf5_current_group.c_str(),
+			   "z_n_nodes", &z_n_nodes, single_element );
+    hdf5_status_check( status );
+}
+
+void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
+{   
+    hid_t filespace, memspace, dset;
+    hid_t compound_type_for_mem, compound_type_for_file; 
+    hid_t plist_id;
+    herr_t status;
+    int rank = 1;
+    hsize_t dims[rank], subset_dims[rank], subset_offset[rank];
+    dims[0] = node_coordinates.num_elements();
+    
+    compound_type_for_mem = vec3d_hdf5_compound_type_for_memory();
+    compound_type_for_file = vec3d_hdf5_compound_type_for_file();
+    plist_id = H5Pcreate( H5P_DATASET_XFER ); hdf5_status_check( plist_id );
+    status = H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE ); hdf5_status_check( status ); 
+    
+    subset_dims[0] = n_of_elements_to_write_for_each_process_for_1d_dataset( dims[0] );
+    subset_offset[0] = data_offset_for_each_process_for_1d_dataset( dims[0] );
+
+    // todo: remove
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+    // std::cout << "total = " << dims[0] << " "
+    // 	      << "proc_n = " << mpi_process_rank << " "
+    // 	      << "count = " << subset_dims[0] << " "
+    // 	      << "offset = " << subset_offset[0] << std::endl;
+    
+    memspace = H5Screate_simple( rank, subset_dims, NULL ); hdf5_status_check( memspace );
+    filespace = H5Screate_simple( rank, dims, NULL ); hdf5_status_check( filespace );
+    status = H5Sselect_hyperslab( filespace, H5S_SELECT_SET, subset_offset, NULL, subset_dims, NULL );
+    hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./node_coordinates",
+		      compound_type_for_file, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
+    status = H5Dwrite( dset, compound_type_for_mem,
+		       memspace, filespace, plist_id,
+		       ( node_coordinates.data() + subset_offset[0] ) ); hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./charge_density",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( charge_density.data() + subset_offset[0] ) ); hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./potential",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( potential.data() + subset_offset[0] ) ); hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./electric_field",
+		      compound_type_for_file, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
+    status = H5Dwrite( dset, compound_type_for_mem,
+		       memspace, filespace, plist_id,
+		       ( electric_field.data() + subset_offset[0] ) ); hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    // for testing
+    int *mpi_proc_ranks = new int[ dims[0] ];
+    for( unsigned int i = 0; i < dims[0]; i++ ){
+	mpi_proc_ranks[i] = mpi_process_rank;
+    }
+    dset = H5Dcreate( group_id, "./mpi_proc",
+		      H5T_STD_I32BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_INT,
+		       memspace, filespace, plist_id,
+		       ( mpi_proc_ranks + subset_offset[0] ) ); hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+    delete[] mpi_proc_ranks;
+    //
+    
+    status = H5Sclose( filespace ); hdf5_status_check( status );
+    status = H5Sclose( memspace ); hdf5_status_check( status );
+    status = H5Pclose( plist_id ); hdf5_status_check( status );
+    status = H5Tclose( compound_type_for_file ); hdf5_status_check( status );
+    status = H5Tclose( compound_type_for_mem );	hdf5_status_check( status );
+}
+
+int Spatial_mesh::n_of_elements_to_write_for_each_process_for_1d_dataset( int total_elements )
+{
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+
+    int n_of_elements_for_process = total_elements / mpi_n_of_proc;
+    int rest = total_elements % mpi_n_of_proc;
+    if( mpi_process_rank < rest ){
+	n_of_elements_for_process++;
+    }
+
+    return n_of_elements_for_process;
+}
+
+int Spatial_mesh::data_offset_for_each_process_for_1d_dataset( int total_elements )
+{
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
+
+    // todo: it is simpler to calclulate offset directly than
+    // to perform MPI broadcast of n_of_elements_for_each_proc. 
+    int offset;
+    int min_n_of_elements_for_process = total_elements / mpi_n_of_proc;
+    int max_n_of_elements_for_process = min_n_of_elements_for_process + 1;
+    int rest = total_elements % mpi_n_of_proc;
+
+    if( mpi_process_rank < rest ){
+	offset = mpi_process_rank * max_n_of_elements_for_process;
+    } else {
+	offset = rest * max_n_of_elements_for_process +
+	    ( mpi_process_rank - rest ) * min_n_of_elements_for_process;
+    }
+
+    return offset;
 }
 
 void Spatial_mesh::grid_x_size_gt_zero( Config &conf )
@@ -302,5 +450,13 @@ double Spatial_mesh::node_number_to_coordinate_z( int k )
     }
 }
 
+void Spatial_mesh::hdf5_status_check( herr_t status )
+{
+    if( status < 0 ){
+	std::cout << "Something went wrong while writing Spatial_mesh group. Aborting."
+		  << std::endl;
+	exit( EXIT_FAILURE );
+    }
+}
 
 Spatial_mesh::~Spatial_mesh() {}

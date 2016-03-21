@@ -8,6 +8,17 @@ bool Inner_region::check_if_particle_inside( Particle &p )
     return check_if_point_inside( px, py, pz );
 }
 
+bool Inner_region::check_if_particle_inside_and_count_charge( Particle &p )
+{
+    bool in_or_out;
+    in_or_out = check_if_particle_inside( p );
+    if( in_or_out ){
+	absorbed_particles_current_timestep_current_proc++;
+	absorbed_charge_current_timestep_current_proc += p.charge;
+    }
+    return in_or_out;
+}
+
 bool Inner_region::check_if_node_inside( Node_reference &node,
 					 double dx, double dy, double dz )
 {
@@ -90,7 +101,67 @@ void Inner_region::select_near_boundary_nodes_not_at_domain_edge( Spatial_mesh &
     }    
 }
 
+void Inner_region::sync_absorbed_charge_and_particles_across_proc()
+{
+    int single = 1;
 
+    MPI_Allreduce( MPI_IN_PLACE, &absorbed_particles_current_timestep_current_proc, single,
+		   MPI_INT, MPI_SUM, MPI_COMM_WORLD );
+    MPI_Allreduce( MPI_IN_PLACE, &absorbed_charge_current_timestep_current_proc, single,
+		   MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
+    
+    total_absorbed_charge += absorbed_charge_current_timestep_current_proc;
+    total_absorbed_particles += absorbed_particles_current_timestep_current_proc;   
+
+    absorbed_particles_current_timestep_current_proc = 0;
+    absorbed_charge_current_timestep_current_proc = 0;
+}
+
+void Inner_region::write_to_file( hid_t regions_group_id )
+{
+    hid_t current_region_group_id;
+    herr_t status;
+    int single_element = 1;
+    std::string current_region_groupname = name;
+    current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
+					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hdf5_status_check( current_region_group_id );
+
+    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
+				       "object_type", object_type.c_str() );
+    
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "potential", &potential, single_element ); hdf5_status_check( status );
+
+    status = H5LTset_attribute_int( regions_group_id, current_region_groupname.c_str(),
+				    "total_absorbed_particles", &total_absorbed_particles, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "total_absorbed_charge", &total_absorbed_charge, single_element );
+    hdf5_status_check( status );
+	
+    status = H5Gclose(current_region_group_id); hdf5_status_check( status );
+    return;
+
+    
+    // todo: separate functions
+    // write_hdf5_absorbed_charge( group_id, region_name );
+    
+    // todo: write rest of region parameters.
+    // this is region-type specific. 
+    // write_hdf5_region_parameters( group_id, region_name );
+}
+
+void Inner_region::hdf5_status_check( herr_t status )
+{
+    if( status < 0 ){
+	std::cout << "Something went wrong while writing Inner_region "
+		  << name << "."
+		  << "Aborting." << std::endl;
+	exit( EXIT_FAILURE );
+    }
+}
 
 // Box
 
@@ -100,6 +171,11 @@ Inner_region_box::Inner_region_box( Config &conf,
 {
     check_correctness_of_related_config_fields( conf, inner_region_box_conf );
     get_values_from_config( inner_region_box_conf );
+    object_type = "box";
+    total_absorbed_particles = 0;
+    total_absorbed_charge = 0;
+    absorbed_particles_current_timestep_current_proc = 0;
+    absorbed_charge_current_timestep_current_proc = 0;
     mark_inner_nodes( spat_mesh );
     select_inner_nodes_not_at_domain_edge( spat_mesh );
     mark_near_boundary_nodes( spat_mesh );
@@ -136,6 +212,68 @@ bool Inner_region_box::check_if_point_inside( double x, double y, double z )
 }
 
 
+void Inner_region_box::write_to_file( hid_t regions_group_id )
+{
+    hid_t current_region_group_id;
+    herr_t status;
+    int single_element = 1;
+    std::string current_region_groupname = name;
+    
+    current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
+					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hdf5_status_check( current_region_group_id );
+
+    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
+				       "object_type", object_type.c_str() );
+    
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "potential", &potential, single_element ); hdf5_status_check( status );
+
+    status = H5LTset_attribute_int( regions_group_id, current_region_groupname.c_str(),
+				    "total_absorbed_particles", &total_absorbed_particles, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "total_absorbed_charge", &total_absorbed_charge, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "x_left", &x_left, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "x_right", &x_right, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "y_bottom", &y_bottom, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "y_top", &y_top, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "z_near", &z_near, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "z_far", &z_far, single_element );
+    hdf5_status_check( status );
+    
+    status = H5Gclose(current_region_group_id); hdf5_status_check( status );
+    return;
+    
+    // todo: separate functions
+    // write_hdf5_absorbed_charge( group_id, region_name );
+
+    // todo: call Inner_region::write_to_file()
+    // to write common properties.
+    // then write rest of parameters
+    // write_hdf5_region_parameters( group_id, region_name );
+}
+
+
 
 // Sphere
 
@@ -145,6 +283,11 @@ Inner_region_sphere::Inner_region_sphere( Config &conf,
 {
     check_correctness_of_related_config_fields( conf, inner_region_sphere_conf );
     get_values_from_config( inner_region_sphere_conf );
+    object_type = "sphere";
+    total_absorbed_particles = 0;
+    total_absorbed_charge = 0;
+    absorbed_particles_current_timestep_current_proc = 0;
+    absorbed_charge_current_timestep_current_proc = 0;
     mark_inner_nodes( spat_mesh );
     select_inner_nodes_not_at_domain_edge( spat_mesh );
     mark_near_boundary_nodes( spat_mesh );
@@ -179,36 +322,96 @@ bool Inner_region_sphere::check_if_point_inside( double x, double y, double z )
 }
 
 
+void Inner_region_sphere::write_to_file( hid_t regions_group_id )
+{
+    hid_t current_region_group_id;
+    herr_t status;
+    int single_element = 1;
+    std::string current_region_groupname = name;
+    
+    current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
+					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hdf5_status_check( current_region_group_id );
+
+    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
+				       "object_type", object_type.c_str() );
+    
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "potential", &potential, single_element ); hdf5_status_check( status );
+
+    status = H5LTset_attribute_int( regions_group_id, current_region_groupname.c_str(),
+				    "total_absorbed_particles", &total_absorbed_particles, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "total_absorbed_charge", &total_absorbed_charge, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "origin_x", &origin_x, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "origin_y", &origin_y, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "origin_z", &origin_z, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "radius", &radius, single_element );
+    hdf5_status_check( status );
+    
+    status = H5Gclose(current_region_group_id); hdf5_status_check( status );
+    return;
+    
+    // todo: separate functions
+    // write_hdf5_absorbed_charge( group_id, region_name );
+
+    // todo: call Inner_region::write_to_file()
+    // to write common properties.
+    // then write rest of parameters
+    // write_hdf5_region_parameters( group_id, region_name );
+}
+
+
+
 // Step model
 
-Inner_region_with_model::Inner_region_with_model( Config &conf,
-						  Inner_region_with_model_config_part &inner_region_with_model_conf,
-						  Spatial_mesh &spat_mesh )
+Inner_region_STEP::Inner_region_STEP( Config &conf,
+				      Inner_region_STEP_config_part &inner_region_STEP_conf,
+				      Spatial_mesh &spat_mesh )
 {
-    check_correctness_of_related_config_fields( conf, inner_region_with_model_conf );
-    get_values_from_config( inner_region_with_model_conf );
+    check_correctness_of_related_config_fields( conf, inner_region_STEP_conf );
+    get_values_from_config( inner_region_STEP_conf );
+    object_type = "STEP";
+    total_absorbed_particles = 0;
+    total_absorbed_charge = 0;
+    absorbed_particles_current_timestep_current_proc = 0;
+    absorbed_charge_current_timestep_current_proc = 0;
     mark_inner_nodes( spat_mesh );
     select_inner_nodes_not_at_domain_edge( spat_mesh );
     mark_near_boundary_nodes( spat_mesh );
     select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
 }
 
-void Inner_region_with_model::check_correctness_of_related_config_fields(
+void Inner_region_STEP::check_correctness_of_related_config_fields(
     Config &conf,
-    Inner_region_with_model_config_part &inner_region_with_model_conf )
+    Inner_region_STEP_config_part &inner_region_STEP_conf )
 {
   // Check if file exists?   
 }
 
-void Inner_region_with_model::get_values_from_config( Inner_region_with_model_config_part &inner_region_with_model_conf )
+void Inner_region_STEP::get_values_from_config( Inner_region_STEP_config_part &inner_region_STEP_conf )
 {
-    name = inner_region_with_model_conf.inner_region_name;
-    potential = inner_region_with_model_conf.inner_region_potential;
-    read_geometry_file( inner_region_with_model_conf.inner_region_with_model_file );
+    name = inner_region_STEP_conf.inner_region_name;
+    potential = inner_region_STEP_conf.inner_region_potential;
+    read_geometry_file( inner_region_STEP_conf.inner_region_STEP_file );
 
 }
 
-void Inner_region_with_model::read_geometry_file( std::string filename )
+void Inner_region_STEP::read_geometry_file( std::string filename )
 {
   STEPControl_Reader reader;
   reader.ReadFile( filename.c_str() );
@@ -224,14 +427,14 @@ void Inner_region_with_model::read_geometry_file( std::string filename )
 
   geometry = reader.OneShape();
   if (geometry.IsNull() || geometry.ShapeType() != TopAbs_SOLID) {
-      std::cout << "Something wrong with model of inner_region_with_model: "
+      std::cout << "Something wrong with model of inner_region_STEP: "
   		<< name
   		<< std::endl;
       exit( EXIT_FAILURE );
   }
 }
 
-bool Inner_region_with_model::check_if_point_inside( double x, double y, double z )
+bool Inner_region_STEP::check_if_point_inside( double x, double y, double z )
 {
     gp_Pnt point(x, y, z);
     BRepClass3d_SolidClassifier solidClassifier( geometry, point, Precision::Confusion() );
@@ -252,7 +455,13 @@ bool Inner_region_with_model::check_if_point_inside( double x, double y, double 
     }
 }
 
-Inner_region_with_model::~Inner_region_with_model()
+Inner_region_STEP::~Inner_region_STEP()
 {
+    // PetscErrorCode ierr;
+    // ierr = VecDestroy( &phi_inside_region ); CHKERRXX( ierr );
+    // ierr = VecDestroy( &rhs_inside_region ); CHKERRXX( ierr );
     // todo
 }
+
+
+
