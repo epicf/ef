@@ -263,25 +263,35 @@ void Particle_source::write_hdf5_particles( hid_t group_id, std::string table_of
     // 	      << "count = " << subset_dims[0] << " "
     // 	      << "offset = " << subset_offset[0] << std::endl;
     //
+
+    // check is necessary for old hdf5 versions
+    if ( subset_dims[0] != 0 ){	
+	memspace = H5Screate_simple( rank, subset_dims, NULL ); hdf5_status_check( memspace );
+	filespace = H5Screate_simple( rank, dims, NULL ); hdf5_status_check( filespace );
+    } else {
+	hsize_t max_dims[rank];
+	max_dims[0] = H5S_UNLIMITED;
+	memspace = H5Screate_simple( rank, subset_dims, max_dims ); hdf5_status_check( memspace );
+	filespace = H5Screate_simple( rank, dims, NULL ); hdf5_status_check( filespace );
+    }
     
-    memspace = H5Screate_simple( rank, subset_dims, NULL ); hdf5_status_check( memspace );
-    filespace = H5Screate_simple( rank, dims, NULL ); hdf5_status_check( filespace );
     status = H5Sselect_hyperslab( filespace, H5S_SELECT_SET, subset_offset, NULL, subset_dims, NULL );
     hdf5_status_check( status );
     
     dset = H5Dcreate( group_id, ("./" + table_of_particles_name).c_str(),
-    		      compound_type_for_file, filespace,
-    		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
+		      compound_type_for_file, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
     status = H5Dwrite( dset, compound_type_for_mem,
-    		       memspace, filespace, plist_id, dst_buf ); hdf5_status_check( status );
+		       memspace, filespace, plist_id, dst_buf ); hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
 
     status = H5Sclose( filespace ); hdf5_status_check( status );
     status = H5Sclose( memspace ); hdf5_status_check( status );
     status = H5Pclose( plist_id ); hdf5_status_check( status );
     status = H5Tclose( compound_type_for_file ); hdf5_status_check( status );
-    status = H5Tclose( compound_type_for_mem );	hdf5_status_check( status );    
+    status = H5Tclose( compound_type_for_mem );	hdf5_status_check( status );
     delete[] dst_buf;
+    
 }
 
 int Particle_source::total_particles_across_all_processes()
