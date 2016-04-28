@@ -14,4 +14,4 @@
 *.png
 !doc/figs/*
 *.pdf
-
+TAGS
