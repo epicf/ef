@@ -68,10 +68,10 @@ def plot_potential( num ):
     cbar.ax.set_ylabel('Potential, [CGS]')
     plt.xlabel( "X [cm]" )
     plt.ylabel( "Z [cm]" )
-    plt.title('Potential at Y = y_size / 2 = {0}'.format( int( ( y_n_nodes - 1 ) / 2 ) * y_cell_size ) )
+    plt.title('Potential at Y = y_volume_size / 2 = {0}'.format( int( ( y_n_nodes - 1 ) / 2 ) * y_cell_size ) )
     #plt.show()    
-    #print( "Saving potential plot to 'potential.png'")
-    plt.savefig('potential.png')
+    print( "Saving potential plot to 'potential_fieldsWithoutParticles.png'")
+    plt.savefig('potential_fieldsWithoutParticles.png')
 
 def plot_fields( num ):
     plot_fields_quiver( num )
@@ -84,18 +84,17 @@ def plot_fields_quiver( num ):
     U = num['Ex'].reshape( ( x_n_nodes, z_n_nodes ) )
     V = num['Ez'].reshape( ( x_n_nodes, z_n_nodes ) )
     plt.figure()
-    Q = plt.quiver( X, Y, U, V,  )
+    Q = plt.quiver( X, Y, U, V, angles='xy' )
     qk = plt.quiverkey(Q, 0.9, 0.95, 5, 'Ex-Ez',
                        labelpos='E',
                        coordinates='figure',
                        fontproperties={'weight': 'bold'})
-    #cbar.ax.set_ylabel('Potential, [CGS]')
     plt.xlabel( "X [cm]" )
     plt.ylabel( "Z [cm]" )
-    plt.title('Ex, Ez at Y = y_size / 2 = {0}'.format( int( ( y_n_nodes - 1 ) / 2 ) * y_cell_size ) )
+    plt.title('Ex, Ez at Y = y_volume_size / 2 = {0}'.format( int( ( y_n_nodes - 1 ) / 2 ) * y_cell_size ) )
     #plt.show()    
-    #print( "Saving potential comparison to 'potential_along_z.png'")
-    plt.savefig('field_quiver.png')
+    print( "Saving electric field quiver plot to 'field_quiver_fieldsWithoutParticles.png'")
+    plt.savefig('field_quiver_fieldsWithoutParticles.png')
     
 def plot_fields_streamplot( num ):
     # todo: sort num before reshaping
@@ -107,10 +106,10 @@ def plot_fields_streamplot( num ):
     plt.streamplot(X, Y, U, V, color='r')
     plt.xlabel( "X [cm]" )
     plt.ylabel( "Z [cm]" )
-    plt.title('Ex, Ez at Y = y_size / 2 = {0}'.format( int( ( y_n_nodes - 1 ) / 2 ) * y_cell_size ) )
-    #plt.show()    
-    #print( "Saving potential comparison to 'potential_along_z.png'")
-    plt.savefig('field_streamplot.png')
+    plt.title('Ex, Ez at Y = y_volume_size / 2 = {0}'.format( int( ( y_n_nodes - 1 ) / 2 ) * y_cell_size ) )
+    #plt.show()
+    print( "Saving electric field streamplot to 'field_streamplot_fieldsWithoutParticles.png'")
+    plt.savefig('field_streamplot_fieldsWithoutParticles.png')
     
 main()
 
