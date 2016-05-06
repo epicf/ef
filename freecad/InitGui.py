@@ -6,55 +6,48 @@ class EpicfWorkbench (Workbench):
     Icon = """
         /* XPM */
         static const char *test_icon[]={ 
-       "16 16 2 1",
+        "16 16 2 1",
         "a c #000000",
         ". c None",
         "................",
         "................",
-        "..############..",
-        "..############..",
-        "..############..",
-        "......####......",
-        "......####......",
-        "......####......",
-        "......####......",
-        "......####......",
-        "......####......",
-        "......####......",
-        "......####......",
-        "......####......",
-        "................",
+        ".########.......",
+        ".########...###.",
+        ".########..##.##",
+        ".###.......##...",
+        ".###.......##...",
+        ".#######...##...",
+        ".#######.######.",
+        ".###.....######.",
+        ".###.......##...",
+        ".###.......##...",
+        ".########..##...",
+        ".########..##...",
+        ".########..##...",
         "................"};
         """
         
     def Initialize(self):
-        "This function is executed when FreeCAD starts"
-        # import here all the needed files that create your FreeCAD commands
+        "Executed when FreeCAD starts"
+        # import all FreeCAD commands defined by module
+        # and append them to Toolbar and Menu
         import Commands
-        # A list of command names created in the line above
-        self.cmd_list = [ "My_Command", "CreateEpicfConfig",
+        self.cmd_list = [ "CreateEpicfConfig",
                           "AddSourceRegion", "AddInnerRegionBox",
-                          "GenerateConfFile" ]
-        # creates a new toolbar with your commands
-        self.appendToolbar("Epicf commands", self.cmd_list) 
-        self.appendMenu("Epicf", self.cmd_list) # creates a new menu
-        # appends a submenu to an existing menu
-        #self.appendMenu(["An existing Menu","My submenu"], self.cmd_list) 
-        #Log ("Loading MyModule... done\n")
+                          "GenerateConfFile" ]        
+        self.appendToolbar( "Epicf commands", self.cmd_list )
+        self.appendMenu( "Epicf", self.cmd_list )
             
     def Activated(self):
-        "This function is executed when the workbench is activated"
-        FreeCAD.Console.PrintMessage('Hello, World!')
+        "Executed when the workbench is activated"        
         return
         
     def Deactivated(self):
-        "This function is executed when the workbench is deactivated"
-        FreeCAD.Console.PrintMessage('Bye, World!')
+        "Executed when the workbench is deactivated"        
         return
         
     def ContextMenu(self, recipient):
-        "This is executed whenever the user right-clicks on screen"
-        # "recipient" will be either "view" or "tree"
+        "Executed whenever the user right-clicks on screen"
         # add commands to the context menu
         self.appendContextMenu("Epicf", self.cmd_list) 
             

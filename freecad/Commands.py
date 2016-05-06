@@ -1,80 +1,45 @@
-import FreeCAD, FreeCADGui, Part
-from FreeCAD import Base
+import FreeCAD, FreeCADGui
 from pivy import coin
-
-import PySide
 from PySide import QtGui, QtCore
-from PySide.QtGui import *
-from PySide.QtCore import *
-
-class My_Command_Class():
-    """My new command"""
- 
-    def GetResources(self):
-        return {'Pixmap'  : 'My_Command_Icon',
-                # the name of a svg file available in the resources
-                'Accel' : "Shift+S", # a default shortcut (optional)
-                'MenuText': "My New Command",
-                'ToolTip' : "What my new command does"}
- 
-    def Activated(self):
-        "Do something here"
-        FreeCAD.Console.PrintMessage( "Can't touch me\n" )
-        return
- 
-    def IsActive(self):
-        """Here you can define if the command must 
-        be active or not (greyed) if certain conditions
-        are met or not. This function is optional."""
-        return True
-
-
 
 class CreateEpicfConfig():
-    """Create new epicf config"""
+    """Create objects for new epicf config"""
  
     def GetResources(self):
-        return {'Pixmap'  : 'My_Command_Icon',
+        return {'Pixmap'  : 'new_conf_icon',
                 # the name of a svg file available in the resources
                 'Accel' : "Shift+N", # a default shortcut (optional)
                 'MenuText': "New epicf config",
-                'ToolTip' : "Create New epicf config"}
+                'ToolTip' : "Create new epicf config"}
  
     def Activated(self):
-        self.epicf_conf_group = FreeCAD.ActiveDocument.addObject(
-            "App::DocumentObjectGroup", "Epicf conf" )
+        epicf_conf_group = FreeCAD.ActiveDocument.addObject(
+            "App::DocumentObjectGroup", "epicf_conf" )
 
-        self.time_grid_conf = self.epicf_conf_group.newObject(
+        time_grid_conf = epicf_conf_group.newObject(
             "App::FeaturePython", "Time grid" )
-        TimeGridConfigPart( self.time_grid_conf )
+        TimeGridConfigPart( time_grid_conf )
                 
-        self.outfile_conf = self.epicf_conf_group.newObject(
+        outfile_conf = epicf_conf_group.newObject(
             "App::FeaturePython", "Output filename")
-        OutputFilenameConfigPart( self.outfile_conf )
+        OutputFilenameConfigPart( outfile_conf )
         
-        self.spat_mesh_conf = self.epicf_conf_group.newObject(
+        spat_mesh_conf = epicf_conf_group.newObject(
             "App::FeaturePython", "Spatial mesh" )
-        # self.spat_mesh_conf = self.epicf_conf_group.newObject(
-        #     "Part::Feature", "Spatial mesh" )
-        SpatialMeshConfigPart( self.spat_mesh_conf )
+        SpatialMeshConfigPart( spat_mesh_conf )
         
-        self.boundary_cond_conf = self.epicf_conf_group.newObject(
+        boundary_cond_conf = epicf_conf_group.newObject(
             "App::FeaturePython", "Boundary conditions" )
-        BoundaryConditionsConfigPart( self.boundary_cond_conf )
+        BoundaryConditionsConfigPart( boundary_cond_conf )
 
-        self.magn_field_conf = self.epicf_conf_group.newObject(
+        magn_field_conf = epicf_conf_group.newObject(
             "App::FeaturePython", "Magnetic field" )
-        MagneticFieldConfigPart( self.magn_field_conf )
+        MagneticFieldConfigPart( magn_field_conf )
 
         FreeCAD.ActiveDocument.recompute()
-        
-        FreeCAD.Console.PrintMessage( "Output filename section\n" )
         return
  
     def IsActive(self):
-        """Here you can define if the command must be 
-        active or not (greyed) if certain conditions
-        are met or not. This function is optional."""
         return True
 
 
@@ -82,58 +47,74 @@ class AddSourceRegion():
     """Add source of particles"""
  
     def GetResources(self):
-        return {'Pixmap'  : 'My_Command_Icon',
+        return {'Pixmap'  : 'add_source_icon',
                 # the name of a svg file available in the resources
                 'Accel' : "Shift+S", # a default shortcut (optional)
-                'MenuText': "Add particle source",
-                'ToolTip' : "Add particle source-descr"}
+                'MenuText': "Add source of particles",
+                'ToolTip' : "Add rectangular source of particles"}
  
     def Activated(self):
-        # todo: add to selected group
-        self.epicf_conf_group = FreeCAD.ActiveDocument.getObject("Epicf_conf")
-
-        self.source_conf = self.epicf_conf_group.newObject(
-            "App::FeaturePython", "Source" )
-        ParticleSourceConfigPart( self.source_conf )
-
-        FreeCAD.ActiveDocument.recompute()
-                        
+        for epicf_conf_group in self.selected_epicf_conf_groups:
+            source_conf = epicf_conf_group.newObject(
+                "App::FeaturePython", "Source" )
+            ParticleSourceConfigPart( source_conf )
+        FreeCAD.ActiveDocument.recompute()                        
         return
  
     def IsActive(self):
-        """Here you can define if the command must be 
-        active or not (greyed) if certain conditions
-        are met or not. This function is optional."""
-        return True
+        # Add source only if epicf-group is selected
+        # todo: check if selected object is epicf-conf group
+        # or directly belongs to epicf-conf group
+        sel = FreeCADGui.Selection.getSelection()
+        self.selected_epicf_conf_groups = []
+        active = False
+        for obj in sel:
+            if "epicf" in obj.Name:
+                self.selected_epicf_conf_groups.append( obj )
+                active = True
+            else:
+                for parent_obj in obj.InList:
+                    if "epicf" in parent_obj.Name:
+                        self.selected_epicf_conf_groups.append( parent_obj )
+                        active = True            
+        return active
 
 
 class AddInnerRegionBox():
     """Add box inner region"""
  
     def GetResources(self):
-        return {'Pixmap'  : 'My_Command_Icon',
+        return {'Pixmap'  : 'add_inner_region_box',
                 # the name of a svg file available in the resources
                 'Accel' : "Shift+R", # a default shortcut (optional)
-                'MenuText': "Add box region",
-                'ToolTip' : "Add box region source-descr"}
+                'MenuText': "Add box-shaped inner region",
+                'ToolTip' : "Add box-shaped inner region - tooltip"}
  
     def Activated(self):
-        # todo: add to selected group
-        self.epicf_conf_group = FreeCAD.ActiveDocument.getObject("Epicf_conf")
-
-        self.inner_reg_conf = self.epicf_conf_group.newObject(
-            "App::FeaturePython", "Inner_region_box" )
-        InnerRegionBoxConfigPart( self.inner_reg_conf )
-
+        for epicf_conf_group in self.selected_epicf_conf_groups:
+            inner_reg_conf = epicf_conf_group.newObject(
+                "App::FeaturePython", "Inner_region_box" )
+            InnerRegionBoxConfigPart( inner_reg_conf )
         FreeCAD.ActiveDocument.recompute()
-                        
         return
  
     def IsActive(self):
-        """Here you can define if the command must be 
-        active or not (greyed) if certain conditions
-        are met or not. This function is optional."""
-        return True
+        # Add source only if epicf-group is selected
+        # todo: check if selected object is epicf-conf group
+        # or directly belongs to epicf-conf group
+        sel = FreeCADGui.Selection.getSelection()
+        self.selected_epicf_conf_groups = []
+        active = False
+        for obj in sel:
+            if "epicf" in obj.Name:
+                self.selected_epicf_conf_groups.append( obj )
+                active = True
+            else:
+                for parent_obj in obj.InList:
+                    if "epicf" in parent_obj.Name:
+                        self.selected_epicf_conf_groups.append( parent_obj )
+                        active = True            
+        return active
 
     
 
@@ -141,111 +122,120 @@ class GenerateConfFile():
     """Generate .conf file suitable for epicf """
  
     def GetResources(self):
-        return {'Pixmap'  : 'My_Command_Icon',
+        return {'Pixmap'  : 'generate_conf_icon',
                 # the name of a svg file available in the resources
                 'Accel' : "Shift+G", # a default shortcut (optional)
                 'MenuText': "Generate .conf file",
-                'ToolTip' : "Gen-conf description"}
- 
-    def Activated(self):
-        "Do something here"
-                #FreeCAD.Console.PrintMessage( "Output filename section\n" )
-                # iterate over group and export to config
-        return
-
-
-    def Activated(self):
-        config_text = self.generate_config_text()
-        self.write_config( config_text )
+                'ToolTip' : "Generate .conf file tooltip"}            
                 
     def IsActive(self):
-        """Here you can define if the command must 
-        be active or not (greyed) if certain conditions
-        are met or not. This function is optional."""
-        # check group "Epicf_conf" is selected
-        return True
+        # Add source only if epicf-group is selected
+        # todo: check if selected object is epicf-conf group
+        # or directly belongs to epicf-conf group
+        sel = FreeCADGui.Selection.getSelection()
+        self.selected_epicf_conf_groups = []
+        active = False
+        for obj in sel:
+            if "epicf" in obj.Name:
+                self.selected_epicf_conf_groups.append( obj )
+                active = True
+            else:
+                for parent_obj in obj.InList:
+                    if "epicf" in parent_obj.Name:
+                        self.selected_epicf_conf_groups.append( parent_obj )
+                        active = True            
+        return active
 
-    def generate_config_text(self):
+    def Activated(self):
+        for epicf_grp in self.selected_epicf_conf_groups:
+            config_text = self.generate_config_text( epicf_grp )
+            self.write_config( config_text, epicf_grp.Name )
+    
+    def generate_config_text( self, epicf_group ):
         config_text = []
         config_text.append( "; Generated by FreeCAD module\n" )
         config_text.append( "\n" )
         
-        conf_objects_in_grp = FreeCAD.ActiveDocument.getObject("Epicf_conf").OutList
-        for conf_part in conf_objects_in_grp:
-            config_text.extend( conf_part.Proxy.generate_config_part() )
+        objects_in_grp = epicf_group.Group
+        for obj in objects_in_grp:
+            config_text.extend( obj.Proxy.generate_config_part() )
 
         return config_text
     
-    def write_config( self, config_text ):
-        #default_dialog_path = FreeCAD.ConfigGet("UserAppData")
-        #default_conf_name = "test.conf"
-        conf_filename, filename_filter = QFileDialog.getSaveFileName(
-            None, "Generate epicf config", "./test.conf", "*.conf" )
+    def write_config( self, config_text, epicf_group_name ):
+        default_dialog_path = "./"
+        default_conf_name = epicf_group_name + ".conf"
+        conf_filename, filename_filter = QtGui.QFileDialog.getSaveFileName(
+            None, "Generate epicf config",
+            default_dialog_path + default_conf_name,
+            "*.conf" )
         if conf_filename == "":
-            FreeCAD.Console.PrintMessage("Process aborted" + "\n")
+            FreeCAD.Console.PrintMessage( "Config generation aborted: "
+                                          "file to write was now selected" + "\n" )
         else:                                               
-            FreeCAD.Console.PrintMessage("Registration of " + conf_filename + "\n")
             with open( conf_filename, 'w') as f:
-                # here your code
                 f.writelines( config_text )
-                f.write("FreeCAD the best")        
 
                 
 class TimeGridConfigPart:
-    """ """
+    """Properties and representation of time_grid config part"""
 
     def __init__( self, obj ):
-        # self.total_time = None
-        # self.time_step_size = None
-        # self.time_save_step = None
         obj.addProperty(
             "App::PropertyString", "total_time",
-            "Time grid", "Total simulation time" ).total_time = "10"
-        obj.addProperty(
-            "App::PropertyString", "time_step_size",
-            "Time grid", "Time step" ).time_step_size = "1e-3"
+            "Time grid", "Total simulation time" ).total_time = "1.0"
         obj.addProperty(
             "App::PropertyString", "time_save_step",
-            "Time grid", "Time step between checkpoints" ).time_save_step = "1e-5"
+            "Time grid", "Time step between checkpoints" ).time_save_step = "1e-3"
+        obj.addProperty(
+            "App::PropertyString", "time_step_size",
+            "Time grid", "Time step" ).time_step_size = "1e-5"
         obj.Proxy = self
         obj.ViewObject.Proxy = self
         self.doc_object = obj
         self.view_object = obj.ViewObject
             
     def execute(self, fp):
-        ''' Print a short message when doing a recomputation, this method is mandatory '''
-        # self.total_time = fp.total_time
-        # self.time_step_size = fp.time_step_size
-        # self.time_save_step = fp.time_save_step
-        FreeCAD.Console.PrintMessage("Recompute TimeGridConfPart feature\n")
+        '''Executed when document is recomputated. This method is mandatory'''
+        return
 
     def updateData(self, fp, prop):
         "If a property of the handled feature has changed we have the chance to handle this here"
-        # fp is the handled feature, prop is the name of the property that has changed
-        #setattr(self, prop, fp.getPropertyByName( prop ) )
+        return
 
     def attach(self, obj):
         ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
-        FreeCAD.Console.PrintMessage("Attach TimeGridConfPart\n")
+        # todo: represent time grid as text on 3d-screen
+        # self.text = coin.SoGroup()
+        # self.t1 = coin.SoAsciiText()
+        # self.t1.string = "arghk"
+        # self.text.addChild( self.t1 )
         return
 
     def generate_config_part( self ):
-        # todo: rewrite with less repeats
         conf_part = []
         conf_part.append( "[Time grid]\n" )
-        # conf_part.append( "total_time = {}\n".format( self.total_time ) )
-        # conf_part.append( "time_step_size = {}\n".format( self.time_step_size ) )
-        # conf_part.append( "time_save_step = {}\n".format( self.time_save_step ) )
-        conf_part.append( "total_time = {}\n".format( self.doc_object.getPropertyByName( "total_time" ) ) )
-        conf_part.append( "time_step_size = {}\n".format( self.doc_object.getPropertyByName( "time_step_size" ) ) )
-        conf_part.append( "time_save_step = {}\n".format( self.doc_object.getPropertyByName( "time_save_step" ) ) )
+        export_property_names = [ "total_time", "time_save_step",
+                                  "time_step_size" ]
+        for x in export_property_names:
+            conf_part.append( "{0} = {1}\n".format( x, self.doc_object.getPropertyByName( x ) ) )
         conf_part.append("\n")
         return conf_part
     
+    def __getstate__(self):
+        '''When saving the document this object gets stored using Python's json module.\
+        Since we have some un-serializable parts here -- the Coin stuff -- we must define this method\
+        to return a tuple of all serializable objects or None.'''
+        return None
+ 
+    def __setstate__(self, state):
+        '''When restoring the serialized object from document we have the chance to set some internals here.\
+        Since no data were serialized nothing needs to be done here.'''
+        return None
 
-
+    
 class OutputFilenameConfigPart():
-    """ """
+    """Properties and representation of output_filename config part"""
     
     def __init__( self, obj ):
         obj.addProperty(
@@ -260,18 +250,17 @@ class OutputFilenameConfigPart():
         self.view_object = obj.ViewObject
 
     def execute(self, fp):
-        ''' Print a short message when doing a recomputation, this method is mandatory '''
-        FreeCAD.Console.PrintMessage("Recompute OutputFilenameConfPart feature\n")
-
-    def attach(self, obj):
-        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
-        FreeCAD.Console.PrintMessage("Attach OutputFilenameConfPart\n")
+        '''Executed when document is recomputated. This method is mandatory'''
         return
 
     def updateData(self, fp, prop):
         "If a property of the handled feature has changed we have the chance to handle this here"
-        # fp is the handled feature, prop is the name of the property that has changed
-        #setattr(self, prop, fp.getPropertyByName( prop ) )
+        return
+
+    def attach(self, obj):
+        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
+        # todo: represent output_filename as text on 3d-screen
+        return
     
     def generate_config_part( self ):
         conf_part = []
@@ -282,9 +271,19 @@ class OutputFilenameConfigPart():
         conf_part.append("\n")
         return conf_part
 
+    def __getstate__(self):
+        '''When saving the document this object gets stored using Python's json module.\
+        Since we have some un-serializable parts here -- the Coin stuff -- we must define this method\
+        to return a tuple of all serializable objects or None.'''
+        return None
+ 
+    def __setstate__(self, state):
+        '''When restoring the serialized object from document we have the chance to set some internals here.\
+        Since no data were serialized nothing needs to be done here.'''
+        return None
 
 class SpatialMeshConfigPart():
-    """ """
+    """Properties and representation of spatial_mesh config part"""
 
     def __init__( self, obj ):
         obj.addProperty(
@@ -314,17 +313,16 @@ class SpatialMeshConfigPart():
         self.view_object = obj.ViewObject
 
     def execute(self, fp):
-        ''' Print a short message when doing a recomputation, this method is mandatory '''
-        return 
+        '''Executed when document is recomputated. This method is mandatory'''
+        return
                 
     def attach(self, obj):
-        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
         self.shaded = coin.SoGroup()
         self.wireframe = coin.SoGroup()
         self.color = coin.SoBaseColor()
         self.trans = coin.SoTranslation()
         self.box = coin.SoCube()
-
+        
         self.shaded.addChild( self.color )
         self.shaded.addChild( self.trans )
         self.shaded.addChild( self.box )
@@ -340,15 +338,12 @@ class SpatialMeshConfigPart():
         self.onChanged( obj, "Color" )
         return
 
-    def updateData(self, fp, prop ):
+    def updateData(self, obj, prop ):
         "Executed when propery in field 'data' is changed"
-        # fp is the handled feature, prop is the name of the property that has changed
-        FreeCAD.Console.PrintMessage("updateData: " + str(prop) + "\n")
-        X = float( fp.getPropertyByName("grid_x_size") )
-        Y = float( fp.getPropertyByName("grid_y_size") )
-        Z = float( fp.getPropertyByName("grid_z_size") )
-        #self.scale.scaleFactor.setValue( X, Y, Z )
-        FreeCAD.Console.PrintMessage("Trans: " + str(X) + str(Y) + str(Z) + "\n")
+        # todo: recompute only 'prop'
+        X = float( obj.getPropertyByName("grid_x_size") )
+        Y = float( obj.getPropertyByName("grid_y_size") )
+        Z = float( obj.getPropertyByName("grid_z_size") )
         self.trans.translation.setValue( [ X/2, Y/2, Z/2 ] )
         self.box.width.setValue( X )
         self.box.height.setValue( Y )
@@ -370,10 +365,9 @@ class SpatialMeshConfigPart():
 
     def onChanged(self, vp, prop):
         "Executed if any property is changed"
-        FreeCAD.Console.PrintMessage("Change property: " + str(prop) + "\n")
         if prop == "Color":
             c = vp.getPropertyByName("Color")
-            self.color.rgb.setValue( c[0],c[1],c[2] )
+            self.color.rgb.setValue( c[0], c[1], c[2] )
     
     def __getstate__(self):
         return None
@@ -394,7 +388,7 @@ class SpatialMeshConfigPart():
 
 
 class BoundaryConditionsConfigPart():
-    """ """
+    """Properties and representation of boundary_conditions config part"""
     
     def __init__( self, obj ):
         obj.addProperty(
@@ -433,18 +427,16 @@ class BoundaryConditionsConfigPart():
         self.view_object = obj.ViewObject
 
     def execute(self, fp):
-        ''' Print a short message when doing a recomputation, this method is mandatory '''
-        FreeCAD.Console.PrintMessage("Recompute BoundaryConfPart feature\n")
-
-    def attach(self, obj):
-        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
-        FreeCAD.Console.PrintMessage("Attach BoundaryConfPart\n")
+        '''Executed when document is recomputated. This method is mandatory'''
         return
 
     def updateData(self, fp, prop):
         "If a property of the handled feature has changed we have the chance to handle this here"
-        # fp is the handled feature, prop is the name of the property that has changed
-        #setattr(self, prop, fp.getPropertyByName( prop ) )
+        return
+
+    def attach(self, obj):
+        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
+        return
         
     def generate_config_part( self ):
         conf_part = []
@@ -458,9 +450,15 @@ class BoundaryConditionsConfigPart():
         conf_part.append("\n")
         return conf_part
 
+    def __getstate__(self):
+        return None
+ 
+    def __setstate__(self, state):
+        return None
 
+    
 class MagneticFieldConfigPart():
-    """ """
+    """Properties and representation of magnetic_field config part"""
     
     def __init__( self, obj ):
         obj.addProperty(
@@ -481,18 +479,16 @@ class MagneticFieldConfigPart():
         self.view_object = obj.ViewObject
 
     def execute(self, fp):
-        ''' Print a short message when doing a recomputation, this method is mandatory '''
-        FreeCAD.Console.PrintMessage("Recompute OutputFilenameConfPart feature\n")
-
-    def attach(self, obj):
-        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
-        FreeCAD.Console.PrintMessage("Attach OutputFilenameConfPart\n")
+        '''Executed when document is recomputated. This method is mandatory'''
         return
 
     def updateData(self, fp, prop):
         "If a property of the handled feature has changed we have the chance to handle this here"
-        # fp is the handled feature, prop is the name of the property that has changed
-        #setattr(self, prop, fp.getPropertyByName( prop ) )
+        return
+
+    def attach(self, obj):
+        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
+        return
     
     def generate_config_part( self ):
         conf_part = []
@@ -504,67 +500,148 @@ class MagneticFieldConfigPart():
         conf_part.append("\n")
         return conf_part
 
+    def __getstate__(self):
+        return None
+ 
+    def __setstate__(self, state):
+        return None
 
+    
 class ParticleSourceConfigPart():
     """Particle source region"""
 
     def __init__( self, obj ):
         obj.addProperty(
-            "App::PropertyString", "particle_source_initial_number_of_particles",
-            "Number of particles", "Number of particles at start" ).particle_source_initial_number_of_particles = "0"
+            "App::PropertyEnumeration", "set_of_parameters",
+            "Base", "Specify particles or fixed current").set_of_parameters = ["Particles", "Fixed current"]
         obj.addProperty(
-            "App::PropertyString", "particle_source_particles_to_generate_each_step",
-            "Number of particles", "zzz" ).particle_source_particles_to_generate_each_step = "0"
+            "App::PropertyString",
+            "particle_source_initial_number_of_particles",
+            "Number of particles",
+            "Number of particles at start" ).particle_source_initial_number_of_particles = "10"
         obj.addProperty(
-            "App::PropertyString", "particle_source_x_left",
-            "Position", "zzz" ).particle_source_x_left = "0.4"
+            "App::PropertyString",
+            "particle_source_particles_to_generate_each_step",
+            "Number of particles",
+            "zzz" ).particle_source_particles_to_generate_each_step = "10"
         obj.addProperty(
-            "App::PropertyString", "particle_source_x_right",
-            "Position", "zzz" ).particle_source_x_right = "0.6"
+            "App::PropertyString",
+            "current",
+            "Number of particles",
+            "I = q * N / dt" ).current = "10"
         obj.addProperty(
-            "App::PropertyString", "particle_source_y_bottom",
-            "Position", "zzz" ).particle_source_y_bottom = "0.4"
+            "App::PropertyString",
+            "particle_source_x_left",
+            "Position",
+            "zzz" ).particle_source_x_left = "0.4"
         obj.addProperty(
-            "App::PropertyString", "particle_source_y_top",
-            "Position", "zzz" ).particle_source_y_top = "0.6"
+            "App::PropertyString",
+            "particle_source_x_right",
+            "Position",
+            "zzz" ).particle_source_x_right = "0.6"
         obj.addProperty(
-            "App::PropertyString", "particle_source_z_near",
-            "Position", "zzz" ).particle_source_z_near = "0.4"
+            "App::PropertyString",
+            "particle_source_y_bottom",
+            "Position",
+            "zzz" ).particle_source_y_bottom = "0.4"
         obj.addProperty(
-            "App::PropertyString", "particle_source_z_far",
-            "Position", "zzz" ).particle_source_z_far = "0.6"
+            "App::PropertyString",
+            "particle_source_y_top",
+            "Position",
+            "zzz" ).particle_source_y_top = "0.6"
         obj.addProperty(
-            "App::PropertyString", "particle_source_mean_momentum_x",
-            "Momentum", "zzz" ).particle_source_mean_momentum_x = "1.0"
+            "App::PropertyString",
+            "particle_source_z_near",
+            "Position",
+            "zzz" ).particle_source_z_near = "0.4"
         obj.addProperty(
-            "App::PropertyString", "particle_source_mean_momentum_y",
-            "Momentum", "zzz" ).particle_source_mean_momentum_y = "1.0"
+            "App::PropertyString",
+            "particle_source_z_far",
+            "Position",
+            "zzz" ).particle_source_z_far = "0.6"
         obj.addProperty(
-            "App::PropertyString", "particle_source_mean_momentum_z",
-            "Momentum", "zzz" ).particle_source_mean_momentum_z = "1.0"
+            "App::PropertyString",
+            "particle_source_mean_momentum_x",
+            "Momentum",
+            "zzz" ).particle_source_mean_momentum_x = "1.0"
         obj.addProperty(
-            "App::PropertyString", "particle_source_temperature",
-            "Particle properties", "zzz" ).particle_source_temperature = "1.0"
+            "App::PropertyString",
+            "particle_source_mean_momentum_y",
+            "Momentum",
+            "zzz" ).particle_source_mean_momentum_y = "1.0"
         obj.addProperty(
-            "App::PropertyString", "particle_source_charge",
-            "Particle properties", "zzz" ).particle_source_charge = "1.0"
+            "App::PropertyString",
+            "particle_source_mean_momentum_z",
+            "Momentum",
+            "zzz" ).particle_source_mean_momentum_z = "1.0"
         obj.addProperty(
-            "App::PropertyString", "particle_source_mass",
-            "Particle properties", "zzz" ).particle_source_mass = "1.0"
+            "App::PropertyString",
+            "particle_source_temperature",
+            "Momentum",
+            "zzz" ).particle_source_temperature = "1.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "particle_source_charge",
+            "Particle properties",
+            "zzz" ).particle_source_charge = "1.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "particle_source_mass",
+            "Particle properties",
+            "zzz" ).particle_source_mass = "1.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "charge_to_mass_ratio",
+            "Particle properties",
+            "zzz" ).charge_to_mass_ratio = "1.0"
         obj.ViewObject.addProperty("App::PropertyColor", "Color",
                                    "Spatial mesh", "Volume box color").Color=(0.0, 0.0, 1.0)
-        
         obj.Proxy = self
         obj.ViewObject.Proxy = self
         self.doc_object = obj
         self.view_object = obj.ViewObject
 
-    def execute(self, fp):
-        ''' Print a short message when doing a recomputation, this method is mandatory '''
-        FreeCAD.Console.PrintMessage("Recompute SpatMeshConfPart feature\n")
+    def execute( self, obj ):
+        '''Executed when document is recomputated. This method is mandatory'''
+        FreeCAD.Console.PrintMessage("execute is called\n")
+        readwrite = 0
+        readonly = 1
+        dt = float( obj.InList[0].getObject("Time_grid").getPropertyByName("time_step_size") )
+        N = int( obj.particle_source_particles_to_generate_each_step )
+        p = obj.getPropertyByName("set_of_parameters")
+        if p == "Particles":
+            # obj.setEditorMode( "current", readwrite )
+            # obj.setEditorMode( "charge_to_mass_ratio", readwrite )
+            # obj.setEditorMode( "particle_source_charge", readwrite )
+            # obj.setEditorMode( "particle_source_mass", readwrite )
+            q = float( obj.particle_source_charge )
+            m = float( obj.particle_source_mass )
+            q_to_m = q / m 
+            I = q * N / dt
+            obj.current = str( I )
+            obj.charge_to_mass_ratio = str( q_to_m )
+            # obj.setEditorMode( "current", readonly )
+            # obj.setEditorMode( "charge_to_mass_ratio", readonly )
+            # obj.setEditorMode( "particle_source_charge", readwrite )
+            # obj.setEditorMode( "particle_source_mass", readwrite )
+        elif p == "Fixed current":
+            # obj.setEditorMode( "current", readwrite )
+            # obj.setEditorMode( "charge_to_mass_ratio", readwrite )
+            # obj.setEditorMode( "particle_source_charge", readwrite )
+            # obj.setEditorMode( "particle_source_mass", readwrite )
+            I = float( obj.current )
+            q_to_m = float( obj.charge_to_mass_ratio )
+            q = I * dt / N
+            m = 1 / q_to_m * q
+            obj.particle_source_charge = str( q )
+            obj.particle_source_mass = str( m )
+            # obj.setEditorMode( "current", readwrite )
+            # obj.setEditorMode( "charge_to_mass_ratio", readwrite )
+            # obj.setEditorMode( "particle_source_charge", readonly )
+            # obj.setEditorMode( "particle_source_mass", readonly )
+        return
 
     def attach(self, obj):
-        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
         self.shaded = coin.SoGroup()
         self.wireframe = coin.SoGroup()
         self.trans = coin.SoTranslation()
@@ -588,23 +665,23 @@ class ParticleSourceConfigPart():
         self.onChanged( obj, "Color" )
         return
 
-    def updateData(self, fp, prop ):
+    def updateData( self, obj, prop ):
         "Executed when propery in field 'data' is changed"
-        # fp is the handled feature, prop is the name of the property that has changed
-        FreeCAD.Console.PrintMessage("updateData: " + str(prop) + "\n")        
-        x0 = float( fp.getPropertyByName("particle_source_x_left") )
-        y0 = float( fp.getPropertyByName("particle_source_y_bottom") )
-        z0 = float( fp.getPropertyByName("particle_source_z_near") )
-        xlen = float( fp.getPropertyByName("particle_source_x_right") ) - x0
-        ylen = float( fp.getPropertyByName("particle_source_y_top") ) - y0
-        zlen = float( fp.getPropertyByName("particle_source_z_far") ) - z0
+        x0 = float( obj.getPropertyByName("particle_source_x_left") )
+        y0 = float( obj.getPropertyByName("particle_source_y_bottom") )
+        z0 = float( obj.getPropertyByName("particle_source_z_near") )
+        xlen = float( obj.getPropertyByName("particle_source_x_right") ) - x0
+        ylen = float( obj.getPropertyByName("particle_source_y_top") ) - y0
+        zlen = float( obj.getPropertyByName("particle_source_z_far") ) - z0
         self.trans.translation.setValue( [ x0 + xlen / 2,
                                            y0 + ylen / 2,
                                            z0 + zlen / 2 ] )
         self.box.width.setValue( xlen )
         self.box.height.setValue( ylen )
         self.box.depth.setValue( zlen )
-        
+
+        FreeCAD.Console.PrintMessage("changed property:" + prop + "\n")
+        return
 
     
     def getDisplayModes(self,obj):
@@ -623,17 +700,15 @@ class ParticleSourceConfigPart():
 
     def onChanged(self, vp, prop):
         "Executed if any property is changed"
-        FreeCAD.Console.PrintMessage("Change property: " + str(prop) + "\n")
         if prop == "Color":
             c = vp.getPropertyByName("Color")
-            self.color.rgb.setValue( c[0],c[1],c[2] )
-    
+            self.color.rgb.setValue( c[0],c[1],c[2] )    
+
     def __getstate__(self):
         return None
  
     def __setstate__(self, state):
         return None
-
     
     def generate_config_part( self ):
         conf_part = []
@@ -680,22 +755,18 @@ class InnerRegionBoxConfigPart():
             "Position", "zzz" ).inner_region_box_z_far = "0.2"
         obj.addProperty(
             "App::PropertyString", "inner_region_box_potential",
-            "Particle properties", "zzz" ).inner_region_box_potential = "0.0"
+            "Particle properties", "zzz" ).inner_region_box_potential = "0.0"                
         obj.ViewObject.addProperty("App::PropertyColor", "Color",
-                                   "Inner region color", "Inner region color").Color=(0.5, 0.5, 0.0)
-        
+                                   "Inner region color", "Inner region color").Color=(0.5, 0.5, 0.0)        
         obj.Proxy = self
         obj.ViewObject.Proxy = self
         self.doc_object = obj
         self.view_object = obj.ViewObject
 
     def execute(self, fp):
-        ''' Print a short message when doing a recomputation, this method is mandatory '''
-        FreeCAD.Console.PrintMessage("Recompute SpatMeshConfPart feature\n")
+        return
 
     def attach(self, obj):
-        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
-
         self.shaded = coin.SoGroup()
         self.wireframe = coin.SoGroup()
         self.trans = coin.SoTranslation()
@@ -719,16 +790,14 @@ class InnerRegionBoxConfigPart():
         self.onChanged( obj, "Color" )
         return
 
-    def updateData(self, fp, prop ):
+    def updateData(self, obj, prop ):
         "Executed when propery in field 'data' is changed"
-        # fp is the handled feature, prop is the name of the property that has changed
-        FreeCAD.Console.PrintMessage("updateData: " + str(prop) + "\n")        
-        x0 = float( fp.getPropertyByName("inner_region_box_x_left") )
-        y0 = float( fp.getPropertyByName("inner_region_box_y_bottom") )
-        z0 = float( fp.getPropertyByName("inner_region_box_z_near") )
-        xlen = float( fp.getPropertyByName("inner_region_box_x_right") ) - x0
-        ylen = float( fp.getPropertyByName("inner_region_box_y_top") ) - y0
-        zlen = float( fp.getPropertyByName("inner_region_box_z_far") ) - z0
+        x0 = float( obj.getPropertyByName("inner_region_box_x_left") )
+        y0 = float( obj.getPropertyByName("inner_region_box_y_bottom") )
+        z0 = float( obj.getPropertyByName("inner_region_box_z_near") )
+        xlen = float( obj.getPropertyByName("inner_region_box_x_right") ) - x0
+        ylen = float( obj.getPropertyByName("inner_region_box_y_top") ) - y0
+        zlen = float( obj.getPropertyByName("inner_region_box_z_far") ) - z0
         self.trans.translation.setValue( [ x0 + xlen / 2,
                                            y0 + ylen / 2,
                                            z0 + zlen / 2 ] )
@@ -752,7 +821,6 @@ class InnerRegionBoxConfigPart():
 
     def onChanged(self, vp, prop):
         "Executed if any property is changed"
-        FreeCAD.Console.PrintMessage("Change property: " + str(prop) + "\n")
         if prop == "Color":
             c = vp.getPropertyByName("Color")
             self.color.rgb.setValue( c[0],c[1],c[2] )
@@ -776,9 +844,7 @@ class InnerRegionBoxConfigPart():
         conf_part.append("\n")
         return conf_part
 
-
     
-FreeCADGui.addCommand( 'My_Command', My_Command_Class() )
 FreeCADGui.addCommand( 'CreateEpicfConfig', CreateEpicfConfig() )
 FreeCADGui.addCommand( 'AddSourceRegion', AddSourceRegion() )
 FreeCADGui.addCommand( 'AddInnerRegionBox', AddInnerRegionBox() )
