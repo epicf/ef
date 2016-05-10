@@ -755,7 +755,7 @@ class InnerRegionBoxConfigPart():
             "Position", "zzz" ).inner_region_box_z_far = "0.2"
         obj.addProperty(
             "App::PropertyString", "inner_region_box_potential",
-            "Particle properties", "zzz" ).inner_region_box_potential = "0.0"                
+            "Potential", "zzz" ).inner_region_box_potential = "0.0"                
         obj.ViewObject.addProperty("App::PropertyColor", "Color",
                                    "Inner region color", "Inner region color").Color=(0.5, 0.5, 0.0)        
         obj.Proxy = self
