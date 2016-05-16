@@ -8,7 +8,8 @@ class CreateEpicfConfig():
     """Create objects for new epicf config"""
  
     def GetResources(self):
-        return {'Pixmap'  : 'new_conf_icon',
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
+        return {'Pixmap'  : moddir + '/icons/new_conf_template.svg',
                 # the name of a svg file available in the resources
                 'Accel' : "Shift+N", # a default shortcut (optional)
                 'MenuText': "New epicf config",
@@ -50,7 +51,8 @@ class AddSourceRegion():
     """Add source of particles"""
  
     def GetResources(self):
-        return {'Pixmap'  : 'add_source_icon',
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
+        return {'Pixmap'  : moddir + '/icons/add_box_source.svg',
                 # the name of a svg file available in the resources
                 'Accel' : "Shift+S", # a default shortcut (optional)
                 'MenuText': "Add source of particles",
@@ -87,7 +89,8 @@ class AddInnerRegionBox():
     """Add box inner region"""
  
     def GetResources(self):
-        return {'Pixmap'  : 'add_inner_region_box',
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
+        return {'Pixmap'  : moddir + '/icons/add_box_inner_region.svg',
                 # the name of a svg file available in the resources
                 'Accel' : "Shift+R", # a default shortcut (optional)
                 'MenuText': "Add box-shaped inner region",
@@ -124,7 +127,8 @@ class AddInnerRegionSTEP():
     """Add STEP inner region"""
  
     def GetResources(self):
-        return {'Pixmap'  : 'add_inner_region_step',
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
+        return {'Pixmap'  : moddir + '/icons/add_STEP_inner_region.svg',
                 # the name of a svg file available in the resources
                 'Accel' : "Shift+T", # a default shortcut (optional)
                 'MenuText': "Add STEP-defined inner region",
@@ -161,7 +165,8 @@ class GenerateConfFile():
     """Generate .conf file suitable for epicf """
  
     def GetResources(self):
-        return {'Pixmap'  : 'generate_conf_icon',
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
+        return {'Pixmap'  : moddir + '/icons/generate_config.svg',
                 # the name of a svg file available in the resources
                 'Accel' : "Shift+G", # a default shortcut (optional)
                 'MenuText': "Generate .conf file",
