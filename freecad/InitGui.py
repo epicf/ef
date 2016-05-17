@@ -1,4 +1,4 @@
-class EpicfWorkbench (Workbench):
+class EpicfWorkbench( Workbench ):
         
     MenuText = "Epicf"
     ToolTip = "FreeCAD config generator for epicf"

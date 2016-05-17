@@ -10,10 +10,9 @@ class CreateEpicfConfig():
     def GetResources(self):
         moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
         return {'Pixmap'  : moddir + '/icons/new_conf_template.svg',
-                # the name of a svg file available in the resources
                 'Accel' : "Shift+N", # a default shortcut (optional)
                 'MenuText': "New epicf config",
-                'ToolTip' : "Create new epicf config"}
+                'ToolTip' : "Minimal new epicf config"}
  
     def Activated(self):
         epicf_conf_group = FreeCAD.ActiveDocument.addObject(
@@ -48,15 +47,14 @@ class CreateEpicfConfig():
 
 
 class AddSourceRegion():
-    """Add source of particles"""
+    """Add box-shaped source of particles"""
  
     def GetResources(self):
         moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
         return {'Pixmap'  : moddir + '/icons/add_box_source.svg',
-                # the name of a svg file available in the resources
                 'Accel' : "Shift+S", # a default shortcut (optional)
                 'MenuText': "Add source of particles",
-                'ToolTip' : "Add rectangular source of particles"}
+                'ToolTip' : "Add box-shaped source of particles"}
  
     def Activated(self):
         for epicf_conf_group in self.selected_epicf_conf_groups:
@@ -91,7 +89,6 @@ class AddInnerRegionBox():
     def GetResources(self):
         moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
         return {'Pixmap'  : moddir + '/icons/add_box_inner_region.svg',
-                # the name of a svg file available in the resources
                 'Accel' : "Shift+R", # a default shortcut (optional)
                 'MenuText': "Add box-shaped inner region",
                 'ToolTip' : "Add box-shaped inner region - tooltip"}
@@ -129,7 +126,6 @@ class AddInnerRegionSTEP():
     def GetResources(self):
         moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
         return {'Pixmap'  : moddir + '/icons/add_STEP_inner_region.svg',
-                # the name of a svg file available in the resources
                 'Accel' : "Shift+T", # a default shortcut (optional)
                 'MenuText': "Add STEP-defined inner region",
                 'ToolTip' : "Add STEP-defined inner region - tooltip"}
@@ -167,7 +163,6 @@ class GenerateConfFile():
     def GetResources(self):
         moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
         return {'Pixmap'  : moddir + '/icons/generate_config.svg',
-                # the name of a svg file available in the resources
                 'Accel' : "Shift+G", # a default shortcut (optional)
                 'MenuText': "Generate .conf file",
                 'ToolTip' : "Generate .conf file tooltip"}            
@@ -192,10 +187,12 @@ class GenerateConfFile():
 
     def Activated(self):
         for epicf_grp in self.selected_epicf_conf_groups:
-            config_text = self.generate_config_text( epicf_grp )
-            conf_filename = self.write_config( config_text, epicf_grp.Name )
-            conf_dir = os.path.dirname( conf_filename )
-            self.export_step_models( epicf_grp, conf_dir )
+            ### Generate and write config
+            config_text = self.generate_config_text( epicf_grp )            
+            config_filename = self.write_config( config_text, epicf_grp.Name )
+            ### Save STEP models in the same directory
+            config_dir = os.path.dirname( config_filename )
+            self.export_step_models( epicf_grp, config_dir )
             
             
     def generate_config_text( self, epicf_group ):
@@ -218,7 +215,7 @@ class GenerateConfFile():
             "*.conf" )
         if conf_filename == "":
             FreeCAD.Console.PrintMessage( "Config generation aborted: "
-                                          "file to write was now selected" + "\n" )
+                                          "file to write was not selected" + "\n" )
         else:                                               
             with open( conf_filename, 'w') as f:
                 f.writelines( config_text )
@@ -350,23 +347,24 @@ class SpatialMeshConfigPart():
     def __init__( self, obj ):
         obj.addProperty(
             "App::PropertyString", "grid_x_size",
-            "Spatial mesh", "x" ).grid_x_size = "1.0"
+            "Spatial mesh", "Computational volume X-size" ).grid_x_size = "1.0"
         obj.addProperty(
             "App::PropertyString", "grid_x_step",
-            "Spatial mesh", "x-step" ).grid_x_step = "0.1"
+            "Spatial mesh", "X-step size" ).grid_x_step = "0.1"
         obj.addProperty(
             "App::PropertyString", "grid_y_size",
-            "Spatial mesh", "y" ).grid_y_size = "1.0"
+            "Spatial mesh", "Computational volume Y-size" ).grid_y_size = "1.0"
         obj.addProperty(
             "App::PropertyString", "grid_y_step",
-            "Spatial mesh", "y-step" ).grid_y_step = "0.1"
+            "Spatial mesh", "Y-step size" ).grid_y_step = "0.1"
         obj.addProperty(
             "App::PropertyString", "grid_z_size",
-            "Spatial mesh", "z" ).grid_z_size = "1.0"
+            "Spatial mesh", "Computational volume Z-size" ).grid_z_size = "1.0"
         obj.addProperty(
             "App::PropertyString", "grid_z_step",
-            "Spatial mesh", "z-step" ).grid_z_step = "0.1"
-        obj.addProperty("Part::PropertyPartShape","Shape", "Spatial mesh", "Volume box")
+            "Spatial mesh", "Z-step size" ).grid_z_step = "0.1"
+        obj.addProperty("Part::PropertyPartShape", "Shape",
+                        "Spatial mesh", "Computational volume box")
         obj.ViewObject.addProperty("App::PropertyColor", "Color",
                                    "Spatial mesh", "Volume box color").Color=(1.0,0.0,0.0)
         obj.Proxy = self
@@ -403,13 +401,13 @@ class SpatialMeshConfigPart():
     def updateData(self, obj, prop ):
         "Executed when propery in field 'data' is changed"
         # todo: recompute only 'prop'
-        X = float( obj.getPropertyByName("grid_x_size") )
-        Y = float( obj.getPropertyByName("grid_y_size") )
-        Z = float( obj.getPropertyByName("grid_z_size") )
-        self.trans.translation.setValue( [ X/2, Y/2, Z/2 ] )
-        self.box.width.setValue( X )
-        self.box.height.setValue( Y )
-        self.box.depth.setValue( Z )
+        x_size = float( obj.getPropertyByName("grid_x_size") )
+        y_size = float( obj.getPropertyByName("grid_y_size") )
+        z_size = float( obj.getPropertyByName("grid_z_size") )
+        self.trans.translation.setValue( [ x_size/2, y_size/2, z_size/2 ] )
+        self.box.width.setValue( x_size )
+        self.box.height.setValue( y_size )
+        self.box.depth.setValue( z_size )
     
     def getDisplayModes(self,obj):
         "Return a list of display modes."
@@ -461,32 +459,32 @@ class BoundaryConditionsConfigPart():
             "App::PropertyString",
             "boundary_phi_left",
             "Boundary conditions",
-            "Potential boundary conditions").boundary_phi_left = "0.0"
+            "Potential on left boundary").boundary_phi_left = "0.0"
         obj.addProperty(
             "App::PropertyString",
             "boundary_phi_right",
             "Boundary conditions",
-            "Potential boundary conditions").boundary_phi_right = "0.0"
+            "Potential on right boundary").boundary_phi_right = "0.0"
         obj.addProperty(
             "App::PropertyString",
             "boundary_phi_top",
             "Boundary conditions",
-            "Potential boundary conditions").boundary_phi_top = "0.0"
+            "Potential on top boundary").boundary_phi_top = "0.0"
         obj.addProperty(
             "App::PropertyString",
             "boundary_phi_bottom",
             "Boundary conditions",
-            "Potential boundary conditions").boundary_phi_bottom = "0.0"
+            "Potential on bottom boundary").boundary_phi_bottom = "0.0"
         obj.addProperty(
             "App::PropertyString",
             "boundary_phi_near",
             "Boundary conditions",
-            "Potential boundary conditions").boundary_phi_near = "0.0"
+            "Potential on near boundary").boundary_phi_near = "0.0"
         obj.addProperty(
             "App::PropertyString",
             "boundary_phi_far",
             "Boundary conditions",
-            "Potential boundary conditions").boundary_phi_far = "0.0"
+            "Potential on far boundary").boundary_phi_far = "0.0"
         obj.Proxy = self
         obj.ViewObject.Proxy = self
         self.doc_object = obj
@@ -586,88 +584,91 @@ class ParticleSourceConfigPart():
 
     def __init__( self, obj ):
         obj.addProperty(
-            "App::PropertyEnumeration", "set_of_parameters",
-            "Base", "Specify particles or fixed current").set_of_parameters = ["Particles", "Fixed current"]
+            "App::PropertyEnumeration",
+            "set_of_parameters",
+            "Base",
+            "Specify particles' charge or total source current").set_of_parameters = ["Particles' charge",
+                                                                                      "Source current"]
         obj.addProperty(
             "App::PropertyString",
             "particle_source_initial_number_of_particles",
             "Number of particles",
-            "Number of particles at start" ).particle_source_initial_number_of_particles = "10"
+            "Initial number of particles" ).particle_source_initial_number_of_particles = "1000"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_particles_to_generate_each_step",
             "Number of particles",
-            "zzz" ).particle_source_particles_to_generate_each_step = "10"
+            "Number of particles to add at each time step" ).particle_source_particles_to_generate_each_step = "1000"
         obj.addProperty(
             "App::PropertyString",
             "current",
             "Number of particles",
-            "I = q * N / dt" ).current = "10"
+            "I = q * N / dt" ).current = "10" # default value is unimportant; it will be recalculated.
         obj.addProperty(
             "App::PropertyString",
             "particle_source_x_left",
             "Position",
-            "zzz" ).particle_source_x_left = "0.4"
+            "Position of the left side of the source" ).particle_source_x_left = "0.4"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_x_right",
             "Position",
-            "zzz" ).particle_source_x_right = "0.6"
+            "Position of the right side of the source" ).particle_source_x_right = "0.6"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_y_bottom",
             "Position",
-            "zzz" ).particle_source_y_bottom = "0.4"
+            "Position of the bottom side of the source" ).particle_source_y_bottom = "0.4"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_y_top",
             "Position",
-            "zzz" ).particle_source_y_top = "0.6"
+            "Position of the top side of the source" ).particle_source_y_top = "0.6"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_z_near",
             "Position",
-            "zzz" ).particle_source_z_near = "0.4"
+            "Position of the near side of the source" ).particle_source_z_near = "0.4"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_z_far",
             "Position",
-            "zzz" ).particle_source_z_far = "0.6"
+            "Position of the far side of the source" ).particle_source_z_far = "0.6"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_mean_momentum_x",
             "Momentum",
-            "zzz" ).particle_source_mean_momentum_x = "1.0"
+            "Mean momentum in X direction" ).particle_source_mean_momentum_x = "1.0"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_mean_momentum_y",
             "Momentum",
-            "zzz" ).particle_source_mean_momentum_y = "1.0"
+            "Mean momentum in Y direction" ).particle_source_mean_momentum_y = "1.0"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_mean_momentum_z",
             "Momentum",
-            "zzz" ).particle_source_mean_momentum_z = "1.0"
+            "Mean momentum in Z direction" ).particle_source_mean_momentum_z = "1.0"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_temperature",
             "Momentum",
-            "zzz" ).particle_source_temperature = "1.0"
+            "Temperature" ).particle_source_temperature = "1.0"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_charge",
             "Particle properties",
-            "zzz" ).particle_source_charge = "1.0"
+            "Particles' charge" ).particle_source_charge = "1.0"
         obj.addProperty(
             "App::PropertyString",
             "particle_source_mass",
             "Particle properties",
-            "zzz" ).particle_source_mass = "1.0"
+            "Particles' mass (calculated automatically from q and q/m)" ).particle_source_mass = "1.0"
         obj.addProperty(
             "App::PropertyString",
             "charge_to_mass_ratio",
             "Particle properties",
-            "zzz" ).charge_to_mass_ratio = "1.0"
+            "Particles' charge to mass ratio" ).charge_to_mass_ratio = "1.0"
         obj.ViewObject.addProperty("App::PropertyColor", "Color",
                                    "Spatial mesh", "Volume box color").Color=(0.0, 0.0, 1.0)
         obj.Proxy = self
@@ -677,42 +678,24 @@ class ParticleSourceConfigPart():
 
     def execute( self, obj ):
         '''Executed when document is recomputated. This method is mandatory'''
-        FreeCAD.Console.PrintMessage("execute is called\n")
-        readwrite = 0
-        readonly = 1
-        dt = float( obj.InList[0].getObject("Time_grid").getPropertyByName("time_step_size") )
+        dt = self.get_time_step( obj )
         N = int( obj.particle_source_particles_to_generate_each_step )
-        p = obj.getPropertyByName("set_of_parameters")
-        if p == "Particles":
-            # obj.setEditorMode( "current", readwrite )
-            # obj.setEditorMode( "charge_to_mass_ratio", readwrite )
-            # obj.setEditorMode( "particle_source_charge", readwrite )
-            # obj.setEditorMode( "particle_source_mass", readwrite )
+        parameters_set = obj.getPropertyByName("set_of_parameters")
+        
+        if parameters_set == "Particles' charge":
+            # todo: make certain fields read-only
+            # e.g., obj.setEditorMode( "current", readonly )
             q = float( obj.particle_source_charge )
-            m = float( obj.particle_source_mass )
-            q_to_m = q / m 
             I = q * N / dt
             obj.current = str( I )
-            obj.charge_to_mass_ratio = str( q_to_m )
-            # obj.setEditorMode( "current", readonly )
-            # obj.setEditorMode( "charge_to_mass_ratio", readonly )
-            # obj.setEditorMode( "particle_source_charge", readwrite )
-            # obj.setEditorMode( "particle_source_mass", readwrite )
-        elif p == "Fixed current":
-            # obj.setEditorMode( "current", readwrite )
-            # obj.setEditorMode( "charge_to_mass_ratio", readwrite )
-            # obj.setEditorMode( "particle_source_charge", readwrite )
-            # obj.setEditorMode( "particle_source_mass", readwrite )
+        elif parameters_set == "Source current":
             I = float( obj.current )
-            q_to_m = float( obj.charge_to_mass_ratio )
-            q = I * dt / N
-            m = 1 / q_to_m * q
+            q = I * dt / N        
             obj.particle_source_charge = str( q )
-            obj.particle_source_mass = str( m )
-            # obj.setEditorMode( "current", readwrite )
-            # obj.setEditorMode( "charge_to_mass_ratio", readwrite )
-            # obj.setEditorMode( "particle_source_charge", readonly )
-            # obj.setEditorMode( "particle_source_mass", readonly )
+            
+        q_to_m = float( obj.charge_to_mass_ratio )
+        m = 1 / q_to_m * q
+        obj.particle_source_mass = str( m )
         return
 
     def attach(self, obj):
@@ -741,6 +724,7 @@ class ParticleSourceConfigPart():
 
     def updateData( self, obj, prop ):
         "Executed when propery in field 'data' is changed"
+        # todo: move charge-current recomputation here from 'execute'
         x0 = float( obj.getPropertyByName("particle_source_x_left") )
         y0 = float( obj.getPropertyByName("particle_source_y_bottom") )
         z0 = float( obj.getPropertyByName("particle_source_z_near") )
@@ -753,8 +737,7 @@ class ParticleSourceConfigPart():
         self.box.width.setValue( xlen )
         self.box.height.setValue( ylen )
         self.box.depth.setValue( zlen )
-
-        FreeCAD.Console.PrintMessage("changed property:" + prop + "\n")
+        
         return
 
     
@@ -776,7 +759,7 @@ class ParticleSourceConfigPart():
         "Executed if any property is changed"
         if prop == "Color":
             c = vp.getPropertyByName("Color")
-            self.color.rgb.setValue( c[0],c[1],c[2] )    
+            self.color.rgb.setValue( c[0], c[1], c[2] )
 
     def __getstate__(self):
         doc_object_name = self.doc_object.Name
@@ -787,10 +770,19 @@ class ParticleSourceConfigPart():
         self.doc_object = FreeCAD.ActiveDocument.getObject( doc_object_name )
         self.view_object = self.doc_object.ViewObject
         return None
+
+    def get_time_step( self, obj ):
+        # todo: to get dt, get object named "Time_grid" from the first
+        # group which the source belongs to.
+        # Instead, pass reference to "Time_grid" object in the source-constructor.
+        # todo: source properties are not recomputed when dt is changed. do something about it.
+        dt = float( obj.InList[0].getObject("Time_grid").getPropertyByName("time_step_size") )
+        return dt
     
     def generate_config_part( self ):
         conf_part = []
-        conf_part.append( "[Source.{0}]\n".format( self.doc_object.getPropertyByName( "Label" ) ) )
+        source_name = self.doc_object.getPropertyByName( "Label" )
+        conf_part.append( "[Source.{0}]\n".format( source_name ) )
         export_property_names = [ "particle_source_initial_number_of_particles",
                                   "particle_source_particles_to_generate_each_step",
                                   "particle_source_x_left", "particle_source_x_right",
@@ -804,6 +796,12 @@ class ParticleSourceConfigPart():
                                   "particle_source_mass" ]
         for x in export_property_names:
             conf_part.append( "{0} = {1}\n".format( x, self.doc_object.getPropertyByName( x ) ) )
+
+        comments = [ "set_of_parameters", "charge_to_mass_ratio",
+                     "current" ]
+        for x in comments:
+            conf_part.append( ";{0} = {1}\n".format( x, self.doc_object.getPropertyByName( x ) ) )
+
         conf_part.append("\n")
         return conf_part
 
@@ -815,25 +813,25 @@ class InnerRegionBoxConfigPart():
     def __init__( self, obj ):
         obj.addProperty(
             "App::PropertyString", "inner_region_box_x_left",
-            "Position", "zzz" ).inner_region_box_x_left = "0.1"
+            "Position", "Box left side position" ).inner_region_box_x_left = "0.1"
         obj.addProperty(
             "App::PropertyString", "inner_region_box_x_right",
-            "Position", "zzz" ).inner_region_box_x_right = "0.9"
+            "Position", "Box right side position" ).inner_region_box_x_right = "0.9"
         obj.addProperty(
             "App::PropertyString", "inner_region_box_y_bottom",
-            "Position", "zzz" ).inner_region_box_y_bottom = "0.1"
+            "Position", "Box bottom side position" ).inner_region_box_y_bottom = "0.1"
         obj.addProperty(
             "App::PropertyString", "inner_region_box_y_top",
-            "Position", "zzz" ).inner_region_box_y_top = "0.9"
+            "Position", "Box top side position" ).inner_region_box_y_top = "0.9"
         obj.addProperty(
             "App::PropertyString", "inner_region_box_z_near",
-            "Position", "zzz" ).inner_region_box_z_near = "0.1"
+            "Position", "Box near side position" ).inner_region_box_z_near = "0.1"
         obj.addProperty(
             "App::PropertyString", "inner_region_box_z_far",
-            "Position", "zzz" ).inner_region_box_z_far = "0.2"
+            "Position", "Box far side position" ).inner_region_box_z_far = "0.2"
         obj.addProperty(
             "App::PropertyString", "inner_region_box_potential",
-            "Potential", "zzz" ).inner_region_box_potential = "0.0"                
+            "Potential", "Inner region potential" ).inner_region_box_potential = "0.0"                
         obj.ViewObject.addProperty("App::PropertyColor", "Color",
                                    "Inner region color", "Inner region color").Color=(0.5, 0.5, 0.0)        
         obj.Proxy = self
@@ -934,13 +932,13 @@ class InnerRegionSTEPConfigPart():
     def __init__( self, obj ):
         obj.addProperty(
             "App::PropertyLink", "STEP_model",
-            "Model", "zzz" )
+            "Model", "Link to STEP object" )
         obj.addProperty(
             "App::PropertyString", "inner_region_STEP_file",
-            "Model", "zzz" ).inner_region_STEP_file = "model.stp"
+            "Model", "STEP object export filename" ).inner_region_STEP_file = "model.stp"
         obj.addProperty(
             "App::PropertyString", "inner_region_STEP_potential",
-            "Potential", "zzz" ).inner_region_STEP_potential = "0.0"                
+            "Potential", "Inner region potential" ).inner_region_STEP_potential = "0.0"                
         # obj.ViewObject.addProperty("App::PropertyColor", "Color",
         #                            "Inner region color", "Inner region color").Color=(0.5, 0.5, 0.0)        
         obj.Proxy = self
@@ -1002,9 +1000,7 @@ class InnerRegionSTEPConfigPart():
             Part.export( export_models, export_model_name )
         return
 
-
-    
-    
+        
 FreeCADGui.addCommand( 'CreateEpicfConfig', CreateEpicfConfig() )
 FreeCADGui.addCommand( 'AddSourceRegion', AddSourceRegion() )
 FreeCADGui.addCommand( 'AddInnerRegionBox', AddInnerRegionBox() )
