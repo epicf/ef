@@ -19,6 +19,8 @@ Domain::Domain( Config &conf ) :
     particle_sources( conf ),
     external_magnetic_field( conf )
 {
+    particle_interaction_model =
+	conf.particle_interaction_model_config_part.particle_interaction_model;
     charged_inner_regions.print();
     return;
 }
@@ -53,19 +55,29 @@ void Domain::run_pic( Config &conf )
 
 void Domain::prepare_leap_frog()
 {
-    eval_charge_density();
-    eval_potential_and_fields();
-    shift_velocities_half_time_step_back();
+    if ( particle_interaction_model == "PIC" ){
+	eval_charge_density();
+	eval_potential_and_fields();
+	shift_velocities_half_time_step_back();
+    } else {	
+	shift_velocities_half_time_step_back();
+    }
     return;
 }
 
 void Domain::advance_one_time_step()
-{
-    push_particles();
-    apply_domain_constrains();
-    eval_charge_density();
-    eval_potential_and_fields();
-    update_time_grid();
+{    
+    if ( particle_interaction_model == "PIC" ){
+	push_particles();
+	apply_domain_constrains();
+	eval_charge_density();
+	eval_potential_and_fields();
+	update_time_grid();
+    } else {
+	push_particles();
+	apply_domain_constrains();
+	update_time_grid();	
+    }
     return;
 }
 
@@ -136,6 +148,10 @@ void Domain::shift_velocities_half_time_step_back()
     double minus_half_dt = -time_grid.time_step_size / 2;
     Vec3d el_field_force, mgn_field_force, total_force, dp;
 
+    if ( particle_interaction_model == "binary" ){
+	apply_binary_forces_between_particles( minus_half_dt );
+    }
+
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
 	    if ( !p.momentum_is_half_time_step_shifted ){
@@ -155,6 +171,10 @@ void Domain::update_momentum( double dt )
 {
     Vec3d el_field_force, mgn_field_force, total_force, dp;
 
+    if ( particle_interaction_model == "binary" ){
+	apply_binary_forces_between_particles( dt );
+    }
+
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
 	    el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
@@ -165,6 +185,19 @@ void Domain::update_momentum( double dt )
 	}
     }
     return;
+}
+
+void Domain::apply_binary_forces_between_particles( double dt )
+{
+    for( auto &src1 : particle_sources.sources ) {
+	for( auto &src2 : particle_sources.sources ) {
+	    if( src1 == src2 ){
+		src1.binary_interaction_of_particles_in_the_same_source( dt );
+	    } else {
+		src1.binary_interaction_of_particles_in_a_different_sources( src2, dt );
+	    }
+	}
+    }
 }
 
 void Domain::update_position( double dt )

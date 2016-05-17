@@ -35,6 +35,7 @@ class Domain {
     Field_solver field_solver;    
     Particle_sources_manager particle_sources;
     External_magnetic_field external_magnetic_field;
+    std::string particle_interaction_model;
   public:
     Domain( Config &conf );
     void run_pic( Config &conf );
