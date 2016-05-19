@@ -17,6 +17,7 @@
 #include "particle_to_mesh_map.h"
 #include "field_solver.h"
 #include "External_magnetic_field.h"
+#include "particle_interaction_model.h"
 #include "particle_source.h"
 #include "particle.h"
 #include "vec3d.h"
@@ -35,7 +36,7 @@ class Domain {
     Field_solver field_solver;    
     Particle_sources_manager particle_sources;
     External_magnetic_field external_magnetic_field;
-    std::string particle_interaction_model;
+    Particle_interaction_model particle_interaction_model;
   public:
     Domain( Config &conf );
     void run_pic( Config &conf );
