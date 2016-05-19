@@ -271,9 +271,12 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
     // 	      << "count = " << subset_dims[0] << " "
     // 	      << "offset = " << subset_offset[0] << std::endl;
     
-    memspace = H5Screate_simple( rank, subset_dims, NULL ); hdf5_status_check( memspace );
-    filespace = H5Screate_simple( rank, dims, NULL ); hdf5_status_check( filespace );
-    status = H5Sselect_hyperslab( filespace, H5S_SELECT_SET, subset_offset, NULL, subset_dims, NULL );
+    memspace = H5Screate_simple( rank, subset_dims, NULL );
+    hdf5_status_check( memspace );
+    filespace = H5Screate_simple( rank, dims, NULL );
+    hdf5_status_check( filespace );
+    status = H5Sselect_hyperslab( filespace, H5S_SELECT_SET,
+				  subset_offset, NULL, subset_dims, NULL );
     hdf5_status_check( status );
 
     dset = H5Dcreate( group_id, "./node_coordinates",
