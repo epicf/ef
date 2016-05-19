@@ -31,27 +31,36 @@ void Particle_to_mesh_map::weight_particles_charge_to_mesh_for_single_process(
 	    next_node_num_and_weight( vec3d_y( p.position ), dy, &trf_j, &trf_y_weight );
 	    next_node_num_and_weight( vec3d_z( p.position ), dz, &trf_k, &trf_z_weight );
 	    spat_mesh.charge_density[trf_i][trf_j][trf_k] +=
-		trf_x_weight * trf_y_weight * trf_z_weight * p.charge / volume_around_node;
+		trf_x_weight * trf_y_weight * trf_z_weight
+		* p.charge / volume_around_node;
 	    spat_mesh.charge_density[trf_i-1][trf_j][trf_k] +=
-		( 1.0 - trf_x_weight ) * trf_y_weight * trf_z_weight * p.charge / volume_around_node;
+		( 1.0 - trf_x_weight ) * trf_y_weight * trf_z_weight
+		* p.charge / volume_around_node;
 	    spat_mesh.charge_density[trf_i][trf_j-1][trf_k] +=
-		trf_x_weight * ( 1.0 - trf_y_weight ) * trf_z_weight * p.charge / volume_around_node;
+		trf_x_weight * ( 1.0 - trf_y_weight ) * trf_z_weight
+		* p.charge / volume_around_node;
 	    spat_mesh.charge_density[trf_i-1][trf_j-1][trf_k] +=
-		( 1.0 - trf_x_weight ) * ( 1.0 - trf_y_weight ) * trf_z_weight * p.charge / volume_around_node;
+		( 1.0 - trf_x_weight ) * ( 1.0 - trf_y_weight ) * trf_z_weight
+		* p.charge / volume_around_node;
 	    spat_mesh.charge_density[trf_i][trf_j][trf_k - 1] +=
-		trf_x_weight * trf_y_weight * ( 1.0 - trf_z_weight ) * p.charge / volume_around_node;
+		trf_x_weight * trf_y_weight * ( 1.0 - trf_z_weight )
+		* p.charge / volume_around_node;
 	    spat_mesh.charge_density[trf_i-1][trf_j][trf_k - 1] +=
-		( 1.0 - trf_x_weight ) * trf_y_weight * ( 1.0 - trf_z_weight ) * p.charge / volume_around_node;
+		( 1.0 - trf_x_weight ) * trf_y_weight * ( 1.0 - trf_z_weight )
+		* p.charge / volume_around_node;
 	    spat_mesh.charge_density[trf_i][trf_j-1][trf_k - 1] +=
-		trf_x_weight * ( 1.0 - trf_y_weight ) * ( 1.0 - trf_z_weight ) * p.charge / volume_around_node;
+		trf_x_weight * ( 1.0 - trf_y_weight ) * ( 1.0 - trf_z_weight )
+		* p.charge / volume_around_node;
 	    spat_mesh.charge_density[trf_i-1][trf_j-1][trf_k - 1] +=
-		( 1.0 - trf_x_weight ) * ( 1.0 - trf_y_weight ) * ( 1.0 - trf_z_weight ) * p.charge / volume_around_node;
+		( 1.0 - trf_x_weight ) * ( 1.0 - trf_y_weight ) * ( 1.0 - trf_z_weight )
+		* p.charge / volume_around_node;
 	}		
     }
     return;
 }
 
-void Particle_to_mesh_map::combine_charge_densities_from_all_processes( Spatial_mesh &spat_mesh )
+void Particle_to_mesh_map::combine_charge_densities_from_all_processes(
+    Spatial_mesh &spat_mesh )
 {
     // Hopefully, data arrangment in spat_mesh.charge_density is similar
     // at each process. 
