@@ -17,7 +17,8 @@ Domain::Domain( Config &conf ) :
     particle_to_mesh_map( ),
     field_solver( spat_mesh, inner_regions ),
     particle_sources( conf ),
-    external_magnetic_field( conf )
+    external_magnetic_field( conf ),
+    particle_interaction_model( conf )
 {
     charged_inner_regions.print();
     return;
@@ -53,19 +54,29 @@ void Domain::run_pic( Config &conf )
 
 void Domain::prepare_leap_frog()
 {
-    eval_charge_density();
-    eval_potential_and_fields();
-    shift_velocities_half_time_step_back();
+    if ( particle_interaction_model.noninteracting ){
+	shift_velocities_half_time_step_back();
+    } else if ( particle_interaction_model.pic ){
+	eval_charge_density();
+	eval_potential_and_fields();
+	shift_velocities_half_time_step_back();
+    }
     return;
 }
 
 void Domain::advance_one_time_step()
-{
-    push_particles();
-    apply_domain_constrains();
-    eval_charge_density();
-    eval_potential_and_fields();
-    update_time_grid();
+{    
+    if ( particle_interaction_model.noninteracting ){
+	push_particles();
+	apply_domain_constrains();
+	update_time_grid();
+    } else if ( particle_interaction_model.pic ){
+	push_particles();
+	apply_domain_constrains();
+	eval_charge_density();
+	eval_potential_and_fields();
+	update_time_grid();
+    }
     return;
 }
 
@@ -299,6 +310,7 @@ void Domain::write( Config &conf )
     external_magnetic_field.write_to_file( output_file );
     particle_sources.write_to_file( output_file );
     inner_regions.write_to_file( output_file );
+    particle_interaction_model.write_to_file( output_file );
 
     status = H5Pclose( plist_id ); hdf5_status_check( status );
     status = H5Fclose( output_file ); hdf5_status_check( status );

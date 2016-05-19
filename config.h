@@ -336,6 +336,22 @@ public:
     }
 };
 
+
+class Particle_interaction_model_config_part {
+public:
+    std::string particle_interaction_model;
+public:
+    Particle_interaction_model_config_part(){};
+    Particle_interaction_model_config_part( boost::property_tree::ptree &ptree ) :
+	particle_interaction_model( ptree.get<std::string>("particle_interaction_model") )
+	{} ;
+    virtual ~Particle_interaction_model_config_part() {};
+    void print() {
+	std::cout << "Particle_interaction_model = " << particle_interaction_model << std::endl;
+    }
+};
+
+
 class Output_filename_config_part {
 public:
     std::string output_filename_prefix;
@@ -362,6 +378,7 @@ public:
     boost::ptr_vector<Charged_inner_region_config_part> charged_inner_regions_config_part;
     Boundary_config_part boundary_config_part;
     External_magnetic_field_config_part external_magnetic_field_config_part;
+    Particle_interaction_model_config_part particle_interaction_model_config_part;
     Output_filename_config_part output_filename_config_part;
 public:
     Config( const std::string &filename );
@@ -380,6 +397,7 @@ public:
 	    cir.print();
 	}
 	boundary_config_part.print();
+	particle_interaction_model_config_part.print();
 	output_filename_config_part.print();
 	external_magnetic_field_config_part.print();
 	std::cout << "======" << std::endl;
