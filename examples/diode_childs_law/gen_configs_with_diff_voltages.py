@@ -6,7 +6,7 @@ with open( basic_conf_file, 'r') as f:
 
 # todo: find instead of hardcoding
 anode_voltage_linenum = 42
-output_file_name_linenum = 66
+output_file_name_linenum = 71
 
 voltages = list( range(0, 310, 30) )
 volts_to_cgs = 1.0 / 300.0
