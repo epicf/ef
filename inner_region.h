@@ -138,6 +138,41 @@ private:
 };
 
 
+class Inner_region_cylinder : public Inner_region{
+public:
+    double axis_start_x;
+    double axis_start_y;
+    double axis_start_z;
+    double axis_end_x;
+    double axis_end_y;
+    double axis_end_z;
+    double radius;
+public:
+    Inner_region_cylinder( Config &conf,
+			   Inner_region_cylinder_config_part &inner_region_conf,
+			   Spatial_mesh &spat_mesh );
+    virtual ~Inner_region_cylinder() {};
+    void print() {
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "axis_start_x = " << axis_start_x << std::endl;
+	std::cout << "axis_start_y = " << axis_start_y << std::endl;
+	std::cout << "axis_start_z = " << axis_start_z << std::endl;
+	std::cout << "axis_end_x = " << axis_end_x << std::endl;
+	std::cout << "axis_end_y = " << axis_end_y << std::endl;
+	std::cout << "axis_end_z = " << axis_end_z << std::endl;
+	std::cout << "radius = " << radius << std::endl;
+    }
+    virtual bool check_if_point_inside( double x, double y, double z );
+private:
+    virtual void check_correctness_of_related_config_fields(
+	Config &conf,
+	Inner_region_cylinder_config_part &inner_region_cylinder_conf );
+    virtual void get_values_from_config( Inner_region_cylinder_config_part &inner_region_cylinder_conf );
+    virtual void write_to_file( hid_t regions_group_id );
+};
+
+
 
 class Inner_region_STEP : public Inner_region
 {
@@ -175,9 +210,13 @@ public:
 		regions.push_back( new Inner_region_sphere( conf,
 							    *sphere_conf,
 							    spat_mesh ) );
+	    } else if( Inner_region_cylinder_config_part *cyl_conf =
+		dynamic_cast<Inner_region_cylinder_config_part*>( &inner_region_conf ) ){
+		regions.push_back( new Inner_region_cylinder( conf,
+							      *cyl_conf,
+							      spat_mesh ) );
 	    } else if (	Inner_region_STEP_config_part *with_model_conf =
-			dynamic_cast<Inner_region_STEP_config_part*>(
-			    &inner_region_conf ) ) {
+		dynamic_cast<Inner_region_STEP_config_part*>( &inner_region_conf ) ) {
 		regions.push_back( new Inner_region_STEP( conf,
 							  *with_model_conf,
 							  spat_mesh ) );

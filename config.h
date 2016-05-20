@@ -197,6 +197,44 @@ public:
     }
 };
 
+
+class Inner_region_cylinder_config_part : public Inner_region_config_part{
+public:
+    double inner_region_cylinder_axis_start_x;
+    double inner_region_cylinder_axis_start_y;
+    double inner_region_cylinder_axis_start_z;
+    double inner_region_cylinder_axis_end_x;
+    double inner_region_cylinder_axis_end_y;
+    double inner_region_cylinder_axis_end_z;
+    double inner_region_cylinder_radius;
+public:
+    Inner_region_cylinder_config_part(){};
+    Inner_region_cylinder_config_part( std::string name, boost::property_tree::ptree &ptree ) :
+	inner_region_cylinder_axis_start_x( ptree.get<double>("inner_region_cylinder_axis_start_x") ),
+	inner_region_cylinder_axis_start_y( ptree.get<double>("inner_region_cylinder_axis_start_y") ),
+	inner_region_cylinder_axis_start_z( ptree.get<double>("inner_region_cylinder_axis_start_z") ),
+	inner_region_cylinder_axis_end_x( ptree.get<double>("inner_region_cylinder_axis_end_x") ),
+	inner_region_cylinder_axis_end_y( ptree.get<double>("inner_region_cylinder_axis_end_y") ),
+	inner_region_cylinder_axis_end_z( ptree.get<double>("inner_region_cylinder_axis_end_z") ),
+	inner_region_cylinder_radius( ptree.get<double>("inner_region_cylinder_radius") ){
+	    inner_region_name = name;
+	    inner_region_potential = ptree.get<double>("inner_region_cylinder_potential");
+	};
+    virtual ~Inner_region_cylinder_config_part() {};
+    void print() { 
+	std::cout << "Inner region: name = " << inner_region_name << std::endl;
+	std::cout << "inner_region_potential = " << inner_region_potential << std::endl;
+	std::cout << "inner_region_cylinder_axis_start_x = " << inner_region_cylinder_axis_start_x << std::endl;
+	std::cout << "inner_region_cylinder_axis_start_y = " << inner_region_cylinder_axis_start_y << std::endl;
+	std::cout << "inner_region_cylinder_axis_start_z = " << inner_region_cylinder_axis_start_z << std::endl;
+	std::cout << "inner_region_cylinder_axis_end_x = " << inner_region_cylinder_axis_end_x << std::endl;
+	std::cout << "inner_region_cylinder_axis_end_y = " << inner_region_cylinder_axis_end_y << std::endl;
+	std::cout << "inner_region_cylinder_axis_end_z = " << inner_region_cylinder_axis_end_z << std::endl;
+	std::cout << "inner_region_cylinder_radius = " << inner_region_cylinder_radius << std::endl;
+    }
+};
+
+
 class Inner_region_STEP_config_part : public Inner_region_config_part {
   public:
     std::string inner_region_STEP_file;
