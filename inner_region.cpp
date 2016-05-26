@@ -421,23 +421,20 @@ void Inner_region_cylinder::get_values_from_config(
 
 bool Inner_region_cylinder::check_if_point_inside( double x, double y, double z )
 {
-    // translate point and rotate
-    double tmpx = (x - axis_start_x);
-    double tmpy = (y - axis_start_y);
-    double tmpz = (z - axis_start_z);
-    double cyl_axis_len = sqrt( ( axis_end_x - axis_start_x ) * ( axis_end_x - axis_start_x ) +
-				( axis_end_y - axis_start_y ) * ( axis_end_y - axis_start_y ) +
-				( axis_end_z - axis_start_z ) * ( axis_end_z - axis_start_z ) );
-    // todo: check negative, check nonzero, recheck acos, rotation direction, 
-    // move len and th calculation to constructor
-    double cyl_axis_th = acos( ( axis_end_z - axis_start_z ) / cyl_axis_len ) ;
-    double rotx = tmpx;
-    double roty = cos( cyl_axis_th ) * tmpy - sin( cyl_axis_th ) * tmpz;
-    double rotz = sin( cyl_axis_th ) * tmpy + cos( cyl_axis_th ) * tmpz; 
-    
-    bool in =
-	( rotz >= 0 && rotz <= cyl_axis_len &&
-	  rotx * rotx + roty * roty <= radius * radius );
+    Vec3d pointvec = vec3d_init( (x - axis_start_x),
+				 (y - axis_start_y),
+				 (z - axis_start_z) );
+    Vec3d axisvec = vec3d_init( ( axis_end_x - axis_start_x ),
+				( axis_end_y - axis_start_y ),
+				( axis_end_z - axis_start_z ) );
+    Vec3d unit_axisvec = vec3d_normalized( axisvec );
+			   
+    double projection = vec3d_dot_product( pointvec, axisvec );   
+    Vec3d perp_to_axis = vec3d_sub( pointvec,
+				    vec3d_times_scalar( unit_axisvec, projection ) );
+    bool in = ( projection >= 0 &&
+		projection <= vec3d_dot_product( axisvec, axisvec ) &&
+		vec3d_length( perp_to_axis ) <= radius );
     return in;
 }
 
@@ -495,6 +492,143 @@ void Inner_region_cylinder::write_to_file( hid_t regions_group_id )
     status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
 				       "radius", &radius, single_element );
     hdf5_status_check( status );
+    
+    status = H5Gclose(current_region_group_id); hdf5_status_check( status );
+    return;
+    
+    // todo: separate functions
+    // write_hdf5_absorbed_charge( group_id, region_name );
+
+    // todo: call Inner_region::write_to_file()
+    // to write common properties.
+    // then write rest of parameters
+    // write_hdf5_region_parameters( group_id, region_name );
+}
+
+
+
+// Tube
+
+Inner_region_tube::Inner_region_tube(
+    Config &conf,
+    Inner_region_tube_config_part &inner_region_tube_conf,
+    Spatial_mesh &spat_mesh )
+{
+    check_correctness_of_related_config_fields( conf, inner_region_tube_conf );
+    get_values_from_config( inner_region_tube_conf );
+    object_type = "tube";
+    total_absorbed_particles = 0;
+    total_absorbed_charge = 0;
+    absorbed_particles_current_timestep_current_proc = 0;
+    absorbed_charge_current_timestep_current_proc = 0;
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
+void Inner_region_tube::check_correctness_of_related_config_fields(
+    Config &conf,
+    Inner_region_tube_config_part &inner_region_tube_conf )
+{
+    // check if region lies inside the domain
+}
+
+void Inner_region_tube::get_values_from_config(
+    Inner_region_tube_config_part &inner_region_tube_conf )
+{
+    name = inner_region_tube_conf.inner_region_name;
+    potential = inner_region_tube_conf.inner_region_potential;
+    axis_start_x = inner_region_tube_conf.inner_region_tube_axis_start_x;
+    axis_start_y = inner_region_tube_conf.inner_region_tube_axis_start_y;
+    axis_start_z = inner_region_tube_conf.inner_region_tube_axis_start_z;
+    axis_end_x = inner_region_tube_conf.inner_region_tube_axis_end_x;
+    axis_end_y = inner_region_tube_conf.inner_region_tube_axis_end_y;
+    axis_end_z = inner_region_tube_conf.inner_region_tube_axis_end_z;
+    inner_radius = inner_region_tube_conf.inner_region_tube_inner_radius;
+    outer_radius = inner_region_tube_conf.inner_region_tube_outer_radius;
+}
+
+
+bool Inner_region_tube::check_if_point_inside( double x, double y, double z )
+{
+    Vec3d pointvec = vec3d_init( (x - axis_start_x),
+				 (y - axis_start_y),
+				 (z - axis_start_z) );
+    Vec3d axisvec = vec3d_init( ( axis_end_x - axis_start_x ),
+				( axis_end_y - axis_start_y ),
+				( axis_end_z - axis_start_z ) );
+    Vec3d unit_axisvec = vec3d_normalized( axisvec );
+			   
+    double projection = vec3d_dot_product( pointvec, axisvec );   
+    Vec3d perp_to_axis = vec3d_sub( pointvec,
+				    vec3d_times_scalar( unit_axisvec, projection ) );
+    bool in = ( projection >= 0 &&
+		projection <= vec3d_dot_product( axisvec, axisvec ) &&
+		vec3d_length( perp_to_axis ) >= inner_radius &&
+		vec3d_length( perp_to_axis ) <= outer_radius );
+    return in;
+}
+
+
+void Inner_region_tube::write_to_file( hid_t regions_group_id )
+{
+    hid_t current_region_group_id;
+    herr_t status;
+    int single_element = 1;
+    std::string current_region_groupname = name;
+    
+    current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
+					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    hdf5_status_check( current_region_group_id );
+
+    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
+				       "object_type", object_type.c_str() );
+    
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "potential", &potential, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_int( regions_group_id, current_region_groupname.c_str(),
+				    "total_absorbed_particles", &total_absorbed_particles, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "total_absorbed_charge", &total_absorbed_charge, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "axis_start_x", &axis_start_x, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "axis_start_y", &axis_start_y, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "axis_start_z", &axis_start_z, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "axis_end_x", &axis_end_x, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "axis_end_y", &axis_end_y, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "axis_end_z", &axis_end_z, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "inner_radius", &inner_radius, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+				       "outer_radius", &outer_radius, single_element );
+    hdf5_status_check( status );
+
     
     status = H5Gclose(current_region_group_id); hdf5_status_check( status );
     return;

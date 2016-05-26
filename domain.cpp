@@ -123,9 +123,12 @@ void Domain::push_particles()
 
 void Domain::apply_domain_constrains()
 {
-    apply_domain_boundary_conditions();
-    remove_particles_inside_inner_regions();
+    // First generate then remove.
+    // This allows for overlap of source and inner region.
     generate_new_particles();
+
+    apply_domain_boundary_conditions();
+    remove_particles_inside_inner_regions();    
     return;
 }
 
