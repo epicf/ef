@@ -14,9 +14,14 @@ Config::Config( const std::string &filename )
 		time_config_part = Time_config_part( sections.second );
 	    } else if ( section_name.find( "Spatial mesh" ) != std::string::npos ) {		
 		mesh_config_part = Mesh_config_part( sections.second );
-	    } else if ( section_name.find( "Source." ) != std::string::npos ) {
+	    } else if ( section_name.find( "Particle_source_box." ) != std::string::npos ) {
 		std::string source_name = section_name.substr( section_name.find(".") + 1 );
-		sources_config_part.emplace_back( source_name, sections.second );
+		sources_config_part.push_back(
+		    new Particle_source_box_config_part( source_name, sections.second ) );
+	    } else if ( section_name.find( "Particle_source_cylinder." ) != std::string::npos ) {
+		std::string source_name = section_name.substr( section_name.find(".") + 1 );
+		sources_config_part.push_back(
+		    new Particle_source_cylinder_config_part( source_name, sections.second ) );
 	    } else if ( section_name.find( "Inner_region_box." ) != std::string::npos ) {
 		std::string inner_region_name = section_name.substr( section_name.find(".") + 1 );
 		inner_regions_config_part.push_back(
