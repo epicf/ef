@@ -121,6 +121,59 @@ private:
 };
 
 
+class Particle_source_cylinder : public Particle_source {
+private:
+    // Source position
+    double axis_start_x;
+    double axis_start_y;
+    double axis_start_z;
+    double axis_end_x;
+    double axis_end_y;
+    double axis_end_z;
+    double radius;
+public:
+    Particle_source_cylinder( Config &conf, Particle_source_cylinder_config_part &src_conf );
+    virtual ~Particle_source_cylinder() {};
+private:
+    // Particle generation
+    virtual void set_parameters_from_config( Particle_source_cylinder_config_part &src_conf );
+    virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen );
+    Vec3d uniform_position_in_cylinder( std::default_random_engine &rnd_gen );
+    // Check config
+    virtual void check_correctness_of_related_config_fields( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void radius_gt_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_x_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_x_plus_rad_le_grid_x_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_y_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_y_plus_rad_le_grid_y_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_z_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_z_plus_rad_le_grid_z_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_x_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_x_plus_rad_le_grid_x_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_y_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_y_plus_rad_le_grid_y_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_z_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_z_plus_rad_le_grid_z_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    // Write to file
+    virtual void write_hdf5_source_parameters( hid_t current_source_group_id );
+};
+
+
+
 class Particle_sources_manager{
 public:
     boost::ptr_vector<Particle_source> sources;
@@ -132,10 +185,10 @@ public:
 		dynamic_cast<Particle_source_box_config_part*>( &src_conf ) ){
 		sources.push_back( new Particle_source_box( conf,
 							    *box_conf ) );
-	    // } else if( Particle_source_cylinder_config_part *cyl_conf =
-	    // 	       dynamic_cast<Particle_source_cylinder_config_part*>( &src_conf ) ){
-	    // 	sources.push_back( new Particle_source_cylinder( conf,
-	    // 							 *cyl_conf ) );
+	    } else if( Particle_source_cylinder_config_part *cyl_conf =
+	    	       dynamic_cast<Particle_source_cylinder_config_part*>( &src_conf ) ){
+	    	sources.push_back( new Particle_source_cylinder( conf,
+	    							 *cyl_conf ) );
 	    } else {
 		std::cout << "In sources_manager constructor: Unknown config type. Aborting" << std::endl; 
 		exit( EXIT_FAILURE );
