@@ -12,7 +12,7 @@ Config::Config( const std::string &filename )
 	    std::string section_name = sections.first.data();
 	    if ( section_name.find( "Time grid" ) != std::string::npos ) {
 		time_config_part = Time_config_part( sections.second );
-	    } else if ( section_name.find( "Spatial mesh" ) != std::string::npos ) {		
+	    } else if ( section_name.find( "Spatial mesh" ) != std::string::npos ) {
 		mesh_config_part = Mesh_config_part( sections.second );
 	    } else if ( section_name.find( "Particle_source_box." ) != std::string::npos ) {
 		std::string source_name = section_name.substr( section_name.find(".") + 1 );
