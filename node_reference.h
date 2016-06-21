@@ -11,8 +11,8 @@ public:
     Node_reference( int xx, int yy, int zz ): x(xx), y(yy), z(zz) {};
     virtual ~Node_reference() {};
     std::vector<Node_reference> adjacent_nodes() {
-	Node_reference left( x-1, y, z );
-	Node_reference right( x+1, y, z );
+	Node_reference left( x+1, y, z );
+	Node_reference right( x-1, y, z );
 	Node_reference top( x, y+1, z );
 	Node_reference bottom( x, y-1, z );
 	Node_reference near( x, y, z-1 );
@@ -29,24 +29,22 @@ public:
 		 z <= 0 || z >= nz - 1 );
     };
     bool left_from( Node_reference other_node ){
-	return x+1 == other_node.x;
-    };
-    bool right_from( Node_reference other_node ){
 	return x-1 == other_node.x;
     };
-    bool top_from( Node_reference other_node ){
-	// warning y numeration from top to bottom
-	return y+1 == other_node.y;
+    bool right_from( Node_reference other_node ){
+	return x+1 == other_node.x;
     };
-    bool bottom_from( Node_reference other_node ){
-	// warning y numeration from top to bottom
+    bool top_from( Node_reference other_node ){	
 	return y-1 == other_node.y;
     };
-    bool near_from( Node_reference other_node ){
-	return z+1 == other_node.z;
+    bool bottom_from( Node_reference other_node ){
+	return y+1 == other_node.y;
     };
     bool far_from( Node_reference other_node ){
 	return z-1 == other_node.z;
+    };
+    bool near_from( Node_reference other_node ){
+	return z+1 == other_node.z;
     };
 
     // comparison operators are necessary for std::sort and std::unique to work
