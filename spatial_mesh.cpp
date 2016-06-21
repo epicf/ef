@@ -130,8 +130,8 @@ void Spatial_mesh::set_boundary_conditions( const double phi_left, const double 
     
     for ( int j = 0; j < ny; j++ ) {
 	for ( int k = 0; k < nz; k++ ) {
-	    potential[0][j][k] = phi_left;
-	    potential[nx-1][j][k] = phi_right;
+	    potential[0][j][k] = phi_right;
+	    potential[nx-1][j][k] = phi_left;
 	}
     }
 

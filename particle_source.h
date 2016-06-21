@@ -92,17 +92,17 @@ private:
     virtual void set_parameters_from_config( Particle_source_box_config_part &src_conf );
     virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen );
     Vec3d uniform_position_in_cube( const double xleft, const double ytop,
-				    const double znear, const double xright,
-				    const double ybottom, const double zfar,
+				    const double zfar, const double xright,
+				    const double ybottom, const double znear,
 				    std::default_random_engine &rnd_gen );
     // Check config
     virtual void check_correctness_of_related_config_fields( 
 	Config &conf, Particle_source_box_config_part &src_conf );
-    void x_left_ge_zero( 
+    void x_right_ge_zero( 
 	Config &conf, Particle_source_box_config_part &src_conf );
-    void x_left_le_particle_source_x_right( 
+    void x_right_le_particle_source_x_left( 
 	Config &conf, Particle_source_box_config_part &src_conf );
-    void x_right_le_grid_x_size( 
+    void x_left_le_grid_x_size( 
 	Config &conf, Particle_source_box_config_part &src_conf );
     void y_bottom_ge_zero( 
 	Config &conf, Particle_source_box_config_part &src_conf );
