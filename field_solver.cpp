@@ -254,34 +254,34 @@ void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d,
     PetscScalar no_boundaries_pattern[no_boundaries_pattern_size];
     PetscScalar at_right_boundary_pattern[at_boundary_pattern_size];
     PetscInt cols[ no_boundaries_pattern_size ]; 
-    at_left_boundary_pattern[0] = -2.0;
-    at_left_boundary_pattern[1] = 1.0;
+    at_right_boundary_pattern[0] = -2.0;
+    at_right_boundary_pattern[1] = 1.0;
     no_boundaries_pattern[0] = 1.0;
     no_boundaries_pattern[1] = -2.0;
     no_boundaries_pattern[2] = 1.0;
-    at_right_boundary_pattern[0] = 1.0;
-    at_right_boundary_pattern[1] = -2.0;
+    at_left_boundary_pattern[0] = 1.0;
+    at_left_boundary_pattern[1] = -2.0;
 
     int i, j, k;
     for( int row_idx = rstart; row_idx < rend; row_idx++ ) {
 	global_index_in_matrix_to_node_ijk( row_idx, &i, &j, &k, nx, ny, nz );
 	if ( i == 1 ) {
-	    // left boundary
+	    // right boundary
 	    cols[0] = row_idx;
 	    cols[1] = row_idx + 1;
 	    ierr = MatSetValues( *d2dx2_3d,
 				 1, &row_idx,
 				 at_boundary_pattern_size, cols,
-				 at_left_boundary_pattern, INSERT_VALUES );
+				 at_right_boundary_pattern, INSERT_VALUES );
 	    CHKERRXX( ierr );
 	} else if ( i == nx - 2 ) {
-	    // right boundary
+	    // left boundary
 	    cols[0] = row_idx - 1;
 	    cols[1] = row_idx;
 	    ierr = MatSetValues( *d2dx2_3d,
 				 1, &row_idx,
 				 at_boundary_pattern_size, cols,
-				 at_right_boundary_pattern, INSERT_VALUES );
+				 at_left_boundary_pattern, INSERT_VALUES );
 	    CHKERRXX( ierr );
 	} else {
 	    // center
@@ -496,7 +496,6 @@ void Field_solver::init_rhs_vector_in_full_domain( Spatial_mesh &spat_mesh )
     double rhs_at_node;
 
     // todo: split into separate functions
-    // start processing rho from the near top left corner
     for ( int k = 1; k <= nz-2; k++ ) {
 	for ( int j = 1; j <= ny-2; j++ ) { 
 	    for ( int i = 1; i <= nx-2; i++ ) {
@@ -724,8 +723,8 @@ int Field_solver::node_ijk_to_global_index_in_matrix( int i, int j, int k,
 						      int nx, int ny, int nz )    
 {
     // numbering of nodes corresponds to axis direction
-    // i.e. numbering starts from bottom-left-near corner
-    //   then along X axis to the right
+    // i.e. numbering starts from bottom-right-near corner
+    //   then along X axis to the left
     //   then along Y axis to the top
     //   then along Z axis far
     if ( ( i <= 0 ) || ( i >= nx-1 ) ||
