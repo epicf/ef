@@ -426,14 +426,14 @@ bool Inner_region_cylinder::check_if_point_inside( double x, double y, double z 
 				 (z - axis_start_z) );
     Vec3d axisvec = vec3d_init( ( axis_end_x - axis_start_x ),
 				( axis_end_y - axis_start_y ),
-				( axis_end_z - axis_start_z ) );
+				( axis_end_z - axis_start_z ) );    
     Vec3d unit_axisvec = vec3d_normalized( axisvec );
 			   
-    double projection = vec3d_dot_product( pointvec, axisvec );   
+    double projection = vec3d_dot_product( pointvec, unit_axisvec );
     Vec3d perp_to_axis = vec3d_sub( pointvec,
 				    vec3d_times_scalar( unit_axisvec, projection ) );
     bool in = ( projection >= 0 &&
-		projection <= vec3d_dot_product( axisvec, axisvec ) &&
+		projection <= vec3d_length( axisvec ) &&
 		vec3d_length( perp_to_axis ) <= radius );
     return in;
 }
@@ -560,11 +560,11 @@ bool Inner_region_tube::check_if_point_inside( double x, double y, double z )
 				( axis_end_z - axis_start_z ) );
     Vec3d unit_axisvec = vec3d_normalized( axisvec );
 			   
-    double projection = vec3d_dot_product( pointvec, axisvec );   
+    double projection = vec3d_dot_product( pointvec, unit_axisvec );
     Vec3d perp_to_axis = vec3d_sub( pointvec,
 				    vec3d_times_scalar( unit_axisvec, projection ) );
     bool in = ( projection >= 0 &&
-		projection <= vec3d_dot_product( axisvec, axisvec ) &&
+		projection <= vec3d_length( axisvec ) &&
 		vec3d_length( perp_to_axis ) >= inner_radius &&
 		vec3d_length( perp_to_axis ) <= outer_radius );
     return in;
