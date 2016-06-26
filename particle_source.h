@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <string>
 #include <vector>
+#include <algorithm>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <hdf5.h>
 #include <hdf5_hl.h>
