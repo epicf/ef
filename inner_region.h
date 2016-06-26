@@ -44,38 +44,46 @@ public:
     // Should be used in MatZeroRows call, but it seems, it has no effect
     Vec phi_inside_region, rhs_inside_region;
 public:
+    Inner_region(
+	Config &conf,
+	Inner_region_config_part &inner_region_conf );
     virtual ~Inner_region() {};
     virtual void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
 	std::cout << "potential = " << potential << std::endl;
     }
-    virtual void sync_absorbed_charge_and_particles_across_proc();
+    void sync_absorbed_charge_and_particles_across_proc();
     virtual bool check_if_point_inside( double x, double y, double z ) = 0;
-    virtual bool check_if_particle_inside( Particle &p );
-    virtual bool check_if_particle_inside_and_count_charge( Particle &p );
-    virtual bool check_if_node_inside( Node_reference &node, double dx, double dy, double dz );
-    virtual void mark_inner_nodes( Spatial_mesh &spat_mesh );
-    virtual void select_inner_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh );
-    virtual void print_inner_nodes() {
+    bool check_if_particle_inside( Particle &p );
+    bool check_if_particle_inside_and_count_charge( Particle &p );
+    bool check_if_node_inside( Node_reference &node, double dx, double dy, double dz );
+    void print_inner_nodes() {
 	std::cout << "Inner nodes of '" << name << "' object." << std::endl;
 	for( auto &node : inner_nodes )
 	    node.print();
     };
-    virtual void mark_near_boundary_nodes( Spatial_mesh &spat_mesh );
-    virtual void select_near_boundary_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh );
-    virtual void print_near_boundary_nodes() {
+    void print_near_boundary_nodes() {
 	std::cout << "Near-boundary nodes of '" << name << "' object." << std::endl;
 	for( auto &node : near_boundary_nodes )
 	    node.print();
     };
     // Write to file
-    virtual void write_to_file( hid_t regions_group_id );
+    void write_to_file( hid_t regions_group_id );
     void hdf5_status_check( herr_t status );
-
+protected:
+    void mark_inner_nodes( Spatial_mesh &spat_mesh );
+    void select_inner_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh );
+    void mark_near_boundary_nodes( Spatial_mesh &spat_mesh );
+    void select_near_boundary_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh );
+    void write_hdf5_common_parameters( hid_t current_region_group_id );
+    virtual void write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id ) = 0;
 private:
-    virtual void check_correctness_of_related_config_fields( Config &conf,
-							     Inner_region_config_part &inner_region_conf ){} ;
-    virtual void get_values_from_config( Inner_region_config_part &inner_region_conf ){};
+    virtual void check_correctness_of_related_config_fields(
+	Config &conf,
+	Inner_region_config_part &inner_region_conf );
+    virtual void get_values_from_config(
+	Inner_region_config_part &inner_region_conf );
 };
 
 
@@ -104,10 +112,13 @@ public:
     }
     virtual bool check_if_point_inside( double x, double y, double z );
 private:
-    virtual void check_correctness_of_related_config_fields( Config &conf,
-							     Inner_region_box_config_part &inner_region_box_conf );
-    virtual void get_values_from_config( Inner_region_box_config_part &inner_region_box_conf );
-    virtual void write_to_file( hid_t regions_group_id );
+    virtual void check_correctness_of_related_config_fields(
+	Config &conf,
+	Inner_region_box_config_part &inner_region_box_conf );
+    virtual void get_values_from_config(
+	Inner_region_box_config_part &inner_region_box_conf );    
+    virtual void write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id );
 };
 
 
@@ -118,9 +129,10 @@ public:
     double origin_z;
     double radius;
 public:
-    Inner_region_sphere( Config &conf,
-			 Inner_region_sphere_config_part &inner_region_conf,
-			 Spatial_mesh &spat_mesh );
+    Inner_region_sphere(
+	Config &conf,
+	Inner_region_sphere_config_part &inner_region_conf,
+	Spatial_mesh &spat_mesh );
     virtual ~Inner_region_sphere() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -132,10 +144,13 @@ public:
     }
     virtual bool check_if_point_inside( double x, double y, double z );
 private:
-    virtual void check_correctness_of_related_config_fields( Config &conf,
-							     Inner_region_sphere_config_part &inner_region_sphere_conf );
-    virtual void get_values_from_config( Inner_region_sphere_config_part &inner_region_sphere_conf );
-    virtual void write_to_file( hid_t regions_group_id );
+    virtual void check_correctness_of_related_config_fields(
+	Config &conf,
+	Inner_region_sphere_config_part &inner_region_sphere_conf );
+    virtual void get_values_from_config(
+	Inner_region_sphere_config_part &inner_region_sphere_conf );
+    virtual void write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id );
 };
 
 
@@ -149,9 +164,10 @@ public:
     double axis_end_z;
     double radius;
 public:
-    Inner_region_cylinder( Config &conf,
-			   Inner_region_cylinder_config_part &inner_region_conf,
-			   Spatial_mesh &spat_mesh );
+    Inner_region_cylinder(
+	Config &conf,
+	Inner_region_cylinder_config_part &inner_region_conf,
+	Spatial_mesh &spat_mesh );
     virtual ~Inner_region_cylinder() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -165,12 +181,15 @@ public:
 	std::cout << "radius = " << radius << std::endl;
     }
     virtual bool check_if_point_inside( double x, double y, double z );
+
 private:
     virtual void check_correctness_of_related_config_fields(
 	Config &conf,
 	Inner_region_cylinder_config_part &inner_region_cylinder_conf );
-    virtual void get_values_from_config( Inner_region_cylinder_config_part &inner_region_cylinder_conf );
-    virtual void write_to_file( hid_t regions_group_id );
+    virtual void get_values_from_config(
+	Inner_region_cylinder_config_part &inner_region_cylinder_conf );
+    virtual void write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id );
 };
 
 
@@ -185,9 +204,10 @@ public:
     double inner_radius;
     double outer_radius;
 public:
-    Inner_region_tube( Config &conf,
-			   Inner_region_tube_config_part &inner_region_conf,
-			   Spatial_mesh &spat_mesh );
+    Inner_region_tube(
+	Config &conf,
+	Inner_region_tube_config_part &inner_region_conf,
+	Spatial_mesh &spat_mesh );
     virtual ~Inner_region_tube() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -206,8 +226,10 @@ private:
     virtual void check_correctness_of_related_config_fields(
 	Config &conf,
 	Inner_region_tube_config_part &inner_region_tube_conf );
-    virtual void get_values_from_config( Inner_region_tube_config_part &inner_region_tube_conf );
-    virtual void write_to_file( hid_t regions_group_id );
+    virtual void get_values_from_config(
+	Inner_region_tube_config_part &inner_region_tube_conf );
+    virtual void write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id );
 };
 
 
@@ -215,19 +237,25 @@ private:
 class Inner_region_STEP : public Inner_region
 {
 public:
+    std::string STEP_file;
     TopoDS_Shape geometry;
     const double tolerance = 0.001;
 public:
-    Inner_region_STEP( Config &conf,
-		       Inner_region_STEP_config_part &inner_region_STEP_conf,
-		       Spatial_mesh &spat_mesh );
+    Inner_region_STEP(
+	Config &conf,
+	Inner_region_STEP_config_part &inner_region_STEP_conf,
+	Spatial_mesh &spat_mesh );
     virtual bool check_if_point_inside( double x, double y, double z );
     virtual ~Inner_region_STEP();
 private:
-    void check_correctness_of_related_config_fields( Config &conf,
-						     Inner_region_STEP_config_part &inner_region_STEP_conf );
-    void get_values_from_config( Inner_region_STEP_config_part &inner_region_STEP_conf );    
+    void check_correctness_of_related_config_fields(
+	Config &conf,
+	Inner_region_STEP_config_part &inner_region_STEP_conf );
+    void get_values_from_config(
+	Inner_region_STEP_config_part &inner_region_STEP_conf );    
     void read_geometry_file( std::string filename );
+    virtual void write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id );
 };
 
 
@@ -264,7 +292,9 @@ public:
 							  *with_model_conf,
 							  spat_mesh ) );
 	    } else {
-		std::cout << "In Inner_regions_manager constructor: Unknown config type. Aborting" << std::endl; 
+		std::cout << "In Inner_regions_manager constructor: "
+			  << "Unknown config type. Aborting"
+			  << std::endl;
 		exit( EXIT_FAILURE );
 	    }
 	}
@@ -319,11 +349,14 @@ public:
 	int single_element = 1;
 	std::string hdf5_groupname = "/Inner_regions";
 	int n_of_regions = regions.size();
-	group_id = H5Gcreate2( hdf5_file_id, hdf5_groupname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	group_id = H5Gcreate2(
+	    hdf5_file_id, hdf5_groupname.c_str(),
+	    H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
 	hdf5_status_check( group_id );
 
-	status = H5LTset_attribute_int( hdf5_file_id, hdf5_groupname.c_str(),
-			       "number_of_regions", &n_of_regions, single_element );
+	status = H5LTset_attribute_int(
+	    hdf5_file_id, hdf5_groupname.c_str(),
+	    "number_of_regions", &n_of_regions, single_element );
 	hdf5_status_check( status );
 	
 	for( auto &reg : regions )
@@ -336,7 +369,8 @@ public:
     void hdf5_status_check( herr_t status )
     {
 	if( status < 0 ){
-	    std::cout << "Something went wrong while writing Inner_regions group. Aborting."
+	    std::cout << "Something went wrong while "
+		      << "writing Inner_regions group. Aborting."
 		      << std::endl;
 	    exit( EXIT_FAILURE );
 	}

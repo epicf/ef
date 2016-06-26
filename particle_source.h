@@ -207,8 +207,10 @@ public:
 			       H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	hdf5_status_check( group_id );
 
-	status = H5LTset_attribute_int( hdf5_file_id, hdf5_groupname.c_str(),
-			       "number_of_sources", &n_of_sources, single_element );
+	status = H5LTset_attribute_int( hdf5_file_id,
+					hdf5_groupname.c_str(),
+					"number_of_sources", &n_of_sources,
+					single_element );
 	hdf5_status_check( status );
 	
 	for( auto &src : sources )

@@ -1,5 +1,30 @@
 #include "inner_region.h"
 
+Inner_region::Inner_region( Config &conf,
+			    Inner_region_config_part &inner_region_conf )
+{
+    check_correctness_of_related_config_fields( conf, inner_region_conf );
+    get_values_from_config( inner_region_conf );
+    total_absorbed_particles = 0;
+    total_absorbed_charge = 0;
+    absorbed_particles_current_timestep_current_proc = 0;
+    absorbed_charge_current_timestep_current_proc = 0;
+}
+
+void Inner_region::check_correctness_of_related_config_fields(
+    Config &conf,
+    Inner_region_config_part &inner_region_conf )
+{
+    // todo
+}
+
+void Inner_region::get_values_from_config( Inner_region_config_part &inner_region_conf )
+{
+    name = inner_region_conf.name;
+    potential = inner_region_conf.potential;
+}
+
+
 bool Inner_region::check_if_particle_inside( Particle &p )
 {
     double px = vec3d_x( p.position );
@@ -121,36 +146,46 @@ void Inner_region::write_to_file( hid_t regions_group_id )
 {
     hid_t current_region_group_id;
     herr_t status;
-    int single_element = 1;
     std::string current_region_groupname = name;
-    current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
+    current_region_group_id = H5Gcreate( regions_group_id,
+					 current_region_groupname.c_str(),
 					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     hdf5_status_check( current_region_group_id );
 
-    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
+    write_hdf5_common_parameters( current_region_group_id );
+    write_hdf5_region_specific_parameters( current_region_group_id );
+
+    status = H5Gclose( current_region_group_id );
+    hdf5_status_check( status );    
+}
+
+void Inner_region::write_hdf5_common_parameters( hid_t current_region_group_id )
+{
+    herr_t status;
+    int single_element = 1;
+    std::string current_region_groupname = "./";
+
+    status = H5LTset_attribute_string( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "object_type", object_type.c_str() );
+    hdf5_status_check( status );
     
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
-				       "potential", &potential, single_element ); hdf5_status_check( status );
-
-    status = H5LTset_attribute_int( regions_group_id, current_region_groupname.c_str(),
-				    "total_absorbed_particles", &total_absorbed_particles, single_element );
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "potential", &potential, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
-				       "total_absorbed_charge", &total_absorbed_charge, single_element );
+    status = H5LTset_attribute_int( current_region_group_id,
+				    current_region_groupname.c_str(),
+				    "total_absorbed_particles",
+				    &total_absorbed_particles, single_element );
     hdf5_status_check( status );
-	
-    status = H5Gclose(current_region_group_id); hdf5_status_check( status );
-    return;
 
-    
-    // todo: separate functions
-    // write_hdf5_absorbed_charge( group_id, region_name );
-    
-    // todo: write rest of region parameters.
-    // this is region-type specific. 
-    // write_hdf5_region_parameters( group_id, region_name );
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "total_absorbed_charge",
+				       &total_absorbed_charge, single_element );
+    hdf5_status_check( status );
 }
 
 void Inner_region::hdf5_status_check( herr_t status )
@@ -165,17 +200,15 @@ void Inner_region::hdf5_status_check( herr_t status )
 
 // Box
 
-Inner_region_box::Inner_region_box( Config &conf,
-				    Inner_region_box_config_part &inner_region_box_conf,
-				    Spatial_mesh &spat_mesh )
+Inner_region_box::Inner_region_box(
+    Config &conf,
+    Inner_region_box_config_part &inner_region_box_conf,
+    Spatial_mesh &spat_mesh ) :
+    Inner_region( conf, inner_region_box_conf )
 {
+    object_type = "box";
     check_correctness_of_related_config_fields( conf, inner_region_box_conf );
     get_values_from_config( inner_region_box_conf );
-    object_type = "box";
-    total_absorbed_particles = 0;
-    total_absorbed_charge = 0;
-    absorbed_particles_current_timestep_current_proc = 0;
-    absorbed_charge_current_timestep_current_proc = 0;
     mark_inner_nodes( spat_mesh );
     select_inner_nodes_not_at_domain_edge( spat_mesh );
     mark_near_boundary_nodes( spat_mesh );
@@ -189,16 +222,15 @@ void Inner_region_box::check_correctness_of_related_config_fields(
     // check if region lies inside the domain
 }
 
-void Inner_region_box::get_values_from_config( Inner_region_box_config_part &inner_region_box_conf )
+void Inner_region_box::get_values_from_config(
+    Inner_region_box_config_part &inner_region_box_conf )
 {
-    name = inner_region_box_conf.inner_region_name;
-    potential = inner_region_box_conf.inner_region_potential;
-    x_left = inner_region_box_conf.inner_region_box_x_left;
-    x_right = inner_region_box_conf.inner_region_box_x_right;
-    y_bottom = inner_region_box_conf.inner_region_box_y_bottom;
-    y_top = inner_region_box_conf.inner_region_box_y_top;
-    z_near = inner_region_box_conf.inner_region_box_z_near;
-    z_far = inner_region_box_conf.inner_region_box_z_far;
+    x_left = inner_region_box_conf.box_x_left;
+    x_right = inner_region_box_conf.box_x_right;
+    y_bottom = inner_region_box_conf.box_y_bottom;
+    y_top = inner_region_box_conf.box_y_top;
+    z_near = inner_region_box_conf.box_z_near;
+    z_far = inner_region_box_conf.box_z_far;
 }
 
 
@@ -212,82 +244,57 @@ bool Inner_region_box::check_if_point_inside( double x, double y, double z )
 }
 
 
-void Inner_region_box::write_to_file( hid_t regions_group_id )
+void Inner_region_box::write_hdf5_region_specific_parameters(
+    hid_t current_region_group_id )
 {
-    hid_t current_region_group_id;
     herr_t status;
     int single_element = 1;
-    std::string current_region_groupname = name;
+    std::string current_region_groupname = "./";
     
-    current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
-					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    hdf5_status_check( current_region_group_id );
-
-    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
-				       "object_type", object_type.c_str() );
-    
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
-				       "potential", &potential, single_element ); hdf5_status_check( status );
-
-    status = H5LTset_attribute_int( regions_group_id, current_region_groupname.c_str(),
-				    "total_absorbed_particles", &total_absorbed_particles, single_element );
-    hdf5_status_check( status );
-
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
-				       "total_absorbed_charge", &total_absorbed_charge, single_element );
-    hdf5_status_check( status );
-
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "x_left", &x_left, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "x_right", &x_right, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "y_bottom", &y_bottom, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "y_top", &y_top, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "z_near", &z_near, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "z_far", &z_far, single_element );
     hdf5_status_check( status );
-    
-    status = H5Gclose(current_region_group_id); hdf5_status_check( status );
-    return;
-    
-    // todo: separate functions
-    // write_hdf5_absorbed_charge( group_id, region_name );
-
-    // todo: call Inner_region::write_to_file()
-    // to write common properties.
-    // then write rest of parameters
-    // write_hdf5_region_parameters( group_id, region_name );
 }
 
 
 
 // Sphere
 
-Inner_region_sphere::Inner_region_sphere( Config &conf,
-					  Inner_region_sphere_config_part &inner_region_sphere_conf,
-					  Spatial_mesh &spat_mesh )
+Inner_region_sphere::Inner_region_sphere(
+    Config &conf,
+    Inner_region_sphere_config_part &inner_region_sphere_conf,
+    Spatial_mesh &spat_mesh ) :
+    Inner_region( conf, inner_region_sphere_conf )
 {
+    object_type = "sphere";
     check_correctness_of_related_config_fields( conf, inner_region_sphere_conf );
     get_values_from_config( inner_region_sphere_conf );
-    object_type = "sphere";
-    total_absorbed_particles = 0;
-    total_absorbed_charge = 0;
-    absorbed_particles_current_timestep_current_proc = 0;
-    absorbed_charge_current_timestep_current_proc = 0;
     mark_inner_nodes( spat_mesh );
     select_inner_nodes_not_at_domain_edge( spat_mesh );
     mark_near_boundary_nodes( spat_mesh );
@@ -301,14 +308,13 @@ void Inner_region_sphere::check_correctness_of_related_config_fields(
     // check if region lies inside the domain
 }
 
-void Inner_region_sphere::get_values_from_config( Inner_region_sphere_config_part &inner_region_sphere_conf )
+void Inner_region_sphere::get_values_from_config(
+    Inner_region_sphere_config_part &inner_region_sphere_conf )
 {
-    name = inner_region_sphere_conf.inner_region_name;
-    potential = inner_region_sphere_conf.inner_region_potential;
-    origin_x = inner_region_sphere_conf.inner_region_sphere_origin_x;
-    origin_y = inner_region_sphere_conf.inner_region_sphere_origin_y;
-    origin_z = inner_region_sphere_conf.inner_region_sphere_origin_z;
-    radius = inner_region_sphere_conf.inner_region_sphere_radius;
+    origin_x = inner_region_sphere_conf.sphere_origin_x;
+    origin_y = inner_region_sphere_conf.sphere_origin_y;
+    origin_z = inner_region_sphere_conf.sphere_origin_z;
+    radius = inner_region_sphere_conf.sphere_radius;
 }
 
 
@@ -322,57 +328,32 @@ bool Inner_region_sphere::check_if_point_inside( double x, double y, double z )
 }
 
 
-void Inner_region_sphere::write_to_file( hid_t regions_group_id )
+void Inner_region_sphere::write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id )
 {
-    hid_t current_region_group_id;
     herr_t status;
     int single_element = 1;
-    std::string current_region_groupname = name;
+    std::string current_region_groupname = "./";
     
-    current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
-					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    hdf5_status_check( current_region_group_id );
-
-    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
-				       "object_type", object_type.c_str() );
-    
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
-				       "potential", &potential, single_element ); hdf5_status_check( status );
-
-    status = H5LTset_attribute_int( regions_group_id, current_region_groupname.c_str(),
-				    "total_absorbed_particles", &total_absorbed_particles, single_element );
-    hdf5_status_check( status );
-
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
-				       "total_absorbed_charge", &total_absorbed_charge, single_element );
-    hdf5_status_check( status );
-
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "origin_x", &origin_x, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "origin_y", &origin_y, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "origin_z", &origin_z, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "radius", &radius, single_element );
-    hdf5_status_check( status );
-    
-    status = H5Gclose(current_region_group_id); hdf5_status_check( status );
-    return;
-    
-    // todo: separate functions
-    // write_hdf5_absorbed_charge( group_id, region_name );
-
-    // todo: call Inner_region::write_to_file()
-    // to write common properties.
-    // then write rest of parameters
-    // write_hdf5_region_parameters( group_id, region_name );
+    hdf5_status_check( status );    
 }
 
 
@@ -383,14 +364,11 @@ Inner_region_cylinder::Inner_region_cylinder(
     Config &conf,
     Inner_region_cylinder_config_part &inner_region_cylinder_conf,
     Spatial_mesh &spat_mesh )
+    : Inner_region( conf, inner_region_cylinder_conf )
 {
+    object_type = "cylinder";
     check_correctness_of_related_config_fields( conf, inner_region_cylinder_conf );
     get_values_from_config( inner_region_cylinder_conf );
-    object_type = "cylinder";
-    total_absorbed_particles = 0;
-    total_absorbed_charge = 0;
-    absorbed_particles_current_timestep_current_proc = 0;
-    absorbed_charge_current_timestep_current_proc = 0;
     mark_inner_nodes( spat_mesh );
     select_inner_nodes_not_at_domain_edge( spat_mesh );
     mark_near_boundary_nodes( spat_mesh );
@@ -407,15 +385,13 @@ void Inner_region_cylinder::check_correctness_of_related_config_fields(
 void Inner_region_cylinder::get_values_from_config(
     Inner_region_cylinder_config_part &inner_region_cylinder_conf )
 {
-    name = inner_region_cylinder_conf.inner_region_name;
-    potential = inner_region_cylinder_conf.inner_region_potential;
-    axis_start_x = inner_region_cylinder_conf.inner_region_cylinder_axis_start_x;
-    axis_start_y = inner_region_cylinder_conf.inner_region_cylinder_axis_start_y;
-    axis_start_z = inner_region_cylinder_conf.inner_region_cylinder_axis_start_z;
-    axis_end_x = inner_region_cylinder_conf.inner_region_cylinder_axis_end_x;
-    axis_end_y = inner_region_cylinder_conf.inner_region_cylinder_axis_end_y;
-    axis_end_z = inner_region_cylinder_conf.inner_region_cylinder_axis_end_z;
-    radius = inner_region_cylinder_conf.inner_region_cylinder_radius;
+    axis_start_x = inner_region_cylinder_conf.cylinder_axis_start_x;
+    axis_start_y = inner_region_cylinder_conf.cylinder_axis_start_y;
+    axis_start_z = inner_region_cylinder_conf.cylinder_axis_start_z;
+    axis_end_x = inner_region_cylinder_conf.cylinder_axis_end_x;
+    axis_end_y = inner_region_cylinder_conf.cylinder_axis_end_y;
+    axis_end_z = inner_region_cylinder_conf.cylinder_axis_end_z;
+    radius = inner_region_cylinder_conf.cylinder_radius;
 }
 
 
@@ -439,70 +415,47 @@ bool Inner_region_cylinder::check_if_point_inside( double x, double y, double z 
 }
 
 
-void Inner_region_cylinder::write_to_file( hid_t regions_group_id )
+void Inner_region_cylinder::write_hdf5_region_specific_parameters(
+    hid_t current_region_group_id )
 {
-    hid_t current_region_group_id;
     herr_t status;
     int single_element = 1;
-    std::string current_region_groupname = name;
+    std::string current_region_groupname = "./";
     
-    current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
-					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    hdf5_status_check( current_region_group_id );
-
-    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
-				       "object_type", object_type.c_str() );
-    
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
-				       "potential", &potential, single_element );
-    hdf5_status_check( status );
-
-    status = H5LTset_attribute_int( regions_group_id, current_region_groupname.c_str(),
-				    "total_absorbed_particles", &total_absorbed_particles, single_element );
-    hdf5_status_check( status );
-
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
-				       "total_absorbed_charge", &total_absorbed_charge, single_element );
-    hdf5_status_check( status );
-
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_start_x", &axis_start_x, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_start_y", &axis_start_y, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_start_z", &axis_start_z, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_end_x", &axis_end_x, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_end_y", &axis_end_y, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_end_z", &axis_end_z, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "radius", &radius, single_element );
     hdf5_status_check( status );
-    
-    status = H5Gclose(current_region_group_id); hdf5_status_check( status );
-    return;
-    
-    // todo: separate functions
-    // write_hdf5_absorbed_charge( group_id, region_name );
-
-    // todo: call Inner_region::write_to_file()
-    // to write common properties.
-    // then write rest of parameters
-    // write_hdf5_region_parameters( group_id, region_name );
 }
 
 
@@ -513,14 +466,11 @@ Inner_region_tube::Inner_region_tube(
     Config &conf,
     Inner_region_tube_config_part &inner_region_tube_conf,
     Spatial_mesh &spat_mesh )
+    : Inner_region( conf, inner_region_tube_conf )
 {
+    object_type = "tube";
     check_correctness_of_related_config_fields( conf, inner_region_tube_conf );
     get_values_from_config( inner_region_tube_conf );
-    object_type = "tube";
-    total_absorbed_particles = 0;
-    total_absorbed_charge = 0;
-    absorbed_particles_current_timestep_current_proc = 0;
-    absorbed_charge_current_timestep_current_proc = 0;
     mark_inner_nodes( spat_mesh );
     select_inner_nodes_not_at_domain_edge( spat_mesh );
     mark_near_boundary_nodes( spat_mesh );
@@ -537,16 +487,14 @@ void Inner_region_tube::check_correctness_of_related_config_fields(
 void Inner_region_tube::get_values_from_config(
     Inner_region_tube_config_part &inner_region_tube_conf )
 {
-    name = inner_region_tube_conf.inner_region_name;
-    potential = inner_region_tube_conf.inner_region_potential;
-    axis_start_x = inner_region_tube_conf.inner_region_tube_axis_start_x;
-    axis_start_y = inner_region_tube_conf.inner_region_tube_axis_start_y;
-    axis_start_z = inner_region_tube_conf.inner_region_tube_axis_start_z;
-    axis_end_x = inner_region_tube_conf.inner_region_tube_axis_end_x;
-    axis_end_y = inner_region_tube_conf.inner_region_tube_axis_end_y;
-    axis_end_z = inner_region_tube_conf.inner_region_tube_axis_end_z;
-    inner_radius = inner_region_tube_conf.inner_region_tube_inner_radius;
-    outer_radius = inner_region_tube_conf.inner_region_tube_outer_radius;
+    axis_start_x = inner_region_tube_conf.tube_axis_start_x;
+    axis_start_y = inner_region_tube_conf.tube_axis_start_y;
+    axis_start_z = inner_region_tube_conf.tube_axis_start_z;
+    axis_end_x = inner_region_tube_conf.tube_axis_end_x;
+    axis_end_y = inner_region_tube_conf.tube_axis_end_y;
+    axis_end_z = inner_region_tube_conf.tube_axis_end_z;
+    inner_radius = inner_region_tube_conf.tube_inner_radius;
+    outer_radius = inner_region_tube_conf.tube_outer_radius;
 }
 
 
@@ -571,75 +519,52 @@ bool Inner_region_tube::check_if_point_inside( double x, double y, double z )
 }
 
 
-void Inner_region_tube::write_to_file( hid_t regions_group_id )
+void Inner_region_tube::write_hdf5_region_specific_parameters(
+    hid_t current_region_group_id )
 {
-    hid_t current_region_group_id;
     herr_t status;
     int single_element = 1;
-    std::string current_region_groupname = name;
+    std::string current_region_groupname = "./";
     
-    current_region_group_id = H5Gcreate( regions_group_id, current_region_groupname.c_str(),
-					 H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    hdf5_status_check( current_region_group_id );
-
-    status = H5LTset_attribute_string( regions_group_id, current_region_groupname.c_str(),
-				       "object_type", object_type.c_str() );
-    
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
-				       "potential", &potential, single_element );
-    hdf5_status_check( status );
-
-    status = H5LTset_attribute_int( regions_group_id, current_region_groupname.c_str(),
-				    "total_absorbed_particles", &total_absorbed_particles, single_element );
-    hdf5_status_check( status );
-
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
-				       "total_absorbed_charge", &total_absorbed_charge, single_element );
-    hdf5_status_check( status );
-
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_start_x", &axis_start_x, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_start_y", &axis_start_y, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_start_z", &axis_start_z, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_end_x", &axis_end_x, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_end_y", &axis_end_y, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "axis_end_z", &axis_end_z, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "inner_radius", &inner_radius, single_element );
     hdf5_status_check( status );
 
-    status = H5LTset_attribute_double( regions_group_id, current_region_groupname.c_str(),
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
 				       "outer_radius", &outer_radius, single_element );
     hdf5_status_check( status );
-
-    
-    status = H5Gclose(current_region_group_id); hdf5_status_check( status );
-    return;
-    
-    // todo: separate functions
-    // write_hdf5_absorbed_charge( group_id, region_name );
-
-    // todo: call Inner_region::write_to_file()
-    // to write common properties.
-    // then write rest of parameters
-    // write_hdf5_region_parameters( group_id, region_name );
 }
 
 
@@ -647,17 +572,18 @@ void Inner_region_tube::write_to_file( hid_t regions_group_id )
 
 // Step model
 
-Inner_region_STEP::Inner_region_STEP( Config &conf,
-				      Inner_region_STEP_config_part &inner_region_STEP_conf,
-				      Spatial_mesh &spat_mesh )
+Inner_region_STEP::Inner_region_STEP(
+    Config &conf,
+    Inner_region_STEP_config_part &inner_region_STEP_conf,
+    Spatial_mesh &spat_mesh )
+    : Inner_region( conf, inner_region_STEP_conf )
 {
+    object_type = "STEP";
     check_correctness_of_related_config_fields( conf, inner_region_STEP_conf );
     get_values_from_config( inner_region_STEP_conf );
-    object_type = "STEP";
-    total_absorbed_particles = 0;
-    total_absorbed_charge = 0;
-    absorbed_particles_current_timestep_current_proc = 0;
-    absorbed_charge_current_timestep_current_proc = 0;
+    
+    read_geometry_file( STEP_file );
+    
     mark_inner_nodes( spat_mesh );
     select_inner_nodes_not_at_domain_edge( spat_mesh );
     mark_near_boundary_nodes( spat_mesh );
@@ -671,12 +597,10 @@ void Inner_region_STEP::check_correctness_of_related_config_fields(
   // Check if file exists?   
 }
 
-void Inner_region_STEP::get_values_from_config( Inner_region_STEP_config_part &inner_region_STEP_conf )
-{
-    name = inner_region_STEP_conf.inner_region_name;
-    potential = inner_region_STEP_conf.inner_region_potential;
-    read_geometry_file( inner_region_STEP_conf.inner_region_STEP_file );
-
+void Inner_region_STEP::get_values_from_config(
+    Inner_region_STEP_config_part &inner_region_STEP_conf )
+{    
+    STEP_file = inner_region_STEP_conf.STEP_file;
 }
 
 void Inner_region_STEP::read_geometry_file( std::string filename )
@@ -716,12 +640,25 @@ bool Inner_region_STEP::check_if_point_inside( double x, double y, double z )
     }
     else {	
       std::cout << "Unknown in_or_out state: " << in_or_out << std::endl;
-      std::cout << "x=" << x << " y=" << y << " z="<< z << std::endl;
+      std::cout << "x=" << x << " y=" << y << " z=" << z << std::endl;
       std::cout << "Aborting.";
       std::cout << std::endl;
       std::exit( 1 );
     }
 }
+
+void Inner_region_STEP::write_hdf5_region_specific_parameters(
+    hid_t current_region_group_id )
+{
+    herr_t status;
+    std::string current_region_groupname = "./";
+    
+    status = H5LTset_attribute_string( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "STEP_file", STEP_file.c_str() );
+    hdf5_status_check( status );
+}
+
 
 Inner_region_STEP::~Inner_region_STEP()
 {
