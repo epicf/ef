@@ -91,10 +91,8 @@ int Particle_source::num_of_particles_for_each_process( int total_num_of_particl
     // 'total_num_of_particles' < 'mpi_n_of_proc'
     std::vector<int> proc_numbers( mpi_n_of_proc );
     std::iota( proc_numbers.begin(), proc_numbers.end(), 0 );
-    std::random_shuffle( proc_numbers.begin(), proc_numbers.end() );
-    // TODO: random_shuffle is deprecated, std::shuffle should be used. 
-    // static auto engine = std::default_random_engine{};
-    // std::shuffle( proc_numbers.begin(), proc_numbers.end(), engine);
+    static auto engine = std::default_random_engine{};
+    std::shuffle( proc_numbers.begin(), proc_numbers.end(), engine );
 
     for ( int i = 0; i < rest; i++ ) {
 	if( mpi_process_rank == proc_numbers[i] ){
