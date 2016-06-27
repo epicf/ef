@@ -85,12 +85,21 @@ int Particle_source::num_of_particles_for_each_process( int total_num_of_particl
     
     int num_of_particles_for_this_proc = total_num_of_particles / mpi_n_of_proc;
     rest = total_num_of_particles % mpi_n_of_proc;
-    if( mpi_process_rank < rest ){
-	num_of_particles_for_this_proc++;
-	// Processes with lesser ranks will accumulate
-	// more particles.
-	// This seems unessential.
+
+    // distribute 'rest' randomly between processes
+    // such distribution is useful in bizarre case of
+    // 'total_num_of_particles' < 'mpi_n_of_proc'
+    std::vector<int> proc_numbers( mpi_n_of_proc );
+    std::iota( proc_numbers.begin(), proc_numbers.end(), 0 );
+    static auto engine = std::default_random_engine{};
+    std::shuffle( proc_numbers.begin(), proc_numbers.end(), engine );
+
+    for ( int i = 0; i < rest; i++ ) {
+	if( mpi_process_rank == proc_numbers[i] ){
+	    num_of_particles_for_this_proc++;
+	}
     }
+
     return num_of_particles_for_this_proc;
 }
 
