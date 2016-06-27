@@ -1,29 +1,20 @@
 #ifndef _INNER_REGION_H_
 #define _INNER_REGION_H_
 
-
+#include <string>
 #include <iostream>
 #include <algorithm>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <petscksp.h>
+#include <mpi.h>
+#include <hdf5.h>
+#include <hdf5_hl.h>
+
 #include "config.h"
 #include "spatial_mesh.h"
 #include "node_reference.h"
 #include "particle.h"
 #include "vec3d.h"
-#include <mpi.h>
-#include <hdf5.h>
-#include <hdf5_hl.h>
-
-#include <string>
-#include <oce/STEPControl_Reader.hxx>
-#include <oce/TopoDS_Shape.hxx>
-#include <oce/BRepTools.hxx>
-#include <oce/gp_Pnt.hxx>
-#include <oce/BRepPrimAPI_MakeBox.hxx>
-#include <oce/BRepClass3d_SolidClassifier.hxx>
-#include "config.h"
-
 
 class Inner_region{
 public:
@@ -234,31 +225,6 @@ private:
 
 
 
-class Inner_region_STEP : public Inner_region
-{
-public:
-    std::string STEP_file;
-    TopoDS_Shape geometry;
-    const double tolerance = 0.001;
-public:
-    Inner_region_STEP(
-	Config &conf,
-	Inner_region_STEP_config_part &inner_region_STEP_conf,
-	Spatial_mesh &spat_mesh );
-    virtual bool check_if_point_inside( double x, double y, double z );
-    virtual ~Inner_region_STEP();
-private:
-    void check_correctness_of_related_config_fields(
-	Config &conf,
-	Inner_region_STEP_config_part &inner_region_STEP_conf );
-    void get_values_from_config(
-	Inner_region_STEP_config_part &inner_region_STEP_conf );    
-    void read_geometry_file( std::string filename );
-    virtual void write_hdf5_region_specific_parameters(
-	hid_t current_region_group_id );
-};
-
-
 class Inner_regions_manager{
 public:
     boost::ptr_vector<Inner_region> regions;
@@ -285,11 +251,6 @@ public:
 		dynamic_cast<Inner_region_tube_config_part*>( &inner_region_conf ) ){
 		regions.push_back( new Inner_region_tube( conf,
 							  *tube_conf,
-							  spat_mesh ) );
-	    } else if (	Inner_region_STEP_config_part *with_model_conf =
-		dynamic_cast<Inner_region_STEP_config_part*>( &inner_region_conf ) ) {
-		regions.push_back( new Inner_region_STEP( conf,
-							  *with_model_conf,
 							  spat_mesh ) );
 	    } else {
 		std::cout << "In Inner_regions_manager constructor: "

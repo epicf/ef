@@ -325,25 +325,6 @@ public:
 };
 
 
-class Inner_region_STEP_config_part : public Inner_region_config_part {
-  public:
-    std::string STEP_file;
-  public:
-    Inner_region_STEP_config_part(){};
-    Inner_region_STEP_config_part(
-	std::string name, boost::property_tree::ptree &ptree ) :
-      Inner_region_config_part( name, ptree ),
-      STEP_file( ptree.get<std::string>("STEP_file") )
-      {};
-    virtual ~Inner_region_STEP_config_part() {};
-    void print() {
-	std::cout << "STEP_name = " << name << std::endl;
-	std::cout << "STEP_potential = " << potential << std::endl;
-	std::cout << "STEP_file = " << STEP_file << std::endl;
-    }
-};
-
-
 class Charged_inner_region_config_part {
 public:
     std::string charged_inner_region_name;

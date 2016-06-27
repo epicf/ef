@@ -37,11 +37,7 @@ Config::Config( const std::string &filename )
 	    } else if ( section_name.find( "Inner_region_tube." ) != std::string::npos ) {
 		std::string inner_region_name = section_name.substr( section_name.find(".") + 1 );
 		inner_regions_config_part.push_back(
-		    new Inner_region_tube_config_part( inner_region_name, sections.second ) );		
-	    } else if ( section_name.find( "Inner_region_STEP." ) != std::string::npos ) {
-		std::string inner_region_name = section_name.substr( section_name.find(".") + 1 );
-		inner_regions_config_part.push_back(
-		    new Inner_region_STEP_config_part( inner_region_name, sections.second ));
+		    new Inner_region_tube_config_part( inner_region_name, sections.second ) );
 	    } else if ( section_name.find( "Charged_inner_region_box." ) != std::string::npos ) {
 		std::string charged_inner_region_name = section_name.substr( section_name.find(".") + 1 );
 		charged_inner_regions_config_part.push_back(
