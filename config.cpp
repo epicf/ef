@@ -30,6 +30,14 @@ Config::Config( const std::string &filename )
 		std::string inner_region_name = section_name.substr( section_name.find(".") + 1 );
 		inner_regions_config_part.push_back(
 		    new Inner_region_sphere_config_part( inner_region_name, sections.second ) );
+	    } else if ( section_name.find( "Inner_region_cylinder." ) != std::string::npos ) {
+		std::string inner_region_name = section_name.substr( section_name.find(".") + 1 );
+		inner_regions_config_part.push_back(
+		    new Inner_region_cylinder_config_part( inner_region_name, sections.second ) );
+	    } else if ( section_name.find( "Inner_region_tube." ) != std::string::npos ) {
+		std::string inner_region_name = section_name.substr( section_name.find(".") + 1 );
+		inner_regions_config_part.push_back(
+		    new Inner_region_tube_config_part( inner_region_name, sections.second ) );		
 	    } else if ( section_name.find( "Inner_region_STEP." ) != std::string::npos ) {
 		std::string inner_region_name = section_name.substr( section_name.find(".") + 1 );
 		inner_regions_config_part.push_back(
