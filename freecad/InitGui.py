@@ -34,7 +34,6 @@ class EpicfWorkbench( Workbench ):
         import Commands
         self.cmd_list = [ "CreateEpicfConfig",
                           "AddSourceRegion", "AddInnerRegionBox",
-                          "AddInnerRegionSTEP",
                           "GenerateConfFile" ]        
         self.appendToolbar( "Epicf commands", self.cmd_list )
         self.appendMenu( "Epicf", self.cmd_list )
