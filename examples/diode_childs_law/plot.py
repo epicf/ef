@@ -20,8 +20,8 @@ def get_time_potential_charge_absrbd_on_anode_from_h5( filename ):
 
 os.chdir("./")
 # todo: remove hardcoding
-prev_step_filename = "V*_*40.h5"
-last_step_filename = "V*_*50.h5"
+prev_step_filename = "V*_*957.h5"
+last_step_filename = "V*_*990.h5"
 prev_step_vals = []
 last_step_vals = []
 for f in glob.glob( prev_step_filename ):
