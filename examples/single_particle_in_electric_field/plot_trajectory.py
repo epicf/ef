@@ -31,7 +31,7 @@ def remove_empty_and_sort_by_time( num_trajectory ):
 def find_necessary_out_files():
     os.chdir("./")
     h5files = []
-    for file in glob.glob("single_particle_free_space_[0-9]*.h5"):
+    for file in glob.glob("single_particle_electric_field_[0-9]*.h5"):
         h5files.append( file )
     return h5files
 
@@ -51,21 +51,23 @@ def extract_time_pos_mom( h5file ):
     return( t_pos_mom )
 
 def eval_an_trajectory_at_num_time_points( num_trajectory ):
-    global particle_mass
-    particle_mass, x0, y0, z0, px0, py0, pz0 =  get_mass_and_initial_pos_and_mom()
+    global mass, charge, E0
+    mass, charge, x0, y0, z0, px0, py0, pz0 = get_mass_charge_and_initial_pos_and_mom()
+    E0 = eval_field_amplitude()
 
     an_trajectory = np.empty_like( num_trajectory )
     for i, t in enumerate( num_trajectory['t'] ):
-        x, y, z = coords( particle_mass, t, x0, y0, z0, px0, py0, pz0 )
+        x, y, z = coords( t, x0, y0, z0, px0, py0, pz0 )
         px, py, pz = momenta( t, px0, py0, pz0 )
         an_trajectory[i] = ( t, x, y ,z, px, py, pz )
 
     return( an_trajectory )
 
-def get_mass_and_initial_pos_and_mom():
-    initial_out_file = "single_particle_free_space_0000000.h5"
+def get_mass_charge_and_initial_pos_and_mom():
+    initial_out_file = "single_particle_electric_field_0000000.h5"
     h5 = h5py.File( initial_out_file, mode="r")
     m = h5["/Particle_sources/emit_single_particle"].attrs["mass"][0]
+    q = h5["/Particle_sources/emit_single_particle"].attrs["charge"][0]
     x0 = h5["/Particle_sources/emit_single_particle/position_x"][0]
     y0 = h5["/Particle_sources/emit_single_particle/position_y"][0]
     z0 = h5["/Particle_sources/emit_single_particle/position_z"][0]
@@ -73,18 +75,39 @@ def get_mass_and_initial_pos_and_mom():
     py0 = h5["/Particle_sources/emit_single_particle/momentum_y"][0]
     pz0 = h5["/Particle_sources/emit_single_particle/momentum_z"][0]
     h5.close()
-    return( m, x0, y0, z0, px0, py0, pz0 )
+    return( m, q, x0, y0, z0, px0, py0, pz0 )
 
-def momenta( t, px0, py0, pz0 ):    
+def eval_field_amplitude():
+    initial_out_file = "single_particle_electric_field_0000000.h5"
+    h5 = h5py.File( initial_out_file, mode="r")
+    # todo: boundary conditions are not saved explicitly in out file.
+    # Attempt to extract them results in cryptic manipulations
+    # with number of nodes in different directions of mesh.
+    # Need to fix it somehow.
+    x_n_nodes = h5["/Spatial_mesh"].attrs["x_n_nodes"][0]
+    y_n_nodes = h5["/Spatial_mesh"].attrs["y_n_nodes"][0]
+    z_n_nodes = h5["/Spatial_mesh"].attrs["z_n_nodes"][0]
+    z_volume_size = h5["/Spatial_mesh"].attrs["z_volume_size"][0]
+    # first point with X != 0, Y != 0, Z == 0
+    phi_near  = h5["/Spatial_mesh/potential"][ z_n_nodes * y_n_nodes + z_n_nodes ]
+    # first point with X != 0, Y != 0, Z == Z_size
+    phi_far  = h5["/Spatial_mesh/potential"][ z_n_nodes * y_n_nodes + z_n_nodes + z_n_nodes - 1 ]
+    E0 = - ( phi_far - phi_near ) / z_volume_size
+    return E0
+    
+
+def momenta( t, px0, py0, pz0 ):
+    global mass, charge, E0
     px = px0
     py = py0
-    pz = pz0
+    pz = pz0 + charge / mass * E0 * t
     return ( px, py, pz )
 
-def coords( m, t, x0, y0, z0, px0, py0, pz0 ):
-    x = x0 + px0 / m * t
-    y = y0 + py0 / m * t
-    z = z0 + pz0 / m * t
+def coords( t, x0, y0, z0, px0, py0, pz0 ):
+    global mass, charge, E0
+    x = x0 + px0 / mass * t
+    y = y0 + py0 / mass * t
+    z = z0 + pz0 / mass * t + 1 / 2 * charge / mass * E0 * t * t
     return ( x, y, z )
 
 def plot_trajectories( num , an ):
@@ -138,9 +161,9 @@ def plot_2d( num, an ):
     plt.savefig('2d.png')
     
 def plot_kin_en( num , an ):
-    global particle_mass
-    E_num = ( num['px']**2 + num['py']**2 + num['pz']**2 ) / ( 2 * particle_mass )
-    E_an = ( an['px']**2 + an['py']**2 + an['pz']**2 ) / ( 2 * particle_mass )
+    global mass
+    E_num = ( num['px']**2 + num['py']**2 + num['pz']**2 ) / ( 2 * mass )
+    E_an = ( an['px']**2 + an['py']**2 + an['pz']**2 ) / ( 2 * mass )
     t = num['t']
     plt.figure()
     axes = plt.gca()
