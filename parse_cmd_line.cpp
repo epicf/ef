@@ -28,7 +28,7 @@ void parse_cmd_line( int argc, char *argv[], std::string &config_file )
 
         if ( vm.count("help") ) {
 	    std::cout << "Particle-in-cell simulation program." << std::endl;
-	    std::cout << "Usage: ./epicf [OPTIONS] config-file" << std::endl;
+	    std::cout << "Usage: ./ef [OPTIONS] config-file" << std::endl;
             std::cout << visible_options << "\n";
             exit( EXIT_FAILURE );
         }
@@ -43,7 +43,7 @@ void parse_cmd_line( int argc, char *argv[], std::string &config_file )
             std::cout << "Config file is " << config_file << std::endl;
         } else {
 	    std::cout << "Error: config file is not specified." << std::endl;
-	    std::cout << "See './epicf -h' for usage info." << std::endl;
+	    std::cout << "See './ef -h' for usage info." << std::endl;
             exit( EXIT_FAILURE );
         }
     }

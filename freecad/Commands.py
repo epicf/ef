@@ -4,41 +4,41 @@ import Part
 from pivy import coin
 from PySide import QtGui, QtCore
 
-class CreateEpicfConfig():
-    """Create objects for new epicf config"""
+class CreateEfConfig():
+    """Create objects for new ef config"""
  
     def GetResources(self):
-        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/ef"
         return {'Pixmap'  : moddir + '/icons/new_conf_template.svg',
                 'Accel' : "Shift+N", # a default shortcut (optional)
-                'MenuText': "New minimal epicf config",
-                'ToolTip' : "New minimal epicf config"}
+                'MenuText': "New minimal ef config",
+                'ToolTip' : "New minimal ef config"}
  
     def Activated(self):
-        epicf_conf_group = FreeCAD.ActiveDocument.addObject(
-            "App::DocumentObjectGroup", "epicf_conf" )
+        ef_conf_group = FreeCAD.ActiveDocument.addObject(
+            "App::DocumentObjectGroup", "ef_conf" )
 
-        time_grid_conf = epicf_conf_group.newObject(
+        time_grid_conf = ef_conf_group.newObject(
             "App::FeaturePython", "Time grid" )
         TimeGridConfigPart( time_grid_conf )
                 
-        outfile_conf = epicf_conf_group.newObject(
+        outfile_conf = ef_conf_group.newObject(
             "App::FeaturePython", "Output filename")
         OutputFilenameConfigPart( outfile_conf )
 
-        particle_interaction_conf = epicf_conf_group.newObject(
+        particle_interaction_conf = ef_conf_group.newObject(
             "App::FeaturePython", "Particle interaction model")
         ParticleInteractionModelConfigPart( particle_interaction_conf )
         
-        spat_mesh_conf = epicf_conf_group.newObject(
+        spat_mesh_conf = ef_conf_group.newObject(
             "App::FeaturePython", "Spatial mesh" )
         SpatialMeshConfigPart( spat_mesh_conf )
         
-        boundary_cond_conf = epicf_conf_group.newObject(
+        boundary_cond_conf = ef_conf_group.newObject(
             "App::FeaturePython", "Boundary conditions" )
         BoundaryConditionsConfigPart( boundary_cond_conf )
 
-        magn_field_conf = epicf_conf_group.newObject(
+        magn_field_conf = ef_conf_group.newObject(
             "App::FeaturePython", "Magnetic field" )
         MagneticFieldConfigPart( magn_field_conf )
 
@@ -53,35 +53,35 @@ class AddSourceRegion():
     """Add box-shaped source of particles"""
  
     def GetResources(self):
-        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/ef"
         return {'Pixmap'  : moddir + '/icons/add_box_source.svg',
                 'Accel' : "Shift+S", # a default shortcut (optional)
                 'MenuText': "Add box-shaped source of particles",
                 'ToolTip' : "Add box-shaped source of particles"}
  
     def Activated(self):
-        for epicf_conf_group in self.selected_epicf_conf_groups:
-            source_conf = epicf_conf_group.newObject(
+        for ef_conf_group in self.selected_ef_conf_groups:
+            source_conf = ef_conf_group.newObject(
                 "App::FeaturePython", "Source" )
             ParticleSourceConfigPart( source_conf )
         FreeCAD.ActiveDocument.recompute()                        
         return
  
     def IsActive(self):
-        # Add source only if epicf-group is selected
-        # todo: check if selected object is epicf-conf group
-        # or directly belongs to epicf-conf group
+        # Add source only if ef-group is selected
+        # todo: check if selected object is ef-conf group
+        # or directly belongs to ef-conf group
         sel = FreeCADGui.Selection.getSelection()
-        self.selected_epicf_conf_groups = []
+        self.selected_ef_conf_groups = []
         active = False
         for obj in sel:
-            if "epicf" in obj.Name:
-                self.selected_epicf_conf_groups.append( obj )
+            if "ef" in obj.Name:
+                self.selected_ef_conf_groups.append( obj )
                 active = True
             else:
                 for parent_obj in obj.InList:
-                    if "epicf" in parent_obj.Name:
-                        self.selected_epicf_conf_groups.append( parent_obj )
+                    if "ef" in parent_obj.Name:
+                        self.selected_ef_conf_groups.append( parent_obj )
                         active = True            
         return active
 
@@ -90,89 +90,89 @@ class AddInnerRegionBox():
     """Add box inner region"""
  
     def GetResources(self):
-        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/ef"
         return {'Pixmap'  : moddir + '/icons/add_box_inner_region.svg',
                 'Accel' : "Shift+R", # a default shortcut (optional)
                 'MenuText': "Add box-shaped inner region",
                 'ToolTip' : "Add box-shaped inner region"}
  
     def Activated(self):
-        for epicf_conf_group in self.selected_epicf_conf_groups:
-            inner_reg_conf = epicf_conf_group.newObject(
+        for ef_conf_group in self.selected_ef_conf_groups:
+            inner_reg_conf = ef_conf_group.newObject(
                 "App::FeaturePython", "Inner_region_box" )
             InnerRegionBoxConfigPart( inner_reg_conf )
         FreeCAD.ActiveDocument.recompute()
         return
  
     def IsActive(self):
-        # Add source only if epicf-group is selected
-        # todo: check if selected object is epicf-conf group
-        # or directly belongs to epicf-conf group
+        # Add source only if ef-group is selected
+        # todo: check if selected object is ef-conf group
+        # or directly belongs to ef-conf group
         sel = FreeCADGui.Selection.getSelection()
-        self.selected_epicf_conf_groups = []
+        self.selected_ef_conf_groups = []
         active = False
         for obj in sel:
-            if "epicf" in obj.Name:
-                self.selected_epicf_conf_groups.append( obj )
+            if "ef" in obj.Name:
+                self.selected_ef_conf_groups.append( obj )
                 active = True
             else:
                 for parent_obj in obj.InList:
-                    if "epicf" in parent_obj.Name:
-                        self.selected_epicf_conf_groups.append( parent_obj )
+                    if "ef" in parent_obj.Name:
+                        self.selected_ef_conf_groups.append( parent_obj )
                         active = True            
         return active
     
 
 class GenerateConfFile():
-    """Generate .conf file suitable for epicf"""
+    """Generate .conf file suitable for ef"""
  
     def GetResources(self):
-        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/epicf"
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/ef"
         return {'Pixmap'  : moddir + '/icons/generate_config.svg',
                 'Accel' : "Shift+G", # a default shortcut (optional)
                 'MenuText': "Generate .conf file",
                 'ToolTip' : "Generate .conf file"}
                 
     def IsActive(self):
-        # Add source only if epicf-group is selected
-        # todo: check if selected object is epicf-conf group
-        # or directly belongs to epicf-conf group
+        # Add source only if ef-group is selected
+        # todo: check if selected object is ef-conf group
+        # or directly belongs to ef-conf group
         sel = FreeCADGui.Selection.getSelection()
-        self.selected_epicf_conf_groups = []
+        self.selected_ef_conf_groups = []
         active = False
         for obj in sel:
-            if "epicf" in obj.Name:
-                self.selected_epicf_conf_groups.append( obj )
+            if "ef" in obj.Name:
+                self.selected_ef_conf_groups.append( obj )
                 active = True
             else:
                 for parent_obj in obj.InList:
-                    if "epicf" in parent_obj.Name:
-                        self.selected_epicf_conf_groups.append( parent_obj )
+                    if "ef" in parent_obj.Name:
+                        self.selected_ef_conf_groups.append( parent_obj )
                         active = True            
         return active
 
     def Activated(self):
-        for epicf_grp in self.selected_epicf_conf_groups:
+        for ef_grp in self.selected_ef_conf_groups:
             ### Generate and write config
-            config_text = self.generate_config_text( epicf_grp )            
-            config_filename = self.write_config( config_text, epicf_grp.Name )            
+            config_text = self.generate_config_text( ef_grp )            
+            config_filename = self.write_config( config_text, ef_grp.Name )            
             
-    def generate_config_text( self, epicf_group ):
+    def generate_config_text( self, ef_group ):
         config_text = []
         config_text.append( "; Generated by FreeCAD module\n" )
         config_text.append( "\n" )
         
-        objects_in_grp = epicf_group.Group
+        objects_in_grp = ef_group.Group
         for obj in objects_in_grp:
             config_text.extend( obj.Proxy.generate_config_part() )
 
         return config_text
     
-    def write_config( self, config_text, epicf_group_name ):
+    def write_config( self, config_text, ef_group_name ):
         default_dialog_path = "./"
-        default_conf_name = epicf_group_name + ".conf"
+        default_conf_name = ef_group_name + ".conf"
         conf_filename, filename_filter = QtGui.QFileDialog.getSaveFileName(
-            None, "Generate epicf config",
+            None, "Generate ef config",
             default_dialog_path + default_conf_name,
             "*.conf" )
         if conf_filename == "":
@@ -990,7 +990,7 @@ class InnerRegionBoxConfigPart():
 
 
         
-FreeCADGui.addCommand( 'CreateEpicfConfig', CreateEpicfConfig() )
+FreeCADGui.addCommand( 'CreateEfConfig', CreateEfConfig() )
 FreeCADGui.addCommand( 'AddSourceRegion', AddSourceRegion() )
 FreeCADGui.addCommand( 'AddInnerRegionBox', AddInnerRegionBox() )
 FreeCADGui.addCommand( 'GenerateConfFile', GenerateConfFile() )

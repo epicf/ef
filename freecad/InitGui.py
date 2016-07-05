@@ -1,7 +1,7 @@
-class EpicfWorkbench( Workbench ):
+class EfWorkbench( Workbench ):
         
-    MenuText = "Epicf"
-    ToolTip = "FreeCAD config generator for epicf"
+    MenuText = "Ef"
+    ToolTip = "FreeCAD config generator for ef"
     #Icon = """paste here the contents of a 16x16 xpm icon"""
     Icon = """
         /* XPM */
@@ -32,11 +32,11 @@ class EpicfWorkbench( Workbench ):
         # import all FreeCAD commands defined by module
         # and append them to Toolbar and Menu
         import Commands
-        self.cmd_list = [ "CreateEpicfConfig",
+        self.cmd_list = [ "CreateEfConfig",
                           "AddSourceRegion", "AddInnerRegionBox",
                           "GenerateConfFile" ]        
-        self.appendToolbar( "Epicf commands", self.cmd_list )
-        self.appendMenu( "Epicf", self.cmd_list )
+        self.appendToolbar( "Ef commands", self.cmd_list )
+        self.appendMenu( "Ef", self.cmd_list )
             
     def Activated(self):
         "Executed when the workbench is activated"        
@@ -49,10 +49,10 @@ class EpicfWorkbench( Workbench ):
     def ContextMenu(self, recipient):
         "Executed whenever the user right-clicks on screen"
         # add commands to the context menu
-        self.appendContextMenu("Epicf", self.cmd_list) 
+        self.appendContextMenu("Ef", self.cmd_list) 
             
     def GetClassName(self): 
         # this function is mandatory if this is a full python workbench
         return "Gui::PythonWorkbench"
         
-Gui.addWorkbench( EpicfWorkbench() )
+Gui.addWorkbench( EfWorkbench() )

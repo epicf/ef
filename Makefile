@@ -24,7 +24,7 @@ LIBS=${COMMONLIBS} ${BOOSTLIBS} ${PETSCLIBS} ${HDF5LIBS} ${SANITIZER}
 CPPSOURCES=$(wildcard *.cpp)
 CPPHEADERS=$(wildcard *.h)
 OBJECTS=$(CPPSOURCES:%.cpp=%.o)
-EXECUTABLE=epicf.out
+EXECUTABLE=ef.out
 MAKE=make
 SUBDIRS=doc
 

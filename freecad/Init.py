@@ -1,4 +1,4 @@
-# FreeCAD init script of Epicf module  
+# FreeCAD init script of Ef module  
 
 #***************************************************************************
 #*   (c) John Doe john@doe.com 2015                                        *  
