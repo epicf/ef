@@ -8,9 +8,9 @@
 #include <string>
 #include <limits>
 
-// Todo:: rewrite with inheritance.
-// Add some macroprogramming or templates.
 // Too much similar code.
+// Add some macroprogramming or templates.
+// Rewrite with inheritance.
 
 class Time_config_part{
 public:
@@ -61,228 +61,269 @@ public:
     }
 };
 
-class Source_config_part{
+class Particle_source_config_part{
 public:
-    std::string particle_source_name;
-    int particle_source_initial_number_of_particles;
-    int particle_source_particles_to_generate_each_step;
-    double particle_source_x_left;
-    double particle_source_x_right;
-    double particle_source_y_bottom;
-    double particle_source_y_top;
-    double particle_source_z_near;
-    double particle_source_z_far;
-    double particle_source_mean_momentum_x;
-    double particle_source_mean_momentum_y;
-    double particle_source_mean_momentum_z;
-    double particle_source_temperature;
-    double particle_source_charge;
-    double particle_source_mass;
+    std::string name;
+    int initial_number_of_particles;
+    int particles_to_generate_each_step;
+    double mean_momentum_x;
+    double mean_momentum_y;
+    double mean_momentum_z;
+    double temperature;
+    double charge;
+    double mass;
 public:
-    Source_config_part(){};
-    Source_config_part( std::string name, boost::property_tree::ptree &ptree ) :
-	particle_source_name( name ),
-	particle_source_initial_number_of_particles( ptree.get<int>("particle_source_initial_number_of_particles") ),
-	particle_source_particles_to_generate_each_step( ptree.get<int>("particle_source_particles_to_generate_each_step") ),
-	particle_source_x_left( ptree.get<double>("particle_source_x_left") ),
-	particle_source_x_right( ptree.get<double>("particle_source_x_right") ),
-        particle_source_y_bottom( ptree.get<double>("particle_source_y_bottom") ),
-	particle_source_y_top( ptree.get<double>("particle_source_y_top") ),
-	particle_source_z_near( ptree.get<double>("particle_source_z_near") ),
-	particle_source_z_far( ptree.get<double>("particle_source_z_far") ),
-	particle_source_mean_momentum_x( ptree.get<double>("particle_source_mean_momentum_x") ),
-	particle_source_mean_momentum_y( ptree.get<double>("particle_source_mean_momentum_y") ),
-	particle_source_mean_momentum_z( ptree.get<double>("particle_source_mean_momentum_z") ),
-	particle_source_temperature( ptree.get<double>("particle_source_temperature") ),
-        particle_source_charge( ptree.get<double>("particle_source_charge") ),
-	particle_source_mass( ptree.get<double>("particle_source_mass") )
+    Particle_source_config_part(){};
+    Particle_source_config_part( std::string name, boost::property_tree::ptree &ptree ) :
+	name( name ),
+	initial_number_of_particles( ptree.get<int>("initial_number_of_particles") ),
+	particles_to_generate_each_step( ptree.get<int>("particles_to_generate_each_step") ),
+	mean_momentum_x( ptree.get<double>("mean_momentum_x") ),
+	mean_momentum_y( ptree.get<double>("mean_momentum_y") ),
+	mean_momentum_z( ptree.get<double>("mean_momentum_z") ),
+	temperature( ptree.get<double>("temperature") ),
+        charge( ptree.get<double>("charge") ),
+	mass( ptree.get<double>("mass") )
 	{};
-    virtual ~Source_config_part() {};
-    void print() { 
-	std::cout << "Source: name = " << particle_source_name << std::endl;
-	std::cout << "particle_source_initial_number_of_particles = " << 
-	    particle_source_initial_number_of_particles << std::endl; 
+    virtual ~Particle_source_config_part() {};
+    virtual void print() { 
+	std::cout << "Particle_source: name = " << name << std::endl;
+	std::cout << "initial_number_of_particles = " << 
+	    initial_number_of_particles << std::endl; 
 	std::cout << "particles_to_generate_each_step = " << 
-	    particle_source_particles_to_generate_each_step << std::endl; 
-	std::cout << "particle_source_x_left = " << particle_source_x_left << std::endl;
-	std::cout << "particle_source_x_right = " << particle_source_x_right << std::endl;
-	std::cout << "particle_source_y_bottom = " << particle_source_y_bottom << std::endl;
-	std::cout << "particle_source_y_top = " << particle_source_y_top << std::endl;
-	std::cout << "particle_source_z_near = " << particle_source_z_near << std::endl;
-	std::cout << "particle_source_z_far = " << particle_source_z_far << std::endl;
-	std::cout << "particle_source_mean_momentum_x = " << particle_source_mean_momentum_x << std::endl;
-	std::cout << "particle_source_mean_momentum_y = " << particle_source_mean_momentum_y << std::endl;
-	std::cout << "particle_source_mean_momentum_z = " << particle_source_mean_momentum_z << std::endl;
-	std::cout << "particle_source_temperature = " << particle_source_temperature << std::endl;
-	std::cout << "particle_source_charge = " << particle_source_charge << std::endl;
-	std::cout << "particle_source_mass = " << particle_source_mass << std::endl;
+	    particles_to_generate_each_step << std::endl; 
+	std::cout << "mean_momentum_x = " << mean_momentum_x << std::endl;
+	std::cout << "mean_momentum_y = " << mean_momentum_y << std::endl;
+	std::cout << "mean_momentum_z = " << mean_momentum_z << std::endl;
+	std::cout << "temperature = " << temperature << std::endl;
+	std::cout << "charge = " << charge << std::endl;
+	std::cout << "mass = " << mass << std::endl;
+    }
+};
+
+class Particle_source_box_config_part : public Particle_source_config_part {
+public:
+    double box_x_left;
+    double box_x_right;
+    double box_y_bottom;
+    double box_y_top;
+    double box_z_near;
+    double box_z_far;
+public:
+    Particle_source_box_config_part(){};
+    Particle_source_box_config_part( std::string name, boost::property_tree::ptree &ptree ) :
+	Particle_source_config_part( name, ptree ),
+	box_x_left( ptree.get<double>("box_x_left") ),
+	box_x_right( ptree.get<double>("box_x_right") ),
+        box_y_bottom( ptree.get<double>("box_y_bottom") ),
+	box_y_top( ptree.get<double>("box_y_top") ),
+	box_z_near( ptree.get<double>("box_z_near") ),
+	box_z_far( ptree.get<double>("box_z_far") )
+	{};
+    virtual ~Particle_source_box_config_part() {};
+    virtual void print() {
+	Particle_source_config_part::print();
+	std::cout << "box_x_left = " << box_x_left << std::endl;
+	std::cout << "box_x_right = " << box_x_right << std::endl;
+	std::cout << "box_y_bottom = " << box_y_bottom << std::endl;
+	std::cout << "box_y_top = " << box_y_top << std::endl;
+	std::cout << "box_z_near = " << box_z_near << std::endl;
+	std::cout << "box_z_far = " << box_z_far << std::endl;
+    }
+};
+
+class Particle_source_cylinder_config_part : public Particle_source_config_part {
+public:
+    double cylinder_axis_start_x;
+    double cylinder_axis_start_y;
+    double cylinder_axis_start_z;
+    double cylinder_axis_end_x;
+    double cylinder_axis_end_y;
+    double cylinder_axis_end_z;
+    double cylinder_radius;
+public:
+    Particle_source_cylinder_config_part(){};
+    Particle_source_cylinder_config_part( std::string name, boost::property_tree::ptree &ptree ) :
+	Particle_source_config_part( name, ptree ),
+	cylinder_axis_start_x( ptree.get<double>("cylinder_axis_start_x") ),
+	cylinder_axis_start_y( ptree.get<double>("cylinder_axis_start_y") ),
+	cylinder_axis_start_z( ptree.get<double>("cylinder_axis_start_z") ),
+	cylinder_axis_end_x( ptree.get<double>("cylinder_axis_end_x") ),
+	cylinder_axis_end_y( ptree.get<double>("cylinder_axis_end_y") ),
+	cylinder_axis_end_z( ptree.get<double>("cylinder_axis_end_z") ),
+	cylinder_radius( ptree.get<double>("cylinder_radius") )
+	{};
+    virtual ~Particle_source_cylinder_config_part() {};
+    virtual void print() {
+	Particle_source_config_part::print();
+	std::cout << "cylinder_axis_start_x = " << cylinder_axis_start_x << std::endl;
+	std::cout << "cylinder_axis_start_y = " << cylinder_axis_start_y << std::endl;
+	std::cout << "cylinder_axis_start_z = " << cylinder_axis_start_z << std::endl;
+	std::cout << "cylinder_axis_end_x = " << cylinder_axis_end_x << std::endl;
+	std::cout << "cylinder_axis_end_y = " << cylinder_axis_end_y << std::endl;
+	std::cout << "cylinder_axis_end_z = " << cylinder_axis_end_z << std::endl;
+	std::cout << "cylinder_radius = " << cylinder_radius << std::endl;
     }
 };
 
 
+
 class Inner_region_config_part {
 public:
-    std::string inner_region_name;
-    double inner_region_potential;
+    std::string name;
+    double potential;
 public:
     Inner_region_config_part(){};
-    Inner_region_config_part( std::string name, boost::property_tree::ptree &ptree ) :
-	inner_region_name( name ),
-	inner_region_potential( ptree.get<double>("inner_region_potential") )
+    Inner_region_config_part(
+	std::string name, boost::property_tree::ptree &ptree ):
+	name( name ),
+	potential( ptree.get<double>("potential") )
 	{};	
     virtual ~Inner_region_config_part() {};
     virtual void print() {
-	std::cout << "Inner_region_name = " << inner_region_name << std::endl;
-	std::cout << "Inner_region_potential = " << inner_region_potential << std::endl;
+	std::cout << "Inner region:" << std::endl;
+	std::cout << "name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
     }
 };
 
 class Inner_region_box_config_part : public Inner_region_config_part{
 public:
-    double inner_region_box_x_left;
-    double inner_region_box_x_right;
-    double inner_region_box_y_bottom;
-    double inner_region_box_y_top;
-    double inner_region_box_z_near;
-    double inner_region_box_z_far;
+    double box_x_left;
+    double box_x_right;
+    double box_y_bottom;
+    double box_y_top;
+    double box_z_near;
+    double box_z_far;
 public:
     Inner_region_box_config_part(){};
-    Inner_region_box_config_part( std::string name, boost::property_tree::ptree &ptree ) :
-	inner_region_box_x_left( ptree.get<double>("inner_region_box_x_left") ),
-	inner_region_box_x_right( ptree.get<double>("inner_region_box_x_right") ),
-        inner_region_box_y_bottom( ptree.get<double>("inner_region_box_y_bottom") ),
-	inner_region_box_y_top( ptree.get<double>("inner_region_box_y_top") ),
-	inner_region_box_z_near( ptree.get<double>("inner_region_box_z_near") ),
-	inner_region_box_z_far( ptree.get<double>("inner_region_box_z_far") ) {
-	    inner_region_name = name;
-	    inner_region_potential = ptree.get<double>("inner_region_box_potential");
-	};
+    Inner_region_box_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	Inner_region_config_part( name, ptree ),
+	box_x_left( ptree.get<double>("box_x_left") ),
+	box_x_right( ptree.get<double>("box_x_right") ),
+        box_y_bottom( ptree.get<double>("box_y_bottom") ),
+	box_y_top( ptree.get<double>("box_y_top") ),
+	box_z_near( ptree.get<double>("box_z_near") ),
+	box_z_far( ptree.get<double>("box_z_far") )
+	{};
     virtual ~Inner_region_box_config_part() {};
     void print() { 
-	std::cout << "Inner region: name = " << inner_region_name << std::endl;
-	std::cout << "inner_region_potential = " << inner_region_potential << std::endl;
-	std::cout << "inner_region_box_x_left = " << inner_region_box_x_left << std::endl;
-	std::cout << "inner_region_box_x_right = " << inner_region_box_x_right << std::endl;
-	std::cout << "inner_region_box_y_bottom = " << inner_region_box_y_bottom << std::endl;
-	std::cout << "inner_region_box_y_top = " << inner_region_box_y_top << std::endl;
-	std::cout << "inner_region_box_z_near = " << inner_region_box_z_near << std::endl;
-	std::cout << "inner_region_box_z_far = " << inner_region_box_z_far << std::endl;
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "box_x_left = " << box_x_left << std::endl;
+	std::cout << "box_x_right = " << box_x_right << std::endl;
+	std::cout << "box_y_bottom = " << box_y_bottom << std::endl;
+	std::cout << "box_y_top = " << box_y_top << std::endl;
+	std::cout << "box_z_near = " << box_z_near << std::endl;
+	std::cout << "box_z_far = " << box_z_far << std::endl;
     }
 };
 
 class Inner_region_sphere_config_part : public Inner_region_config_part{
 public:
-    double inner_region_sphere_origin_x;
-    double inner_region_sphere_origin_y;
-    double inner_region_sphere_origin_z;
-    double inner_region_sphere_radius;
+    double sphere_origin_x;
+    double sphere_origin_y;
+    double sphere_origin_z;
+    double sphere_radius;
 public:
     Inner_region_sphere_config_part(){};
-    Inner_region_sphere_config_part( std::string name, boost::property_tree::ptree &ptree ) :
-	inner_region_sphere_origin_x( ptree.get<double>("inner_region_sphere_origin_x") ),
-	inner_region_sphere_origin_y( ptree.get<double>("inner_region_sphere_origin_y") ),
-	inner_region_sphere_origin_z( ptree.get<double>("inner_region_sphere_origin_z") ),
-	inner_region_sphere_radius( ptree.get<double>("inner_region_sphere_radius") ){
-	    inner_region_name = name;
-	    inner_region_potential = ptree.get<double>("inner_region_sphere_potential");
-	};
+    Inner_region_sphere_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	Inner_region_config_part( name, ptree ),
+	sphere_origin_x( ptree.get<double>("sphere_origin_x") ),
+	sphere_origin_y( ptree.get<double>("sphere_origin_y") ),
+	sphere_origin_z( ptree.get<double>("sphere_origin_z") ),
+	sphere_radius( ptree.get<double>("sphere_radius") )
+	{};
     virtual ~Inner_region_sphere_config_part() {};
     void print() { 
-	std::cout << "Inner region: name = " << inner_region_name << std::endl;
-	std::cout << "inner_region_potential = " << inner_region_potential << std::endl;
-	std::cout << "inner_region_sphere_origin_x = " << inner_region_sphere_origin_x << std::endl;
-	std::cout << "inner_region_sphere_origin_y = " << inner_region_sphere_origin_y << std::endl;
-	std::cout << "inner_region_sphere_origin_z = " << inner_region_sphere_origin_z << std::endl;
-	std::cout << "inner_region_sphere_radius = " << inner_region_sphere_radius << std::endl;
-    }
-};
-
-class Inner_region_STEP_config_part : public Inner_region_config_part {
-  public:
-    std::string inner_region_STEP_file;
-  public:
-    Inner_region_STEP_config_part(){};
-  Inner_region_STEP_config_part( std::string name, boost::property_tree::ptree &ptree ) :
-    inner_region_STEP_file( ptree.get<std::string>("inner_region_STEP_file") ) {
-	inner_region_name = name;
-	inner_region_potential = ptree.get<double>("inner_region_STEP_potential");
-    };
-    virtual ~Inner_region_STEP_config_part() {};
-    void print() {
-	std::cout << "Inner_region_STEP_name = " << inner_region_name << std::endl;
-	std::cout << "Inner_region_STEP_potential = " << inner_region_potential << std::endl;
-	std::cout << "Inner_region_STEP_file = " << inner_region_STEP_file << std::endl;
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "sphere_origin_x = " << sphere_origin_x << std::endl;
+	std::cout << "sphere_origin_y = " << sphere_origin_y << std::endl;
+	std::cout << "sphere_origin_z = " << sphere_origin_z << std::endl;
+	std::cout << "sphere_radius = " << sphere_radius << std::endl;
     }
 };
 
 
-class Charged_inner_region_config_part {
+class Inner_region_cylinder_config_part : public Inner_region_config_part{
 public:
-    std::string charged_inner_region_name;
-    double charged_inner_region_charge_density;
+    double cylinder_axis_start_x;
+    double cylinder_axis_start_y;
+    double cylinder_axis_start_z;
+    double cylinder_axis_end_x;
+    double cylinder_axis_end_y;
+    double cylinder_axis_end_z;
+    double cylinder_radius;
 public:
-    Charged_inner_region_config_part(){};
-    Charged_inner_region_config_part( std::string name, boost::property_tree::ptree &ptree ) :
-	charged_inner_region_name( name ),
-	charged_inner_region_charge_density( ptree.get<double>("charged_inner_region_charge_density") )
-	{};	
-    virtual ~Charged_inner_region_config_part() {};
-    virtual void print() {
-	std::cout << "Charged_inner_region_name = "
-		  << charged_inner_region_name << std::endl;
-	std::cout << "Charged_inner_region_charge_density = "
-		  << charged_inner_region_charge_density << std::endl;
-    }
-};
-
-class Charged_inner_region_box_config_part : public Charged_inner_region_config_part{
-public:
-    double charged_inner_region_box_x_left;
-    double charged_inner_region_box_x_right;
-    double charged_inner_region_box_y_bottom;
-    double charged_inner_region_box_y_top;
-    double charged_inner_region_box_z_near;
-    double charged_inner_region_box_z_far;
-public:
-    Charged_inner_region_box_config_part(){};
-    Charged_inner_region_box_config_part( std::string name,
-					  boost::property_tree::ptree &ptree ) :
-	charged_inner_region_box_x_left(
-	    ptree.get<double>("charged_inner_region_box_x_left") ),
-	charged_inner_region_box_x_right(
-	    ptree.get<double>("charged_inner_region_box_x_right") ),
-        charged_inner_region_box_y_bottom(
-	    ptree.get<double>("charged_inner_region_box_y_bottom") ),
-	charged_inner_region_box_y_top(
-	    ptree.get<double>("charged_inner_region_box_y_top") ),
-	charged_inner_region_box_z_near(
-	    ptree.get<double>("charged_inner_region_box_z_near") ),
-	charged_inner_region_box_z_far(
-	    ptree.get<double>("charged_inner_region_box_z_far") ) {
-	    charged_inner_region_name = name;
-	    charged_inner_region_charge_density =
-		ptree.get<double>("charged_inner_region_box_charge_density");
-	};
-    virtual ~Charged_inner_region_box_config_part() {};
+    Inner_region_cylinder_config_part(){};
+    Inner_region_cylinder_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	Inner_region_config_part( name, ptree ),
+	cylinder_axis_start_x( ptree.get<double>("cylinder_axis_start_x") ),
+	cylinder_axis_start_y( ptree.get<double>("cylinder_axis_start_y") ),
+	cylinder_axis_start_z( ptree.get<double>("cylinder_axis_start_z") ),
+	cylinder_axis_end_x( ptree.get<double>("cylinder_axis_end_x") ),
+	cylinder_axis_end_y( ptree.get<double>("cylinder_axis_end_y") ),
+	cylinder_axis_end_z( ptree.get<double>("cylinder_axis_end_z") ),
+	cylinder_radius( ptree.get<double>("cylinder_radius") )
+	{};
+    virtual ~Inner_region_cylinder_config_part() {};
     void print() { 
-	std::cout << "Charged inner region: name = "
-		  << charged_inner_region_name << std::endl;
-	std::cout << "charged_inner_region_charge_density = "
-		  << charged_inner_region_charge_density << std::endl;
-	std::cout << "charged_inner_region_box_x_left = "
-		  << charged_inner_region_box_x_left << std::endl;
-	std::cout << "charged_inner_region_box_x_right = "
-		  << charged_inner_region_box_x_right << std::endl;
-	std::cout << "charged_inner_region_box_y_bottom = "
-		  << charged_inner_region_box_y_bottom << std::endl;
-	std::cout << "charged_inner_region_box_y_top = "
-		  << charged_inner_region_box_y_top << std::endl;
-	std::cout << "charged_inner_region_box_z_near = "
-		  << charged_inner_region_box_z_near << std::endl;
-	std::cout << "charged_inner_region_box_z_far = "
-		  << charged_inner_region_box_z_far << std::endl;
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "inner_region_potential = " << potential << std::endl;
+	std::cout << "cylinder_axis_start_x = " << cylinder_axis_start_x << std::endl;
+	std::cout << "cylinder_axis_start_y = " << cylinder_axis_start_y << std::endl;
+	std::cout << "cylinder_axis_start_z = " << cylinder_axis_start_z << std::endl;
+	std::cout << "cylinder_axis_end_x = " << cylinder_axis_end_x << std::endl;
+	std::cout << "cylinder_axis_end_y = " << cylinder_axis_end_y << std::endl;
+	std::cout << "cylinder_axis_end_z = " << cylinder_axis_end_z << std::endl;
+	std::cout << "cylinder_radius = " << cylinder_radius << std::endl;
     }
 };
+
+
+class Inner_region_tube_config_part : public Inner_region_config_part{
+public:
+    double tube_axis_start_x;
+    double tube_axis_start_y;
+    double tube_axis_start_z;
+    double tube_axis_end_x;
+    double tube_axis_end_y;
+    double tube_axis_end_z;
+    double tube_inner_radius;
+    double tube_outer_radius;
+public:
+    Inner_region_tube_config_part(){};
+    Inner_region_tube_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	Inner_region_config_part( name, ptree ),
+	tube_axis_start_x( ptree.get<double>("tube_axis_start_x") ),
+	tube_axis_start_y( ptree.get<double>("tube_axis_start_y") ),
+	tube_axis_start_z( ptree.get<double>("tube_axis_start_z") ),
+	tube_axis_end_x( ptree.get<double>("tube_axis_end_x") ),
+	tube_axis_end_y( ptree.get<double>("tube_axis_end_y") ),
+	tube_axis_end_z( ptree.get<double>("tube_axis_end_z") ),
+	tube_inner_radius( ptree.get<double>("tube_inner_radius") ),
+	tube_outer_radius( ptree.get<double>("tube_outer_radius") )
+	{};
+    virtual ~Inner_region_tube_config_part() {};
+    void print() { 
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "tube_axis_start_x = " << tube_axis_start_x << std::endl;
+	std::cout << "tube_axis_start_y = " << tube_axis_start_y << std::endl;
+	std::cout << "tube_axis_start_z = " << tube_axis_start_z << std::endl;
+	std::cout << "tube_axis_end_x = " << tube_axis_end_x << std::endl;
+	std::cout << "tube_axis_end_y = " << tube_axis_end_y << std::endl;
+	std::cout << "tube_axis_end_z = " << tube_axis_end_z << std::endl;
+	std::cout << "tube_inner_radius = " << tube_inner_radius << std::endl;
+	std::cout << "tube_outer_radius = " << tube_outer_radius << std::endl;
+    }
+};
+
 
 class Boundary_config_part {
 public:
@@ -336,6 +377,22 @@ public:
     }
 };
 
+
+class Particle_interaction_model_config_part {
+public:
+    std::string particle_interaction_model;
+public:
+    Particle_interaction_model_config_part(){};
+    Particle_interaction_model_config_part( boost::property_tree::ptree &ptree ) :
+	particle_interaction_model( ptree.get<std::string>("particle_interaction_model") )
+	{} ;
+    virtual ~Particle_interaction_model_config_part() {};
+    void print() {
+	std::cout << "Particle_interaction_model = " << particle_interaction_model << std::endl;
+    }
+};
+
+
 class Output_filename_config_part {
 public:
     std::string output_filename_prefix;
@@ -357,11 +414,11 @@ class Config {
 public:
     Time_config_part time_config_part;
     Mesh_config_part mesh_config_part;
-    std::vector<Source_config_part> sources_config_part;
+    boost::ptr_vector<Particle_source_config_part> sources_config_part;
     boost::ptr_vector<Inner_region_config_part> inner_regions_config_part;
-    boost::ptr_vector<Charged_inner_region_config_part> charged_inner_regions_config_part;
     Boundary_config_part boundary_config_part;
     External_magnetic_field_config_part external_magnetic_field_config_part;
+    Particle_interaction_model_config_part particle_interaction_model_config_part;
     Output_filename_config_part output_filename_config_part;
 public:
     Config( const std::string &filename );
@@ -376,10 +433,8 @@ public:
 	for ( auto &ir : inner_regions_config_part ) {
 	    ir.print();
 	}
-	for ( auto &cir : charged_inner_regions_config_part ) {
-	    cir.print();
-	}
 	boundary_config_part.print();
+	particle_interaction_model_config_part.print();
 	output_filename_config_part.print();
 	external_magnetic_field_config_part.print();
 	std::cout << "======" << std::endl;

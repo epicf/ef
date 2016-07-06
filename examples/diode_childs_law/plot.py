@@ -20,8 +20,8 @@ def get_time_potential_charge_absrbd_on_anode_from_h5( filename ):
 
 os.chdir("./")
 # todo: remove hardcoding
-prev_step_filename = "V*_*40.h5"
-last_step_filename = "V*_*50.h5"
+prev_step_filename = "V*_*0900.h5"
+last_step_filename = "V*_*1000.h5"
 prev_step_vals = []
 last_step_vals = []
 for f in glob.glob( prev_step_filename ):
@@ -34,18 +34,20 @@ last_step_vals.sort( key = operator.itemgetter(1) )
 
 current = []
 voltage = []
+cgs_to_v = 300
 for (t1,V1,q1), (t2,V2,q2) in zip( prev_step_vals, last_step_vals ):
     print( t2 - t1, V2 - V1, q2 - q1 )
     current.append( abs( ( q2 - q1 ) ) / ( t2 - t1 ) )
-    voltage.append( V1 )
+    voltage.append( V1 * cgs_to_v )
 
 #print( current, voltage )
 #A,B = np.polyfit( np.ln( current ), voltage, 1 )
 
 plt.figure() 
 axes = plt.gca()
-axes.set_xlabel( "Voltage [?]" )
+axes.set_xlabel( "Voltage [V]" )
 axes.set_ylabel( "Current [?]" )
+#axes.set_xlim( [0, 1500] )
 plt.plot( voltage, current,
           linestyle='', marker='o',
           label = "Num" )

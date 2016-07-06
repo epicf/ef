@@ -11,7 +11,8 @@
 *.swp
 *.zip
 *.a
-*.png
-!doc/figs/*
 *.pdf
-
+TAGS
+*.pyc
+*.png
+!doc/figs

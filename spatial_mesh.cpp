@@ -85,7 +85,8 @@ void Spatial_mesh::fill_node_coordinates()
     for ( int i = 0; i < x_n_nodes; i++ ) {
 	for ( int j = 0; j < y_n_nodes; j++ ) {
 	    for ( int k = 0; k < z_n_nodes; k++ ) {
-		node_coordinates[i][j][k] = vec3d_init( i * x_cell_size, j * y_cell_size, k * z_cell_size );
+		node_coordinates[i][j][k] =
+		    vec3d_init( i * x_cell_size, j * y_cell_size, k * z_cell_size );
 	    }
 	}
     }
@@ -129,8 +130,8 @@ void Spatial_mesh::set_boundary_conditions( const double phi_left, const double 
     
     for ( int j = 0; j < ny; j++ ) {
 	for ( int k = 0; k < nz; k++ ) {
-	    potential[0][j][k] = phi_left;
-	    potential[nx-1][j][k] = phi_right;
+	    potential[0][j][k] = phi_right;
+	    potential[nx-1][j][k] = phi_left;
 	}
     }
 
@@ -199,7 +200,8 @@ void Spatial_mesh::write_to_file( hid_t hdf5_file_id )
     hid_t group_id;
     herr_t status;
     std::string hdf5_groupname = "/Spatial_mesh";
-    group_id = H5Gcreate( hdf5_file_id, hdf5_groupname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    group_id = H5Gcreate( hdf5_file_id, hdf5_groupname.c_str(),
+			  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     hdf5_status_check( group_id );
 
     write_hdf5_attributes( group_id );
@@ -247,17 +249,16 @@ void Spatial_mesh::write_hdf5_attributes( hid_t group_id )
 void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
 {   
     hid_t filespace, memspace, dset;
-    hid_t compound_type_for_mem, compound_type_for_file; 
     hid_t plist_id;
     herr_t status;
     int rank = 1;
     hsize_t dims[rank], subset_dims[rank], subset_offset[rank];
     dims[0] = node_coordinates.num_elements();
     
-    compound_type_for_mem = vec3d_hdf5_compound_type_for_memory();
-    compound_type_for_file = vec3d_hdf5_compound_type_for_file();
-    plist_id = H5Pcreate( H5P_DATASET_XFER ); hdf5_status_check( plist_id );
-    status = H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE ); hdf5_status_check( status ); 
+    plist_id = H5Pcreate( H5P_DATASET_XFER );
+    hdf5_status_check( plist_id );
+    status = H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE );
+    hdf5_status_check( status ); 
     
     subset_dims[0] = n_of_elements_to_write_for_each_process_for_1d_dataset( dims[0] );
     subset_offset[0] = data_offset_for_each_process_for_1d_dataset( dims[0] );
@@ -271,42 +272,118 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
     // 	      << "count = " << subset_dims[0] << " "
     // 	      << "offset = " << subset_offset[0] << std::endl;
     
-    memspace = H5Screate_simple( rank, subset_dims, NULL ); hdf5_status_check( memspace );
-    filespace = H5Screate_simple( rank, dims, NULL ); hdf5_status_check( filespace );
-    status = H5Sselect_hyperslab( filespace, H5S_SELECT_SET, subset_offset, NULL, subset_dims, NULL );
+    memspace = H5Screate_simple( rank, subset_dims, NULL );
+    hdf5_status_check( memspace );
+    filespace = H5Screate_simple( rank, dims, NULL );
+    hdf5_status_check( filespace );
+    status = H5Sselect_hyperslab( filespace, H5S_SELECT_SET,
+				  subset_offset, NULL, subset_dims, NULL );
     hdf5_status_check( status );
 
-    dset = H5Dcreate( group_id, "./node_coordinates",
-		      compound_type_for_file, filespace,
-		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
-    status = H5Dwrite( dset, compound_type_for_mem,
+    // todo: without compound datasets
+    // there is this copying problem.
+    double *nx = new double[ dims[0] ];
+    double *ny = new double[ dims[0] ];
+    double *nz = new double[ dims[0] ];
+    for( unsigned int i = 0; i < dims[0]; i++ ){
+	nx[i] = vec3d_x( node_coordinates.data()[i] );
+	ny[i] = vec3d_y( node_coordinates.data()[i] );
+	nz[i] = vec3d_z( node_coordinates.data()[i] );
+    }
+    dset = H5Dcreate( group_id, "./node_coordinates_x",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
 		       memspace, filespace, plist_id,
-		       ( node_coordinates.data() + subset_offset[0] ) ); hdf5_status_check( status );
+		       ( nx + subset_offset[0] ) );
+    hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./node_coordinates_y",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( ny + subset_offset[0] ) );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./node_coordinates_z",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( nz + subset_offset[0] ) );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+    delete[] nx;
+    delete[] ny;
+    delete[] nz;
 
     dset = H5Dcreate( group_id, "./charge_density",
 		      H5T_IEEE_F64BE, filespace,
-		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
     status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
 		       memspace, filespace, plist_id,
-		       ( charge_density.data() + subset_offset[0] ) ); hdf5_status_check( status );
+		       ( charge_density.data() + subset_offset[0] ) );
+    hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
 
     dset = H5Dcreate( group_id, "./potential",
 		      H5T_IEEE_F64BE, filespace,
-		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
     status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
 		       memspace, filespace, plist_id,
-		       ( potential.data() + subset_offset[0] ) ); hdf5_status_check( status );
+		       ( potential.data() + subset_offset[0] ) );
+    hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
 
-    dset = H5Dcreate( group_id, "./electric_field",
-		      compound_type_for_file, filespace,
-		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
-    status = H5Dwrite( dset, compound_type_for_mem,
+
+    double *ex = new double[ dims[0] ];
+    double *ey = new double[ dims[0] ];
+    double *ez = new double[ dims[0] ];
+    for( unsigned int i = 0; i < dims[0]; i++ ){
+	ex[i] = vec3d_x( electric_field.data()[i] );
+	ey[i] = vec3d_y( electric_field.data()[i] );
+	ez[i] = vec3d_z( electric_field.data()[i] );
+    }
+    dset = H5Dcreate( group_id, "./electric_field_x",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
 		       memspace, filespace, plist_id,
-		       ( electric_field.data() + subset_offset[0] ) ); hdf5_status_check( status );
+		       ( ex + subset_offset[0] ) );
+    hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./electric_field_y",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( ey + subset_offset[0] ) );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./electric_field_z",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( ez + subset_offset[0] ) );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+    delete[] ex;
+    delete[] ey;
+    delete[] ez;
 
     // for testing
     int *mpi_proc_ranks = new int[ dims[0] ];
@@ -315,10 +392,12 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
     }
     dset = H5Dcreate( group_id, "./mpi_proc",
 		      H5T_STD_I32BE, filespace,
-		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT ); hdf5_status_check( dset );
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
     status = H5Dwrite( dset, H5T_NATIVE_INT,
 		       memspace, filespace, plist_id,
-		       ( mpi_proc_ranks + subset_offset[0] ) ); hdf5_status_check( status );
+		       ( mpi_proc_ranks + subset_offset[0] ) );
+    hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
     delete[] mpi_proc_ranks;
     //
@@ -326,8 +405,6 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
     status = H5Sclose( filespace ); hdf5_status_check( status );
     status = H5Sclose( memspace ); hdf5_status_check( status );
     status = H5Pclose( plist_id ); hdf5_status_check( status );
-    status = H5Tclose( compound_type_for_file ); hdf5_status_check( status );
-    status = H5Tclose( compound_type_for_mem );	hdf5_status_check( status );
 }
 
 int Spatial_mesh::n_of_elements_to_write_for_each_process_for_1d_dataset( int total_elements )

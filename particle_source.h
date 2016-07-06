@@ -5,7 +5,10 @@
 #include <random>
 #include <iostream>
 #include <iomanip>
+#include <string>
 #include <vector>
+#include <algorithm>
+#include <boost/ptr_container/ptr_vector.hpp>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include <mpi.h>
@@ -16,18 +19,12 @@
 class Particle_source{
 public:
     std::string name;
+    std::string geometry_type;
     std::vector<Particle> particles;
-private:
+protected:
     int initial_number_of_particles;
     int particles_to_generate_each_step;
     unsigned int max_id;
-    // Source position
-    double xleft;
-    double xright;
-    double ytop;
-    double ybottom;
-    double znear;
-    double zfar;
     // Momentum
     Vec3d mean_momentum;
     double temperature;
@@ -37,72 +34,168 @@ private:
     // Random number generator
     std::default_random_engine rnd_gen;
 public:
-    Particle_source( Config &conf, Source_config_part &src_conf );
+    Particle_source( Config &conf, Particle_source_config_part &src_conf );
     void generate_each_step();
-    void update_particles_position( double dt );	
+    void update_particles_position( double dt );
     void print_particles();
     void write_to_file( hid_t hdf5_file_id );
     virtual ~Particle_source() {};
-private:
-    // Particle initialization
-    void set_parameters_from_config( Source_config_part &src_conf );
+protected:
+    // Initialization
+    virtual void set_parameters_from_config( Particle_source_config_part &src_conf );
+    // Particles generation 
     void generate_initial_particles();
-    // Todo: replace 'std::default_random_engine' type with something more general.
     void generate_num_of_particles( int num_of_particles );
+    // Todo: replace 'std::default_random_engine' type with something more general.
+    virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen ) = 0;
+    Vec3d maxwell_momentum_distr( const Vec3d mean_momentum,
+				  const double temperature, const double mass,
+				  std::default_random_engine &rnd_gen );
     int num_of_particles_for_each_process( int num_of_particles );
     void populate_vec_of_ids( std::vector<int> &vec_of_ids,
 			      int num_of_particles_for_this_proc );
-    //int generate_particle_id( const int number, const int proc );
-    Vec3d uniform_position_in_cube( const double xleft, const double ytop, const double znear,
-				    const double xright, const double ybottom, const double zfar,
-				    std::default_random_engine &rnd_gen );
-    double random_in_range( const double low, const double up, std::default_random_engine &rnd_gen );
-    Vec3d maxwell_momentum_distr( const Vec3d mean_momentum, const double temperature, const double mass, 
-				  std::default_random_engine &rnd_gen );
+    double random_in_range( const double low, const double up,
+			    std::default_random_engine &rnd_gen );
     // Check config
-    void check_correctness_of_related_config_fields( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_initial_number_of_particles_gt_zero( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_particles_to_generate_each_step_ge_zero( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_x_left_ge_zero( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_x_left_le_particle_source_x_right( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_x_right_le_grid_x_size( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_y_bottom_ge_zero( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_y_bottom_le_particle_source_y_top( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_y_top_le_grid_y_size( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_z_near_ge_zero( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_z_near_le_particle_source_z_far( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_z_far_le_grid_z_size( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_temperature_gt_zero( 
-	Config &conf, Source_config_part &src_conf );
-    void particle_source_mass_gt_zero( 
-	Config &conf, Source_config_part &src_conf );
+    virtual void check_correctness_of_related_config_fields( 
+	Config &conf, Particle_source_config_part &src_conf );
+    void initial_number_of_particles_gt_zero( 
+	Config &conf, Particle_source_config_part &src_conf );
+    void particles_to_generate_each_step_ge_zero( 
+	Config &conf, Particle_source_config_part &src_conf );
+    void temperature_gt_zero( 
+	Config &conf, Particle_source_config_part &src_conf );
+    void mass_gt_zero( 
+	Config &conf, Particle_source_config_part &src_conf );
     // Write to file
-    void write_hdf5_particles( hid_t group_id, std::string table_of_particles_name );
-    void write_hdf5_source_parameters( hid_t group_id,
-				       std::string table_of_particles_name );
+    void write_hdf5_particles( hid_t current_source_group_id );
+    virtual void write_hdf5_source_parameters( hid_t current_source_group_id );
     void hdf5_status_check( herr_t status );
     int total_particles_across_all_processes();
     int data_offset_for_each_process_for_1d_dataset();
 };
 
 
+class Particle_source_box : public Particle_source {
+private:
+    // Source position
+    double xleft;
+    double xright;
+    double ytop;
+    double ybottom;
+    double znear;
+    double zfar;
+public:
+    Particle_source_box( Config &conf, Particle_source_box_config_part &src_conf );
+    virtual ~Particle_source_box() {};
+private:
+    // Particle generation
+    virtual void set_parameters_from_config( Particle_source_box_config_part &src_conf );
+    virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen );
+    Vec3d uniform_position_in_cube( const double xleft, const double ytop,
+				    const double zfar, const double xright,
+				    const double ybottom, const double znear,
+				    std::default_random_engine &rnd_gen );
+    // Check config
+    virtual void check_correctness_of_related_config_fields( 
+	Config &conf, Particle_source_box_config_part &src_conf );
+    void x_right_ge_zero( 
+	Config &conf, Particle_source_box_config_part &src_conf );
+    void x_right_le_particle_source_x_left( 
+	Config &conf, Particle_source_box_config_part &src_conf );
+    void x_left_le_grid_x_size( 
+	Config &conf, Particle_source_box_config_part &src_conf );
+    void y_bottom_ge_zero( 
+	Config &conf, Particle_source_box_config_part &src_conf );
+    void y_bottom_le_particle_source_y_top( 
+	Config &conf, Particle_source_box_config_part &src_conf );
+    void y_top_le_grid_y_size( 
+	Config &conf, Particle_source_box_config_part &src_conf );
+    void z_near_ge_zero( 
+	Config &conf, Particle_source_box_config_part &src_conf );
+    void z_near_le_particle_source_z_far( 
+	Config &conf, Particle_source_box_config_part &src_conf );
+    void z_far_le_grid_z_size( 
+	Config &conf, Particle_source_box_config_part &src_conf );
+    // Write to file
+    virtual void write_hdf5_source_parameters( hid_t current_source_group_id );
+};
+
+
+class Particle_source_cylinder : public Particle_source {
+private:
+    // Source position
+    double axis_start_x;
+    double axis_start_y;
+    double axis_start_z;
+    double axis_end_x;
+    double axis_end_y;
+    double axis_end_z;
+    double radius;
+public:
+    Particle_source_cylinder( Config &conf, Particle_source_cylinder_config_part &src_conf );
+    virtual ~Particle_source_cylinder() {};
+private:
+    // Particle generation
+    virtual void set_parameters_from_config( Particle_source_cylinder_config_part &src_conf );
+    virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen );
+    Vec3d uniform_position_in_cylinder( std::default_random_engine &rnd_gen );
+    // Check config
+    virtual void check_correctness_of_related_config_fields( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void radius_gt_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_x_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_x_plus_rad_le_grid_x_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_y_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_y_plus_rad_le_grid_y_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_z_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_start_z_plus_rad_le_grid_z_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_x_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_x_plus_rad_le_grid_x_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_y_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_y_plus_rad_le_grid_y_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_z_min_rad_ge_zero( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    void axis_end_z_plus_rad_le_grid_z_size( 
+	Config &conf, Particle_source_cylinder_config_part &src_conf );
+    // Write to file
+    virtual void write_hdf5_source_parameters( hid_t current_source_group_id );
+};
+
+
+
 class Particle_sources_manager{
 public:
-    std::vector<Particle_source> sources;
+    boost::ptr_vector<Particle_source> sources;
 public:
-    Particle_sources_manager( Config &conf );
+    Particle_sources_manager( Config &conf )
+    {
+	for( auto &src_conf : conf.sources_config_part ){
+	    if( Particle_source_box_config_part *box_conf =
+		dynamic_cast<Particle_source_box_config_part*>( &src_conf ) ){
+		sources.push_back( new Particle_source_box( conf,
+							    *box_conf ) );
+	    } else if( Particle_source_cylinder_config_part *cyl_conf =
+	    	       dynamic_cast<Particle_source_cylinder_config_part*>( &src_conf ) ){
+	    	sources.push_back( new Particle_source_cylinder( conf,
+	    							 *cyl_conf ) );
+	    } else {
+		std::cout << "In sources_manager constructor: Unknown config type. Aborting" << std::endl; 
+		exit( EXIT_FAILURE );
+	    }
+	}
+    }
     virtual ~Particle_sources_manager() {};
     void write_to_file( hid_t hdf5_file_id )
     {
@@ -111,17 +204,20 @@ public:
 	int single_element = 1;
 	std::string hdf5_groupname = "/Particle_sources";
 	int n_of_sources = sources.size();
-	group_id = H5Gcreate2( hdf5_file_id, hdf5_groupname.c_str(), H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+	group_id = H5Gcreate2( hdf5_file_id, hdf5_groupname.c_str(),
+			       H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 	hdf5_status_check( group_id );
 
-	status = H5LTset_attribute_int( hdf5_file_id, hdf5_groupname.c_str(),
-			       "number_of_sources", &n_of_sources, single_element );
+	status = H5LTset_attribute_int( hdf5_file_id,
+					hdf5_groupname.c_str(),
+					"number_of_sources", &n_of_sources,
+					single_element );
 	hdf5_status_check( status );
 	
 	for( auto &src : sources )
 	    src.write_to_file( group_id );
 
-	status = H5Gclose(group_id);
+	status = H5Gclose( group_id );
 	hdf5_status_check( status );
     }; 
     void generate_each_step()
@@ -142,7 +238,8 @@ public:
     void hdf5_status_check( herr_t status )
     {
 	if( status < 0 ){
-	    std::cout << "Something went wrong while writing Particle_sources group. Aborting."
+	    std::cout << "Something went wrong while writing"
+		      << "'Particle_sources' group. Aborting."
 		      << std::endl;
 	    exit( EXIT_FAILURE );
 	}

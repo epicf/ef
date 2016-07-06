@@ -1,2 +1,2 @@
-../../epicf.out conducting_sphere_potential.conf
+../../ef.out conducting_sphere_potential.conf
 python3 plot.py

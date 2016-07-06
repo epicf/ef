@@ -2,168 +2,185 @@ import os, glob
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
-
-
-### Numerical trajectory
-num_trajectory = []
-os.chdir("./")
-h5files = []
-for file in glob.glob("single_particle_mgn_field_[0-9]*.h5"):
-    h5files.append( file )
-
-h5files.sort()
-for file in h5files:
-    h5 = h5py.File( file, mode="r")
-    t = h5["/Time_grid"].attrs["current_time"][0]
-    if ( len(h5["/Particle_sources/emit_single_particle"]) > 0 ):
-        particle = h5["/Particle_sources/emit_single_particle"][0]
-        xyz = list( particle[1] )
-        num_trajectory.append( [t] + xyz )
-    h5.close()
-
-# todo: add names to columns
-num_trajectory = np.array( num_trajectory )
-
 from mpl_toolkits.mplot3d import Axes3D 
-import matplotlib.pyplot as plt
 
-fig = plt.figure() 
-ax = fig.gca( projection='3d' ) 
-# for t, x, y, z in num_trajectory:     
-#    ax.scatter(x, y, z, '.r-' )
+def main():
+    num = extract_num_trajectory_from_out_files()
+    an = eval_an_trajectory_at_num_time_points( num )
+    plot_trajectories( num , an )
 
-x = num_trajectory[:,1]
-y = num_trajectory[:,2]
-z = num_trajectory[:,3]
+def extract_num_trajectory_from_out_files():
+    out_files = find_necessary_out_files()    
 
-# x = x[0:100]
-# y = y[0:100]
-# z = z[0:100]
+    num_trajectory = []
+    for f in out_files:
+        num_trajectory.append( extract_time_pos_mom( f ) )    
 
-ax.plot( x, y, z )
+    num_trajectory = remove_empty_and_sort_by_time( num_trajectory )
+    num_trajectory = np.array( num_trajectory, 
+                               dtype=[('t','float'),
+                                      ('x','float'), ('y','float'), ('z','float'),
+                                      ('px','float'), ('py','float'), ('pz','float') ] )
+    return( num_trajectory )
 
-ax.set_xlabel('X Label') 
-ax.set_ylabel('Y Label') 
-ax.set_zlabel('Z Label')
+def remove_empty_and_sort_by_time( num_trajectory ):
+    removed_empty = [ x for x in num_trajectory if x ]
+    sorted_by_time = sorted( removed_empty, key = lambda x: x[0] )
+    return ( sorted_by_time )
 
-plt.show()
+def find_necessary_out_files():
+    os.chdir("./")
+    h5files = []
+    for file in glob.glob("single_particle_mgn_field_[0-9]*.h5"):
+        h5files.append( file )
+    return h5files
 
+def extract_time_pos_mom( h5file ):
+    h5 = h5py.File( h5file, mode="r")
+    t = h5["/Time_grid"].attrs["current_time"][0]
+    t_pos_mom = ()
+    if ( len(h5["/Particle_sources/emit_single_particle"]) > 0 ):
+        x = h5["/Particle_sources/emit_single_particle/position_x"][0]
+        y = h5["/Particle_sources/emit_single_particle/position_y"][0]
+        z = h5["/Particle_sources/emit_single_particle/position_z"][0]
+        px = h5["/Particle_sources/emit_single_particle/momentum_x"][0]
+        py = h5["/Particle_sources/emit_single_particle/momentum_y"][0]
+        pz = h5["/Particle_sources/emit_single_particle/momentum_z"][0]
+        t_pos_mom = (t, x, y, z, px, py, pz)
+    h5.close()
+    return( t_pos_mom )
 
+def eval_an_trajectory_at_num_time_points( num_trajectory ):
+    initial_out_file = "single_particle_mgn_field_0000000.h5"
+    initial_h5 = h5py.File( initial_out_file, mode="r")
+    global B0, q, m
+    B0 = extract_magn_field( initial_h5 )
+    q, m = extract_particle_charge_and_mass( initial_h5 )
+    global x0, y0, z0, px0, py0, pz0, vx0, vy0, vz0
+    x0, y0, z0, px0, py0, pz0 = extract_initial_pos_and_mom( initial_h5 )
+    vx0, vy0, vz0 = px0/m, py0/m, pz0/m 
+    initial_h5.close()
 
-### Analitical trajectory
-h5 = h5py.File( "single_particle_mgn_field_0000000.h5", mode="r")
+    global v_perp_len, v_prll
+    v_perp_len = np.sqrt( vx0**2 + vy0**2 )
+    v_prll = vz0
 
-# Particle parameters; 10000 * C(6,12),
-# m = 12 * 1.67e-24 * 10000 #[g],
-# q = 4.8e-10 * 6 * 10000 #[cgs-charge]
-m = h5["/Particle_sources/emit_single_particle"].attrs["mass"][0]
-q = h5["/Particle_sources/emit_single_particle"].attrs["charge"][0]
-# m = 1
-# q = 1
+    global speed_of_light, larmor_rad, larmor_freq
+    speed_of_light = 3e10
+    larmor_rad = m / abs(q) * v_perp_len / B0 * speed_of_light
+    larmor_freq = abs(q) / m * B0 / speed_of_light
 
+    an_trajectory = np.empty_like( num_trajectory )
+    for i, t in enumerate( num_trajectory['t'] ):
+        x, y, z = coords( t )
+        vx, vy, vz = velocities(t)
+        px, py, pz = vx * m, vy * m, vz * m
+        an_trajectory[i] = ( t, x, y ,z, px, py, pz )
 
-# Magn field along z
-#B0 = 1
-B0 = h5["/External_magnetic_field"].attrs["external_magnetic_field_z"][0]
+    return( an_trajectory )
+    
+def extract_magn_field( h5 ):
+    B0 = h5["/External_magnetic_field"].attrs["external_magnetic_field_z"][0]
+    return B0
 
-# Particle initial pos and velocity
-#x0, y0, z0 = 5, 5, 1
-#vx0, vy0, vz0 = 9.4e-19 / m, 9.4e-19 / m, 9.4e-19 / m,
-#vx0, vy0, vz0 = 1, 1, 1
-particle_initial_pos_and_vel = h5["/Particle_sources/emit_single_particle"][0]
-x0, y0, z0 = particle_initial_pos_and_vel[1]
-vx0, vy0, vz0 = list( particle_initial_pos_and_vel[2] ) / m
+def extract_particle_charge_and_mass( h5 ):
+    q = h5["/Particle_sources/emit_single_particle"].attrs["charge"][0]
+    m = h5["/Particle_sources/emit_single_particle"].attrs["mass"][0]
+    return (q, m)
 
-v_perp_len = np.sqrt( vx0**2 + vy0**2 )
-v_prll = vz0
-
-speed_of_light = 3e10
-larmor_rad = m / abs(q) * v_perp_len / B0 * speed_of_light
-larmor_freq = abs(q) / m * B0 / speed_of_light
+def extract_initial_pos_and_mom( h5 ):
+    x0 = h5["/Particle_sources/emit_single_particle/position_x"][0]
+    y0 = h5["/Particle_sources/emit_single_particle/position_y"][0]
+    z0 = h5["/Particle_sources/emit_single_particle/position_z"][0]
+    px0 = h5["/Particle_sources/emit_single_particle/momentum_x"][0]
+    py0 = h5["/Particle_sources/emit_single_particle/momentum_y"][0]
+    pz0 = h5["/Particle_sources/emit_single_particle/momentum_z"][0]
+    return( x0, y0, z0, px0, py0, pz0 )
 
 def velocities(t):
-    vx = vx0 * np.cos( larmor_freq * t ) + vy0 * np.sin( larmor_freq * t)
-    vy = -vx0 * np.sin( larmor_freq * t ) + vy0 * np.cos( larmor_freq * t )
+    sign_larmor_freq = larmor_freq * np.sign( q )
+    vx = vx0 * np.cos( sign_larmor_freq * t ) + vy0 * np.sin( sign_larmor_freq * t )
+    vy = -vx0 * np.sin( sign_larmor_freq * t ) + vy0 * np.cos( sign_larmor_freq * t )
     vz = vz0
-    return (vx, vy, vz)
+    return ( vx, vy, vz )
 
 def coords(t):
-    # integrate( vx(t), dt )
-    x = x0 + 1 / larmor_freq * ( vx0 * np.sin( larmor_freq * t ) - vy0 * np.cos( larmor_freq * t) + vy0 ) 
-    y = y0 + 1 / larmor_freq * ( vx0 * np.cos( larmor_freq * t ) + vy0 * np.sin( larmor_freq * t) - vx0 ) 
+    sign_larmor_freq = larmor_freq * np.sign( q )
+    x = x0 + 1 / sign_larmor_freq * ( vx0 * np.sin( sign_larmor_freq * t ) - 
+                                      vy0 * np.cos( sign_larmor_freq * t ) + vy0 )
+    y = y0 + 1 / sign_larmor_freq * ( vx0 * np.cos( sign_larmor_freq * t ) +
+                                      vy0 * np.sin( sign_larmor_freq * t ) - vx0 )
     z = z0 + vz0 * t
     return ( x, y, z )
 
-# 100 circles. 
-simulation_time_100_circles = 100 * 2 * np.pi / larmor_freq
-simulation_time_num = num_trajectory[-1][0]
-simulation_time = simulation_time_num
-#simulation_time = simulation_time_100_circles
 
-print( m, q )
-print( larmor_rad, 2 * np.pi / larmor_freq, simulation_time )
+def plot_trajectories( num , an ):
+    plot_3d( num, an )
+    plot_2d( num, an )
+    plot_kin_en( num , an )
 
-# npoints = 1000
-# an_trajectory = np.empty( [npoints, 4] )
-# for i in range( npoints ):
-#     t = simulation_time * i / ( npoints - 1 )
-#     x, y, z = coords( t )
-#     an_trajectory[i] = [t, x, y ,z]
+def plot_3d( num, an ):
+    fig = plt.figure()
+    ax = fig.gca( projection='3d' )
+    ax.plot( num['x'], num['y'], num['z'], '.r', label = "Num" )
+    ax.plot( an['x'], an['y'], an['z'], label = "An" )
+    ax.set_xlabel('X') 
+    ax.set_ylabel('Y') 
+    ax.set_zlabel('Z')
+    plt.legend( loc = 'upper left', title="3d" )
+    #plt.show()
+    print( 'Saving 3d trajectory plot to "3d.png"' )
+    plt.savefig('3d.png')
 
-an_trajectory = np.empty_like( num_trajectory )
-for i, t in enumerate( num_trajectory[:,0] ):
-    x, y, z = coords( t )
-    an_trajectory[i] = [t, x, y ,z]
-
-
-from mpl_toolkits.mplot3d import Axes3D 
-import matplotlib.pyplot as plt
-
-fig = plt.figure() 
-ax = fig.gca( projection='3d' ) 
-#for t, x, y, z in trajectory:     
-#    ax.scatter(x, y, z, '.r-' )
-x = an_trajectory[:,1]
-y = an_trajectory[:,2]
-z = an_trajectory[:,3]
-
-#x = x[0:100]
-#y = y[0:100]
-#z = z[0:100]
-
-ax.plot( x, y, z )
-
-ax.set_xlabel('X Label') 
-ax.set_ylabel('Y Label') 
-ax.set_zlabel('Z Label')
-
-plt.show()
-
-
-
-
-
-#XY
-# plt.figure(1)
-# plt.subplot(311)
-# plt.plot( trajectory[:,1], trajectory[:,2],
-#     linestyle='', marker='o',
-#     label = "Num" )
-
-#XZ
-# plt.subplot(312)
-# plt.plot( trajectory[:,1], trajectory[:,3],
-#     linestyle='', marker='o',
-#     label = "Num" )
-
-#YZ
-# plt.subplot(313)
-# plt.plot( trajectory[:,2], trajectory[:,3],
-#     linestyle='', marker='o',
-#     label = "Num" )
-
-# plt.plot( z_coords_subset, analit_potential_subset,
-#     label = "An" )
-# plt.legend()
-plt.savefig('trajectory.png')
+def plot_2d( num, an ):
+    plt.figure(1)
+    #XY
+    plt.subplot(131)
+    plt.plot( num['x'], num['y'],
+              linestyle='', marker='o',
+              label = "Num" )
+    plt.plot( an['x'], an['y'],
+              linestyle='-', marker='', lw = 2,
+              label = "An" )
+    plt.legend( loc = 'upper right', title="XY" )
+    #XZ
+    plt.subplot(132)
+    plt.plot( num['x'], num['z'],
+        linestyle='', marker='o',
+        label = "Num" )
+    plt.plot( an['x'], an['z'],
+              linestyle='-', marker='', lw = 2,
+              label = "An" )
+    plt.legend( loc = 'upper right', title="XZ" )
+    #YZ
+    plt.subplot(133)
+    plt.plot( num['y'], num['z'],
+        linestyle='', marker='o',
+        label = "Num" )
+    plt.plot( an['y'], an['z'],
+              linestyle='-', marker='', lw = 2,
+              label = "An" )
+    plt.legend( loc = 'upper right', title="YZ" )
+    print( 'Saving 2d trajectory projection plots to "2d.png"' )
+    plt.savefig('2d.png')
     
+def plot_kin_en( num , an ):
+    E_num = ( num['px']**2 + num['py']**2 + num['pz']**2 ) / ( 2 * m )
+    E_an = ( an['px']**2 + an['py']**2 + an['pz']**2 ) / ( 2 * m )
+    t = num['t']
+    plt.figure()
+    axes = plt.gca()
+    axes.set_xlabel( "t [s]" )
+    axes.set_ylabel( "E [erg]" )
+    # axes.set_ylim( [min( E_an.min(), E_num.min() ),
+    #                 max( E_an.max(), E_num.max() ) ] )
+    line, = plt.plot( t, E_num, 'o' )
+    line.set_label( "Num" )
+    line, = plt.plot( t, E_an, ls = 'solid', lw = 5 )
+    line.set_label( "An" )
+    plt.legend( loc = 'upper right' )
+    print( 'Saving kinetic energy comparison plot to "kin_en.png"' )
+    plt.savefig( 'kin_en.png' )
+
+
+main()
