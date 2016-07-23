@@ -199,7 +199,7 @@ def particles_glyph_representation( source_name, particles_table_to_points ):
     particles_glyph_repr.ColorArrayName = ('POINT_DATA', 'Pz')
     #color_lookup_table = GetLookupTableForArray( "Pz", 1 )            
     RenameSource( source_name + "_particle_glyphs", particles_glyph )
-    
+    UpdatePipeline() 
 
 
 spat_mesh_script_template = """

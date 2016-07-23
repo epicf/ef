@@ -735,7 +735,7 @@ class ParticleSourceConfigPart():
             obj.charge = str( q )
             
         q_to_m = float( obj.charge_to_mass_ratio )
-        m = 1 / q_to_m * q
+        m = abs( 1 / q_to_m * q )
         obj.mass = str( m )
         return
 
