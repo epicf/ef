@@ -20,6 +20,4 @@ for V in voltages:
     basic_conf[anode_voltage_linenum] = anode_voltage_line
     basic_conf[output_file_name_linenum] = output_filename_prefix_line
     with open( conf_name, 'w') as f:
-        f.writelines( basic_conf )
-
-    
+        f.writelines( basic_conf )    

@@ -18,7 +18,6 @@ int main( int argc, char *argv[] )
     ierr = MPI_Comm_size( PETSC_COMM_WORLD, &mpi_comm_size); CHKERRXX(ierr);
     MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
 
-
     //// Parse command line
     parse_cmd_line( argc, argv, config_file );
     //// Read config
@@ -35,15 +34,12 @@ int main( int argc, char *argv[] )
 
 void pic_simulation( Config &conf )
 {
-  Domain dom( conf );
+    Domain dom( conf );
 
-  // Echo inner_domains
-  // dom.inner_regions.print();
+    // fields in domain without any particles
+    dom.eval_and_write_fields_without_particles( conf );
+    // run simulation
+    dom.run_pic( conf );
 
-  // fields in domain without any particles
-  dom.eval_and_write_fields_without_particles( conf );
-  // run simulation
-  dom.run_pic( conf );
-
-  return;
+    return;
 }
