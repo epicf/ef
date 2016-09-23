@@ -6,6 +6,28 @@ External_magnetic_field::External_magnetic_field( Config &conf )
     get_values_from_config( conf );    
 }
 
+External_magnetic_field::External_magnetic_field( hid_t h5_external_magnetic_field_group )
+{
+    herr_t status;
+    double H_x, H_y, H_z;
+    
+    status = H5LTget_attribute_double( h5_external_magnetic_field_group, "./",
+				       "external_magnetic_field_x", &H_x );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_external_magnetic_field_group, "./",
+				       "external_magnetic_field_y", &H_y );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_external_magnetic_field_group, "./",
+				       "external_magnetic_field_z", &H_z );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_external_magnetic_field_group, "./",
+				       "speed_of_light", &speed_of_light );
+    hdf5_status_check( status );
+
+    magnetic_field = vec3d_init( H_x, H_y, H_z );
+    status = H5Gclose( h5_external_magnetic_field_group ); hdf5_status_check( status );
+}
+
 void External_magnetic_field::check_correctness_of_related_config_fields( Config &conf )
 {
     // nothing to check here
