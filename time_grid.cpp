@@ -10,6 +10,27 @@ Time_grid::Time_grid( Config &conf )
     set_current_time_and_node();
 }
 
+Time_grid::Time_grid( hid_t h5_time_grid_group )
+{    
+    herr_t status;
+    status = H5LTget_attribute_double( h5_time_grid_group, "./",
+				    "total_time", &total_time ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_time_grid_group, "./",
+				       "current_time", &current_time ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_time_grid_group, "./",
+				       "time_step_size", &time_step_size ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_time_grid_group, "./",
+				       "time_save_step", &time_save_step ); hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_time_grid_group, "./",
+				    "total_nodes", &total_nodes ); hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_time_grid_group, "./",
+				    "current_node", &current_node ); hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_time_grid_group, "./",
+				    "node_to_save", &node_to_save ); hdf5_status_check( status );
+
+    status = H5Gclose(h5_time_grid_group); hdf5_status_check( status );
+}
+
 void Time_grid::check_correctness_of_related_config_fields( Config &conf )
 {
     total_time_gt_zero( conf );

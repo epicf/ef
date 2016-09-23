@@ -12,6 +12,78 @@ Spatial_mesh::Spatial_mesh( Config &conf )
 }
 
 
+Spatial_mesh::Spatial_mesh( hid_t h5_spat_mesh_group )
+{
+    herr_t status;
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "x_volume_size", &x_volume_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "y_volume_size", &y_volume_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "z_volume_size", &z_volume_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "x_cell_size", &x_cell_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "y_cell_size", &y_cell_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "z_cell_size", &z_cell_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_spat_mesh_group, "./",
+			   "x_n_nodes", &x_n_nodes );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_spat_mesh_group, "./",
+			   "y_n_nodes", &y_n_nodes );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_spat_mesh_group, "./",
+			   "z_n_nodes", &z_n_nodes );
+    hdf5_status_check( status );
+
+    
+    allocate_ongrid_values();
+
+    
+    int dim = node_coordinates.num_elements();
+    double *h5_tmp_buf_1 = new double[ dim ];
+    double *h5_tmp_buf_2 = new double[ dim ];
+    double *h5_tmp_buf_3 = new double[ dim ];
+    
+    H5LTread_dataset_double( h5_spat_mesh_group, "./node_coordinates_x", h5_tmp_buf_1);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./node_coordinates_y", h5_tmp_buf_2);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./node_coordinates_z", h5_tmp_buf_3);
+    for ( int i = 0; i < dim; i++ ) {
+    	( node_coordinates.data() )[i] = vec3d_init( h5_tmp_buf_1[i],
+						     h5_tmp_buf_2[i],
+						     h5_tmp_buf_3[i] );
+    }
+
+    H5LTread_dataset_double( h5_spat_mesh_group, "./charge_density", h5_tmp_buf_1);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./potential", h5_tmp_buf_2);
+    for ( int i = 0; i < dim; i++ ) {
+	( charge_density.data() )[i] = h5_tmp_buf_1[i];
+	( potential.data() )[i] = h5_tmp_buf_2[i];	
+    }
+
+    H5LTread_dataset_double( h5_spat_mesh_group, "./electric_field_x", h5_tmp_buf_1);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./electric_field_y", h5_tmp_buf_2);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./electric_field_z", h5_tmp_buf_3);
+    for ( int i = 0; i < dim; i++ ) {
+    	( electric_field.data() )[i] = vec3d_init( h5_tmp_buf_1[i],
+						   h5_tmp_buf_2[i],
+						   h5_tmp_buf_3[i] );
+    }
+    
+    delete[] h5_tmp_buf_1;
+    delete[] h5_tmp_buf_2;
+    delete[] h5_tmp_buf_3;
+    
+    return;
+}
+
 void Spatial_mesh::check_correctness_of_related_config_fields( Config &conf )
 {
     grid_x_size_gt_zero( conf );
