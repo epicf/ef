@@ -145,6 +145,85 @@ Vec3d Particle_to_mesh_map::force_on_particle(
     return force;
 }
 
+Vec3d Particle_to_mesh_map::magnetic_force_on_particle( 
+    Spatial_mesh &spat_mesh, Particle &p )
+{
+    double dx = spat_mesh.x_cell_size;
+    double dy = spat_mesh.y_cell_size;
+    double dz = spat_mesh.z_cell_size;
+    double speed_of_light = 3e+10;
+    double scale = p.charge / p.mass / speed_of_light;
+    int tlf_i, tlf_j, tlf_k; // 'tlf' = 'top_left_far'
+    double tlf_x_weight, tlf_y_weight, tlf_z_weight;  
+    Vec3d field_from_node, total_field, force;
+    //
+    next_node_num_and_weight( vec3d_x( p.position ), dx, &tlf_i, &tlf_x_weight );
+    next_node_num_and_weight( vec3d_y( p.position ), dy, &tlf_j, &tlf_y_weight );
+    next_node_num_and_weight( vec3d_z( p.position ), dz, &tlf_k, &tlf_z_weight );
+    // tlf
+    total_field = vec3d_zero();
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.magnetic_field[tlf_i][tlf_j][tlf_k],
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // trf
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.magnetic_field[tlf_i-1][tlf_j][tlf_k],
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // blf
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.magnetic_field[tlf_i][tlf_j - 1][tlf_k],	
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // brf
+    field_from_node = vec3d_times_scalar(			
+	spat_mesh.magnetic_field[tlf_i-1][tlf_j-1][tlf_k],	
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // tln
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.magnetic_field[tlf_i][tlf_j][tlf_k-1],
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // trn
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.magnetic_field[tlf_i-1][tlf_j][tlf_k-1],
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // bln
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.magnetic_field[tlf_i][tlf_j - 1][tlf_k-1],	
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // brn
+    field_from_node = vec3d_times_scalar(			
+	spat_mesh.magnetic_field[tlf_i-1][tlf_j-1][tlf_k-1],	
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );    
+    //
+    
+    force = vec3d_times_scalar( vec3d_cross_product( p.momentum, total_field ),
+			       scale );;
+    return force;
+}
+
 void Particle_to_mesh_map::next_node_num_and_weight( 
     const double x, const double grid_step, 
     int *next_node, double *weight )

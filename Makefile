@@ -9,7 +9,7 @@ HDF5FLAGS=-I/usr/include/hdf5/openmpi -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE 
 PETSCFLAGS=-isystem /usr/include/petsc
 SUPPRESS_MPI_C11_WARNING=-Wno-literal-suffix
 WARNINGS=-Wall -fbounds-check -Warray-bounds -fsanitize=address
-CFLAGS = ${HDF5FLAGS} ${PETSCFLAGS} -O2 -std=c++11 ${WARNINGS} ${SUPPRESS_MPI_C11_WARNING}
+CFLAGS = ${HDF5FLAGS} ${PETSCFLAGS} -g -O2 -std=c++11 ${WARNINGS} ${SUPPRESS_MPI_C11_WARNING}
 LDFLAGS = 
 
 ### Libraries

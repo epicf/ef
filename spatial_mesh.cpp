@@ -77,6 +77,15 @@ Spatial_mesh::Spatial_mesh( hid_t h5_spat_mesh_group )
 						   h5_tmp_buf_3[i] );
     }
     
+    H5LTread_dataset_double( h5_spat_mesh_group, "./magnetic_field_x", h5_tmp_buf_1);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./magnetic_field_y", h5_tmp_buf_2);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./magnetic_field_z", h5_tmp_buf_3);
+    for ( int i = 0; i < dim; i++ ) {
+    	( magnetic_field.data() )[i] = vec3d_init( h5_tmp_buf_1[i],
+						   h5_tmp_buf_2[i],
+						   h5_tmp_buf_3[i] );
+    }    
+    
     delete[] h5_tmp_buf_1;
     delete[] h5_tmp_buf_2;
     delete[] h5_tmp_buf_3;
@@ -148,6 +157,7 @@ void Spatial_mesh::allocate_ongrid_values()
     charge_density.resize( boost::extents[nx][ny][nz] );
     potential.resize( boost::extents[nx][ny][nz] );
     electric_field.resize( boost::extents[nx][ny][nz] );
+    magnetic_field.resize( boost::extents[nx][ny][nz] );
 
     return;
 }
@@ -457,6 +467,48 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
     delete[] ey;
     delete[] ez;
 
+    double *bx = new double[ dims[0] ];
+    double *by = new double[ dims[0] ];
+    double *bz = new double[ dims[0] ];
+    for( unsigned int i = 0; i < dims[0]; i++ ){
+	bx[i] = vec3d_x( magnetic_field.data()[i] );
+	by[i] = vec3d_y( magnetic_field.data()[i] );
+	bz[i] = vec3d_z( magnetic_field.data()[i] );
+    }
+    dset = H5Dcreate( group_id, "./magnetic_field_x",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( bx + subset_offset[0] ) );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./magnetic_field_y",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( by + subset_offset[0] ) );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./magnetic_field_z",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( bz + subset_offset[0] ) );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+    delete[] bx;
+    delete[] by;
+    delete[] bz;
+    
+    
     // for testing
     int *mpi_proc_ranks = new int[ dims[0] ];
     for( unsigned int i = 0; i < dims[0]; i++ ){
