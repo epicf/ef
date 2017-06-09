@@ -12,8 +12,7 @@ void construct_domain( std::string config_or_h5_file,
 void extract_filename_prefix_and_suffix_from_h5filename( std::string h5_file,
 							 std::string *prefix,
 							 std::string *suffix );
-
-
+							 
 int main( int argc, char *argv[] )
 {
     PetscErrorCode ierr;
@@ -36,6 +35,7 @@ int main( int argc, char *argv[] )
 	dom->start_pic_simulation();
     }
     
+    Domain * devDom = NULL;
     // finalize_whatever_left
     delete dom;
     ierr = PetscFinalize(); CHKERRXX(ierr);

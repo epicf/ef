@@ -99,6 +99,9 @@ class Field_solver {
 			       int proc, int mpi_process_rank );
     void allocate_and_populate_phi_array( double **local_phi_values, int recieved_nlocal,
 					  int proc, int mpi_process_rank );
+   void allocate_and_populate_rhs_array( double **local_rhs_values, int recieved_nlocal,
+						    int proc, int mpi_process_rank ) ;
+   void deallocate_rhs_array( double *local_rhs_values, int proc, int mpi_process_rank );
     void transfer_from_phi_array_to_spat_mesh_potential( double *local_phi_values,
 							 int recieved_rstart, int recieved_rend,
 							 Spatial_mesh &spat_mesh );

@@ -5,17 +5,17 @@ SHELL:=/bin/bash -O extglob
 ##### Prll
 #export OMPI_CXX=clang++
 CC = mpic++
-#CC = mpiicpc 
-HDF5FLAGS=-isystem${HOME}/hdf5/usr/include/openmpi-x86_64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_BSD_SOURCE 
-PETSCFLAGS=-isystem${HOME}/petsc/opt/include/
-CFLAGS = ${HDF5FLAGS} ${PETSCFLAGS} -O2 -std=c++11
+HDF5FLAGS=-I/usr/include/hdf5/openmpi -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_BSD_SOURCE -D_FORTIFY_SOURCE=2 -g -fstack-protector-strong -Wformat -Werror=format-security
+PETSCFLAGS=-isystem /usr/include/petsc
+SUPPRESS_MPI_C11_WARNING=-Wno-literal-suffix
+CFLAGS = ${HDF5FLAGS} ${PETSCFLAGS} -O2 -std=c++11 ${SUPPRESS_MPI_C11_WARNING}
 LDFLAGS = 
 
 ### Libraries
 COMMONLIBS=-lm
 BOOSTLIBS=-lboost_program_options
-PETSCLIBS=-L${HOME}/petsc/opt/lib/ -lpetsc
-HDF5LIBS=-L${HOME}/hdf5/usr/lib64/openmpi/lib -lhdf5_hl -lhdf5 -Wl,-z,relro -lpthread -lz -ldl -lm -Wl,-rpath -Wl,${HOME}/hdf5/usr/lib64/openmpi/lib
+PETSCLIBS=-lpetsc
+HDF5LIBS=-L/usr/lib/x86_64-linux-gnu/hdf5/openmpi -lhdf5_hl -lhdf5 -Wl,-z,relro -lpthread -lz -ldl -lm -Wl,-rpath -Wl,/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 LIBS=${COMMONLIBS} ${BOOSTLIBS} ${PETSCLIBS} ${HDF5LIBS}
 
 ### Sources and executable
@@ -26,14 +26,11 @@ EXECUTABLE=ef.out
 MAKE=make
 SUBDIRS=doc
 
-$(EXECUTABLE): $(OBJECTS) cuda.o
-	$(CC) $(LDFLAGS) $(OBJECTS) cuda.o -o $@ $(LIBS) -L /cvmfs/hybrilit.jinr.ru/sw/cuda/8.0/sl6-gcc44/lib64/ -lcudart
+$(EXECUTABLE): $(OBJECTS)
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
 
 $(OBJECTS):%.o:%.cpp $(CPPHEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
-
-cuda.o: 
-	nvcc  -I ~/cusplibrary -o $@ -c field_solver.cu 
 
 .PHONY: allsubdirs $(SUBDIRS) clean cleansubdirs cleanall
 
@@ -51,4 +48,3 @@ cleansubdirs:
 	for X in $(SUBDIRS); do $(MAKE) clean -C $$X; done 
 
 cleanall: clean cleansubdirs
-

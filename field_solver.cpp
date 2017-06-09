@@ -1,5 +1,7 @@
 #include "field_solver.h"
 
+extern void solve_poisson_cuda( double *b );
+
 Field_solver::Field_solver( Spatial_mesh &spat_mesh,
 			    Inner_regions_manager &inner_regions )
 {
@@ -430,8 +432,8 @@ void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A )
     
     PetscErrorCode ierr;
     ierr = KSPCreate( PETSC_COMM_WORLD, ksp ); CHKERRXX(ierr);
-    ierr = KSPSetOperators( *ksp, *A, *A, DIFFERENT_NONZERO_PATTERN ); CHKERRXX(ierr);
-    //ierr = KSPSetOperators( *ksp, *A, *A ); CHKERRXX(ierr);
+    //ierr = KSPSetOperators( *ksp, *A, *A, DIFFERENT_NONZERO_PATTERN ); CHKERRXX(ierr);
+    ierr = KSPSetOperators( *ksp, *A, *A ); CHKERRXX(ierr);
     ierr = KSPGetPC( *ksp, pc ); CHKERRXX(ierr);
     ierr = PCSetType( *pc, PCGAMG ); CHKERRXX(ierr);
     ierr = KSPSetType( *ksp, KSPGMRES ); CHKERRXX(ierr);
@@ -459,16 +461,58 @@ void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh,
     PetscErrorCode ierr;
 
     init_rhs_vector( spat_mesh, inner_regions );    
-    ierr = KSPSolve( ksp, rhs, phi_vec); CHKERRXX( ierr );
+    //ierr = KSPSolve( ksp, rhs, phi_vec); CHKERRXX( ierr );
     
-    // This should be done in 'cross_out_nodes_occupied_by_objects' by
+    double *local_rhs_values;
+    //double *phi_vec_cuda;
+
+    int recieved_rstart, recieved_rend, recieved_nlocal;
+
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
+    VecView(rhs,PETSC_VIEWER_STDOUT_WORLD);
+    MPI_Barrier( PETSC_COMM_WORLD );
+    for( int proc = 0; proc < mpi_n_of_proc; proc++ ){
+	bcast_phi_array_size( &recieved_rstart, &recieved_rend, &recieved_nlocal, proc, mpi_process_rank );
+	allocate_and_populate_rhs_array( &local_rhs_values, recieved_nlocal, proc, mpi_process_rank );
+
+    solve_poisson_cuda( local_rhs_values );
+    deallocate_rhs_array( local_rhs_values, proc, mpi_process_rank );
+
+    }
+    //VecView(rhs,PETSC_VIEWER_STDOUT_WORLD);  
     // MatZeroRows function but it seems it doesn't work
-    set_solution_at_nodes_of_inner_regions( spat_mesh, inner_regions );
+    //set_solution_at_nodes_of_inner_regions( spat_mesh, inner_regions );
     
-    transfer_solution_to_spat_mesh( spat_mesh );
+    //transfer_solution_to_spat_mesh( spat_mesh );
     
     return;
 }
+
+void Field_solver::allocate_and_populate_rhs_array( double **local_rhs_values, int recieved_nlocal,
+						    int proc, int mpi_process_rank )
+{
+    PetscErrorCode ierr;
+    if( proc == mpi_process_rank ){
+	ierr = VecGetArray( rhs, local_rhs_values ); CHKERRXX( ierr );
+    } else {
+	*local_rhs_values = new double [recieved_nlocal];
+    }
+    MPI_Bcast( *local_rhs_values, recieved_nlocal, MPI_DOUBLE, proc, PETSC_COMM_WORLD );
+}
+
+void Field_solver::deallocate_rhs_array( double *local_rhs_values, int proc, int mpi_process_rank )
+{
+    PetscErrorCode ierr;
+
+    if( proc == mpi_process_rank ){
+	ierr = VecRestoreArray( rhs, &local_rhs_values ); CHKERRXX( ierr );
+    } else {
+	delete[] local_rhs_values;
+    }		    
+}
+
 
 void Field_solver::init_rhs_vector( Spatial_mesh &spat_mesh,
 				    Inner_regions_manager &inner_regions )

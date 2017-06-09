@@ -1,4 +1,6 @@
 #include "domain.h"
+#include <cuda.h>
+#include <cuda_runtime.h>
 
 // Domain print
 std::string construct_output_filename( const std::string output_filename_prefix, 

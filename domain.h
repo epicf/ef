@@ -35,6 +35,7 @@ class Domain {
     Particle_sources_manager particle_sources;
     External_magnetic_field external_magnetic_field;
     Particle_interaction_model particle_interaction_model;
+
   public:
     Domain( Config &conf );
     Domain( hid_t h5file_id );
