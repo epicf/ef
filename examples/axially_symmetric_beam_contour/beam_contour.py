@@ -1,7 +1,7 @@
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import special
+import scipy.integrate
 
 def get_source_current( h5file ):
     time_step = h5file["/Time_grid"].attrs["time_step_size"][0]
@@ -30,11 +30,11 @@ def beam_radius( u, r_0 ):
 
 def beam_z( u, m, v, q, I, r_0 ):
     coeff = np.sqrt( m * v**3 / q / I ) * r_0
-    # erfi = -i * erf( i * z )
-    # erf = 2 / sqrt(pi) * integral( exp(-t**2), t=0..z )
-    # https://docs.scipy.org/doc/scipy-0.19.0/reference/generated/scipy.special.erfi.html
-    integral = special.erfi( u ) * np.sqrt( np.pi ) / 2
-    return coeff * integral
+    subint = lambda t: np.exp( t * t )
+    low_lim = 0
+    up_lim = u
+    integral_value = scipy.integrate.quad( subint, low_lim, up_lim )[0]
+    return coeff * integral_value
 
 filename = 'contour_0000100.h5'
 h5file = h5py.File( filename , mode="r" )
