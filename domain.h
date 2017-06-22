@@ -37,10 +37,14 @@ class Domain {
     Particle_interaction_model particle_interaction_model;
   public:
     Domain( Config &conf );
-    void run_pic( Config &conf );
-    void eval_and_write_fields_without_particles( Config &conf );
-    void write_step_to_save( Config &conf );
-    void write( Config &conf );
+    Domain( hid_t h5file_id );
+    void start_pic_simulation();
+    void continue_pic_simulation();
+    void run_pic();
+    void eval_and_write_fields_without_particles();
+    void write_step_to_save();
+    void write();
+    void set_output_filename_prefix_and_suffix( std::string prefix, std::string suffix );
     virtual ~Domain();
   private:
     // Pic algorithm
@@ -65,6 +69,9 @@ class Domain {
     void print_particles();
     bool negative( hid_t hdf5_id );
     void hdf5_status_check( herr_t status );
+    // Write to file
+    std::string output_filename_prefix;
+    std::string output_filename_suffix;
 };
 
 #endif /* _DOMAIN_H_ */

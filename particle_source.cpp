@@ -11,6 +11,21 @@ Particle_source::Particle_source(
     set_parameters_from_config( src_conf );
 }
 
+Particle_source::Particle_source( hid_t h5_particle_source_group_id )
+{
+    // Read from h5
+    read_hdf5_source_parameters( h5_particle_source_group_id );
+    read_hdf5_particles( h5_particle_source_group_id );
+    // Random number generator
+    // Instead of saving/loading it's state to file just
+    // reinit with different seed. 
+    int mpi_process_rank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );
+    long int t = static_cast<long int>( std::time( NULL ) );
+    unsigned seed = t + 1000000 * mpi_process_rank;
+    rnd_gen = std::default_random_engine( seed );
+}
+
 void Particle_source::check_correctness_of_related_config_fields( 
     Config &conf, 
     Particle_source_config_part &src_conf )
@@ -43,6 +58,198 @@ void Particle_source::set_parameters_from_config( Particle_source_config_part &s
     rnd_gen = std::default_random_engine( seed );
     // Initial id
     max_id = 0;
+}
+	
+void Particle_source::read_hdf5_source_parameters( hid_t h5_particle_source_group_id )
+{	
+    herr_t status;
+
+    size_t grp_name_size = 0;
+    char *grp_name = NULL;
+    grp_name_size = H5Iget_name( h5_particle_source_group_id, grp_name, grp_name_size );
+    grp_name_size = grp_name_size + 1;
+    grp_name = new char[ grp_name_size ];
+    grp_name_size = H5Iget_name( h5_particle_source_group_id, grp_name, grp_name_size );
+    std::string longname = std::string( grp_name );
+    name = longname.substr( longname.find_last_of("/") + 1 );
+    delete[] grp_name;
+
+    double mean_mom_x, mean_mom_y, mean_mom_z;
+    
+    status = H5LTget_attribute_double( h5_particle_source_group_id, "./",
+				       "temperature", &temperature );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_group_id, "./",
+				       "mean_momentum_x", &mean_mom_x );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_group_id, "./",
+				       "mean_momentum_y", &mean_mom_y );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_group_id, "./",
+				       "mean_momentum_z", &mean_mom_z );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_group_id, "./",
+				       "charge", &charge );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_group_id, "./",
+				       "mass", &mass );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_particle_source_group_id, "./",
+				    "initial_number_of_particles",
+				    &initial_number_of_particles );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_particle_source_group_id, "./",
+				    "particles_to_generate_each_step",
+				    &particles_to_generate_each_step );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_uint( h5_particle_source_group_id, "./",
+				     "max_id", &max_id );
+    hdf5_status_check( status );
+    
+    mean_momentum = vec3d_init( mean_mom_x, mean_mom_y, mean_mom_z );
+}
+
+
+void Particle_source::read_hdf5_particles( hid_t h5_particle_source_group_id )
+{
+    int mpi_n_of_proc, mpi_process_rank;
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );
+    
+    herr_t status;
+    hid_t filespace, memspace, dset;
+    hid_t plist_id;
+    const int ndims = 1;
+    hsize_t dims[ndims], subset_dims[ndims], subset_offset[ndims];
+
+    // plist_id = H5Pcreate( H5P_DATASET_XFER ); hdf5_status_check( H5P_DEFAULT );
+    // status = H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE );
+    // hdf5_status_check( status );
+    
+    dset = H5Dopen( h5_particle_source_group_id, "./particle_id", H5P_DEFAULT );
+    hdf5_status_check( dset );
+    filespace = H5Dget_space( dset ); hdf5_status_check( filespace );
+    int actual_ndims = H5Sget_simple_extent_ndims( filespace );
+    check_and_exit_if_not( actual_ndims == 1,
+			   "N of dimensions in Particle dataset != 1" );
+    H5Sget_simple_extent_dims( filespace, dims, NULL );
+    status = H5Sclose( filespace ); hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    unsigned int total_num_of_particles = dims[0];
+    unsigned int num_of_particles_for_this_proc = total_num_of_particles / mpi_n_of_proc;
+    int rest = total_num_of_particles % mpi_n_of_proc;
+    int offset = num_of_particles_for_this_proc * mpi_process_rank;
+    if( mpi_process_rank < rest ){
+	num_of_particles_for_this_proc++;
+	offset = offset + mpi_process_rank;
+    } else {
+	offset = offset + rest;
+    }        
+    
+    int *id_buf = new int[ num_of_particles_for_this_proc ];
+    double *x_buf = new double[ num_of_particles_for_this_proc ];
+    double *y_buf = new double[ num_of_particles_for_this_proc ];
+    double *z_buf = new double[ num_of_particles_for_this_proc ];
+    double *px_buf = new double[ num_of_particles_for_this_proc ];
+    double *py_buf = new double[ num_of_particles_for_this_proc ];
+    double *pz_buf = new double[ num_of_particles_for_this_proc ];
+
+    dims[0] = total_num_of_particles;
+    subset_dims[0] = num_of_particles_for_this_proc;
+    subset_offset[0] = offset;
+
+    // check is necessary for old hdf5 versions
+    if ( subset_dims[0] != 0 ){
+    	memspace = H5Screate_simple( ndims, subset_dims, NULL );
+    	hdf5_status_check( memspace );
+    	filespace = H5Screate_simple( ndims, dims, NULL );
+    	hdf5_status_check( filespace );
+    } else {
+    	hsize_t max_dims[ndims];
+    	max_dims[0] = H5S_UNLIMITED;
+    	memspace = H5Screate_simple( ndims, subset_dims, max_dims );
+    	hdf5_status_check( memspace );
+    	filespace = H5Screate_simple( ndims, dims, NULL );
+    	hdf5_status_check( filespace );
+    }
+    
+    status = H5Sselect_hyperslab( filespace, H5S_SELECT_SET,
+    				  subset_offset, NULL, subset_dims, NULL );
+    hdf5_status_check( status );
+
+    //memspace = filespace = H5S_ALL;
+    plist_id = H5P_DEFAULT;	
+    
+    dset = H5Dopen( h5_particle_source_group_id, "./particle_id", plist_id );
+    hdf5_status_check( dset );
+    status = H5Dread( dset, H5T_NATIVE_INT,
+		      memspace, filespace, plist_id, id_buf );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dopen( h5_particle_source_group_id, "./position_x", plist_id );
+    hdf5_status_check( dset );
+    status = H5Dread( dset, H5T_NATIVE_DOUBLE,
+		      memspace, filespace, plist_id, x_buf );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dopen( h5_particle_source_group_id, "./position_y", plist_id );
+    hdf5_status_check( dset );
+    status = H5Dread( dset, H5T_NATIVE_DOUBLE,
+		      memspace, filespace, plist_id, y_buf );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dopen( h5_particle_source_group_id, "./position_z", plist_id );
+    hdf5_status_check( dset );
+    status = H5Dread( dset, H5T_NATIVE_DOUBLE,
+		      memspace, filespace, plist_id, z_buf );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    
+    dset = H5Dopen( h5_particle_source_group_id, "./momentum_x", plist_id );
+    hdf5_status_check( dset );
+    status = H5Dread( dset, H5T_NATIVE_DOUBLE,
+		      memspace, filespace, plist_id, px_buf );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dopen( h5_particle_source_group_id, "./momentum_y", plist_id );
+    hdf5_status_check( dset );
+    status = H5Dread( dset, H5T_NATIVE_DOUBLE,
+		      memspace, filespace, plist_id, py_buf );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dopen( h5_particle_source_group_id, "./momentum_z", plist_id );
+    hdf5_status_check( dset );
+    status = H5Dread( dset, H5T_NATIVE_DOUBLE,
+		      memspace, filespace, plist_id, pz_buf );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+        
+    status = H5Sclose( filespace ); hdf5_status_check( status );
+    status = H5Sclose( memspace ); hdf5_status_check( status );
+    // status = H5Pclose( plist_id ); hdf5_status_check( status );
+
+    particles.reserve( num_of_particles_for_this_proc );
+    for( unsigned int i = 0; i < num_of_particles_for_this_proc; i++ ){
+	Vec3d pos = vec3d_init( x_buf[i], y_buf[i], z_buf[i] );
+	Vec3d mom = vec3d_init( px_buf[i], py_buf[i], pz_buf[i] );
+	particles.emplace_back( id_buf[i], charge, mass, pos, mom );
+	particles[i].momentum_is_half_time_step_shifted = true;
+    }     
+
+    delete[] id_buf;
+    delete[] x_buf;
+    delete[] y_buf;
+    delete[] z_buf;
+    delete[] px_buf;
+    delete[] py_buf;
+    delete[] pz_buf;
 }
 
 void Particle_source::generate_initial_particles()
@@ -388,6 +595,10 @@ void Particle_source::write_hdf5_source_parameters( hid_t current_source_group_i
     double mean_mom_y = vec3d_y( mean_momentum );
     double mean_mom_z = vec3d_z( mean_momentum );
     
+    status = H5LTset_attribute_string( current_source_group_id,
+				       current_group.c_str(),
+				       "geometry_type", geometry_type.c_str() );
+    hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
     				       "temperature", &temperature, single_element );
@@ -411,6 +622,22 @@ void Particle_source::write_hdf5_source_parameters( hid_t current_source_group_i
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
     				       "mass", &mass, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_int( current_source_group_id,
+				    current_group.c_str(),
+				    "initial_number_of_particles",
+				    &initial_number_of_particles,
+				    single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_int( current_source_group_id,
+				    current_group.c_str(),
+				    "particles_to_generate_each_step",
+				    &particles_to_generate_each_step,
+				    single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_uint( current_source_group_id,
+				     current_group.c_str(),
+				     "max_id", &max_id, single_element );
     hdf5_status_check( status );
 }
 
@@ -455,7 +682,7 @@ void Particle_source::mass_gt_zero(
 void Particle_source::hdf5_status_check( herr_t status )
 {
     if( status < 0 ){
-	std::cout << "Something went wrong while writing Particle_source "
+	std::cout << "Something went wrong while reading or writing Particle_source "
 		  << name << "."
 		  << "Aborting." << std::endl;
 	exit( EXIT_FAILURE );
@@ -478,6 +705,13 @@ Particle_source_box::Particle_source_box(
     generate_initial_particles();
 }
 
+
+Particle_source_box::Particle_source_box( hid_t h5_particle_source_box_group_id ) :
+    Particle_source( h5_particle_source_box_group_id )
+{
+    geometry_type = "box";
+    read_hdf5_source_parameters( h5_particle_source_box_group_id );
+}
 
 void Particle_source_box::check_correctness_of_related_config_fields( 
     Config &conf, 
@@ -506,6 +740,30 @@ void Particle_source_box::set_parameters_from_config(
     zfar = src_conf.box_z_far;
 }
 
+
+void Particle_source_box::read_hdf5_source_parameters( hid_t h5_particle_source_box_group_id )
+{
+    herr_t status;
+    
+    status = H5LTget_attribute_double( h5_particle_source_box_group_id, "./",
+				       "box_x_left", &xleft );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_box_group_id, "./",
+				       "box_x_right", &xright );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_box_group_id, "./",
+				       "box_y_top", &ytop );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_box_group_id, "./",
+				       "box_y_bottom", &ybottom );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_box_group_id, "./",
+				       "box_z_far", &zfar );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_box_group_id, "./",
+				       "box_z_near", &znear );
+    hdf5_status_check( status );
+}
 
 void Particle_source_box::x_right_ge_zero( 
     Config &conf, 
@@ -661,6 +919,15 @@ Particle_source_cylinder::Particle_source_cylinder(
     generate_initial_particles();
 }
 
+Particle_source_cylinder::Particle_source_cylinder(
+    hid_t h5_particle_source_cylinder_group_id ) :
+    Particle_source( h5_particle_source_cylinder_group_id )
+{
+    geometry_type = "cylinder";
+    read_hdf5_source_parameters( h5_particle_source_cylinder_group_id );
+}
+
+
 
 void Particle_source_cylinder::check_correctness_of_related_config_fields( 
     Config &conf, 
@@ -695,6 +962,34 @@ void Particle_source_cylinder::set_parameters_from_config(
     radius = src_conf.cylinder_radius;
 }
 
+
+void Particle_source_cylinder::read_hdf5_source_parameters(
+    hid_t h5_particle_source_cylinder_group_id )
+{
+    herr_t status;
+    
+    status = H5LTget_attribute_double( h5_particle_source_cylinder_group_id, "./",
+				       "cylinder_axis_start_x", &axis_start_x );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_cylinder_group_id, "./",
+				       "cylinder_axis_start_y", &axis_start_y );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_cylinder_group_id, "./",
+				       "cylinder_axis_start_z", &axis_start_z );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_cylinder_group_id, "./",
+				       "cylinder_axis_end_x", &axis_end_x );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_cylinder_group_id, "./",
+				       "cylinder_axis_end_y", &axis_end_y );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_cylinder_group_id, "./",
+				       "cylinder_axis_end_z", &axis_end_z );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_cylinder_group_id, "./",
+				       "cylinder_radius", &radius );
+    hdf5_status_check( status );    
+}
 
 void Particle_source_cylinder::radius_gt_zero( 
     Config &conf, 
@@ -824,27 +1119,33 @@ void Particle_source_cylinder::write_hdf5_source_parameters( hid_t current_sourc
 
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "cylinder_axis_start_x", &axis_start_x, single_element );
+    				       "cylinder_axis_start_x", &axis_start_x,
+				       single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "cylinder_axis_start_y", &axis_start_y, single_element );
+    				       "cylinder_axis_start_y", &axis_start_y,
+				       single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "cylinder_axis_start_z", &axis_start_z, single_element );
+    				       "cylinder_axis_start_z", &axis_start_z,
+				       single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "cylinder_axis_end_x", &axis_end_x, single_element );
+    				       "cylinder_axis_end_x", &axis_end_x,
+				       single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "cylinder_axis_end_y", &axis_end_y, single_element );
+    				       "cylinder_axis_end_y", &axis_end_y,
+				       single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "cylinder_axis_end_z", &axis_end_z, single_element );
+    				       "cylinder_axis_end_z", &axis_end_z,
+				       single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),

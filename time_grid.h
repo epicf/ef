@@ -17,6 +17,7 @@ class Time_grid {
     int total_nodes, current_node, node_to_save;
   public:
     Time_grid( Config &conf );
+    Time_grid( hid_t h5_time_grid_group );
     void update_to_next_step();
     void print();
     void write_to_file( hid_t hdf5_file_id );

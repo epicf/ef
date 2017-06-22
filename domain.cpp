@@ -13,20 +13,56 @@ Domain::Domain( Config &conf ) :
     time_grid( conf ),
     spat_mesh( conf ),
     inner_regions( conf, spat_mesh ),
-    particle_to_mesh_map( ),
+    particle_to_mesh_map(),
     field_solver( spat_mesh, inner_regions ),
     particle_sources( conf ),
     external_magnetic_field( conf ),
     particle_interaction_model( conf )
 {
+    output_filename_prefix = conf.output_filename_config_part.output_filename_prefix;
+    output_filename_suffix = conf.output_filename_config_part.output_filename_suffix;    
     return;
 }
+
+Domain::Domain( hid_t h5file_id ) :
+    time_grid( H5Gopen( h5file_id, "/Time_grid", H5P_DEFAULT ) ),
+    spat_mesh( H5Gopen( h5file_id, "/Spatial_mesh", H5P_DEFAULT ) ),
+    inner_regions( H5Gopen( h5file_id, "/Inner_regions", H5P_DEFAULT ), spat_mesh ),
+    particle_to_mesh_map(),
+    field_solver( spat_mesh, inner_regions ),
+    particle_sources( H5Gopen( h5file_id, "/Particle_sources", H5P_DEFAULT ) ),
+    external_magnetic_field( H5Gopen( h5file_id, "/External_magnetic_field", H5P_DEFAULT ) ),
+    particle_interaction_model( H5Gopen( h5file_id, "/Particle_interaction_model", H5P_DEFAULT ) )
+{
+    return;
+}
+
 
 //
 // Pic simulation 
 //
 
-void Domain::run_pic( Config &conf )
+void Domain::start_pic_simulation()
+{
+    // fields in domain without any particles
+    eval_and_write_fields_without_particles();
+    // generate particles and write initial step
+    prepare_leap_frog();
+    write_step_to_save();
+    // run simulation
+    run_pic();
+
+    return;
+}
+
+void Domain::continue_pic_simulation()
+{
+    run_pic();
+    return;
+}
+
+
+void Domain::run_pic()
 {
     int mpi_process_rank;
     MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
@@ -35,16 +71,13 @@ void Domain::run_pic( Config &conf )
     total_time_iterations = time_grid.total_nodes - 1;
     current_node = time_grid.current_node;
 
-    prepare_leap_frog();
-    write_step_to_save( conf );
-
     for ( int i = current_node; i < total_time_iterations; i++ ){
 	if ( mpi_process_rank == 0 ){
 	    std::cout << "Time step from " << i << " to " << i+1
 		      << " of " << total_time_iterations << std::endl;
 	}
     	advance_one_time_step();
-    	write_step_to_save( conf );
+    	write_step_to_save();
     }
 
     return;
@@ -240,24 +273,19 @@ void Domain::update_time_grid()
 // Write domain to file
 //
 
-void Domain::write_step_to_save( Config &conf )
+void Domain::write_step_to_save()
 {
     int current_step = time_grid.current_node;
     int step_to_save = time_grid.node_to_save;
     if ( ( current_step % step_to_save ) == 0 ){	
-	write( conf );
+	write();
     }
     return;
 }
 
-void Domain::write( Config &conf )
+void Domain::write()
 {    
-    herr_t status;
-    
-    std::string output_filename_prefix = 
-	conf.output_filename_config_part.output_filename_prefix;
-    std::string output_filename_suffix = 
-	conf.output_filename_config_part.output_filename_suffix;
+    herr_t status;    
     std::string file_name_to_write;
     
     file_name_to_write = construct_output_filename( output_filename_prefix, 
@@ -328,6 +356,12 @@ Domain::~Domain()
 //
 // Various functions
 //
+void Domain::set_output_filename_prefix_and_suffix( std::string prefix, std::string suffix )
+{
+    output_filename_prefix = prefix;
+    output_filename_suffix = suffix;
+}
+
 
 void Domain::print_particles() 
 {
@@ -335,17 +369,13 @@ void Domain::print_particles()
     return;
 }
 
-void Domain::eval_and_write_fields_without_particles( Config &conf )
+void Domain::eval_and_write_fields_without_particles()
 {
     herr_t status;
 
     spat_mesh.clear_old_density_values();
     eval_potential_and_fields();
 
-    std::string output_filename_prefix = 
-	conf.output_filename_config_part.output_filename_prefix;
-    std::string output_filename_suffix = 
-	conf.output_filename_config_part.output_filename_suffix;
     std::string file_name_to_write;
     
     file_name_to_write = output_filename_prefix + 

@@ -6,6 +6,28 @@ Particle_interaction_model::Particle_interaction_model( Config &conf )
     get_values_from_config( conf );
 }
 
+Particle_interaction_model::Particle_interaction_model(
+    hid_t h5_particle_interaction_model_group )
+{
+    herr_t status;
+    char h5_str_read_buffer[100]; // 'noninteracting' is the longest possible string
+    
+    status = H5LTget_attribute_string( h5_particle_interaction_model_group, "./",
+				       "particle_interaction_model",
+				       h5_str_read_buffer ); hdf5_status_check( status );
+    particle_interaction_model = std::string( h5_str_read_buffer );
+
+    noninteracting = pic = false;
+    if( particle_interaction_model == "noninteracting" ){
+	noninteracting = true;
+    } else if (	particle_interaction_model == "PIC" ){
+	pic = true;
+    }
+
+    status = H5Gclose(h5_particle_interaction_model_group);
+    hdf5_status_check( status );
+}
+
 void Particle_interaction_model::check_correctness_of_related_config_fields( Config &conf )
 {
     std::string mode =
@@ -62,7 +84,7 @@ void Particle_interaction_model::write_to_file( hid_t hdf5_file_id )
 void Particle_interaction_model::hdf5_status_check( herr_t status )
 {
     if( status < 0 ){
-	std::cout << "Something went wrong while writing Particle_interaction_model group. Aborting."
+	std::cout << "Something went wrong while reading or writing Particle_interaction_model group. Aborting."
 		  << std::endl;
 	exit( EXIT_FAILURE );
     }
