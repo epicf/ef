@@ -3,6 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.integrate
 
+filename = 'contour_0000100.h5'
+h5file = h5py.File( filename, mode = "r" )
+
 def get_source_current( h5file ):
     time_step = h5file["/Time_grid"].attrs["time_step_size"][0]
     charge = h5file["/Particle_sources/cathode_emitter"].attrs["charge"][0]
@@ -35,9 +38,6 @@ def beam_z( u, m, v, q, I, r_0 ):
     up_lim = u
     integral_value = scipy.integrate.quad( subint, low_lim, up_lim )[0]
     return coeff * integral_value
-
-filename = 'contour_0000100.h5'
-h5file = h5py.File( filename , mode="r" )
 
 beam_axis_x_pos, emitter_z_pos, r_0 = get_source_geometry( h5file )
 I = get_source_current( h5file )
