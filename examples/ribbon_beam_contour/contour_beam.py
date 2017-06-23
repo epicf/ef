@@ -36,10 +36,10 @@ def get_source_geometry( h5file ):
     start_x = h5["/Particle_sources/cathode_emitter"].attrs["box_x_left"][0]
     end_x = h5["/Particle_sources/cathode_emitter"].attrs["box_x_right"][0]
     length_of_cathode = start_y-end_y
-    half_width_of_cathode = (start_x-end_x) / 2
+    half_thick_of_cathode = (start_x-end_x) / 2
     center_of_beam = (start_x+end_x) / 2    
     return ( length_of_cathode * SI_conv_cm_to_m, 
-            half_width_of_cathode * SI_conv_cm_to_m, 
+            half_thick_of_cathode * SI_conv_cm_to_m, 
             center_of_beam * SI_conv_cm_to_m )
     
 def get_zlim( h5file ):
@@ -63,8 +63,8 @@ def p_const( linear_current_density , voltage, charge , mass):
     return p_const                                           
 
 
-def contour( z_position , half_width , angle , p_const):
-    contour = half_width + np.tan(angle) * z_position + p_const / 2 * (z_position * z_position)         
+def contour( z_position , half_thick , angle , p_const):
+    contour = half_thick + np.tan(angle) * z_position + p_const / 2 * (z_position * z_position)         
     return contour    
 
 filename = 'contour_0000100.h5'
