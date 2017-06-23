@@ -77,7 +77,7 @@ start_z, end_z = get_zlim( h5 )
 voltage = get_voltage( momentum_z, mass, charge )
 current_dens = get_current_dens(current,length_of_cathode)
 
-conv_grad_to_rad = np.pi/180
+conv_deg_to_rad = np.pi/180
 angle = 0 * conv_grad_to_rad          #angle of beam
 steps_z = 100
 position_z = np.arange(start_z,end_z,(end_z-start_z)/steps_z)                  # points in z direction, from 0 to 0.01 m with step 0,00001 m 
