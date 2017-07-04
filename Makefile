@@ -6,7 +6,7 @@ SHELL:=/bin/bash -O extglob
 #export OMPI_CXX=clang++
 CC = mpic++
 #CC = mpiicpc 
-HDF5FLAGS=-isystem${HOME}/hdf5/usr/include/openmpi-x86_64 -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_BSD_SOURCE 
+HDF5FLAGS=-I/usr/include/hdf5/openmpi -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_BSD_SOURCE -D_FORTIFY_SOURCE=2 -g -fstack-protector-strong -Wformat -Werror=format-security
 PETSCFLAGS=-isystem${HOME}/petsc/opt/include/
 CFLAGS = ${HDF5FLAGS} ${PETSCFLAGS} -O2 -std=c++11
 LDFLAGS = 
@@ -15,7 +15,7 @@ LDFLAGS =
 COMMONLIBS=-lm
 BOOSTLIBS=-lboost_program_options
 PETSCLIBS=-L${HOME}/petsc/opt/lib/ -lpetsc
-HDF5LIBS=-L${HOME}/hdf5/usr/lib64/openmpi/lib -lhdf5_hl -lhdf5 -Wl,-z,relro -lpthread -lz -ldl -lm -Wl,-rpath -Wl,${HOME}/hdf5/usr/lib64/openmpi/lib
+HDF5LIBS=-L/usr/lib/x86_64-linux-gnu/hdf5/openmpi -lhdf5_hl -lhdf5 -Wl,-z,relro -lpthread -lz -ldl -lm -Wl,-rpath -Wl,/usr/lib/x86_64-linux-gnu/hdf5/openmpi
 LIBS=${COMMONLIBS} ${BOOSTLIBS} ${PETSCLIBS} ${HDF5LIBS}
 
 ### Sources and executable
@@ -27,7 +27,7 @@ MAKE=make
 SUBDIRS=doc
 
 $(EXECUTABLE): $(OBJECTS) cuda.o
-	$(CC) $(LDFLAGS) $(OBJECTS) cuda.o -o $@ $(LIBS) -L /cvmfs/hybrilit.jinr.ru/sw/cuda/8.0/sl6-gcc44/lib64/ -lcudart
+	$(CC) $(LDFLAGS) $(OBJECTS) cuda.o -o $@ $(LIBS) -L /usr/local/cuda/lib64/ -lcudart
 
 $(OBJECTS):%.o:%.cpp $(CPPHEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@

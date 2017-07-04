@@ -15,47 +15,44 @@ typedef cusp::device_memory MemorySpace;
 // which floating point type to use
 typedef double ValueType;
 
-void solve_poisson_cuda( double *b ){
+cusp::hyb_matrix<int, ValueType, MemorySpace> A;
+cusp::array1d<ValueType,MemorySpace> local_rhs(1);
+cusp::array1d<ValueType,MemorySpace> local_phi(1);
 
-
-   typedef cusp::array1d<ValueType,MemorySpace> Array;
-   typedef typename Array::const_view ConstArrayView;
-  // Allocate a array of size 2 in "host" memory
-  Array a(8);
-
-for (int i =0; i<8; i++){
-	a[i] = b[i]/(0.4*0.4*0.4*0.4);
+void allocate_matrix_cuda(int nx){
+   int nodes = (nx-2)*(nx-2)*(nx-2);
+   cusp::gallery::poisson7pt(A, nx-2,nx-2,nx-2);
+   local_rhs.resize(nodes);
+   local_phi.resize(nodes);
 }
 
-
-/*
-double * device_a;
-cudaMalloc(&device_a, 27*sizeof(double));
-
-cudaMemcpy(device_a,b,27*sizeof(double),cudaMemcpyHostToDevice);
-
-thrust::device_ptr<int> wrapped_device_a(device_a);
-*/
-    cusp::hyb_matrix<int, ValueType, MemorySpace> A;
-    cusp::gallery::poisson7pt(A, 2,2,2);
-
-    cusp::array1d<ValueType, MemorySpace> x(A.num_rows, 0);   
+void solve_poisson_cuda( double *rhs, double *phi_vec, int nx, double cell_size ){
 
 
+   int nodes = (nx-2)*(nx-2)*(nx-2);
+   for (int i =0; i<nodes; i++){
+      local_rhs[i] = -rhs[i]/(cell_size * cell_size * cell_size * cell_size);
+      local_phi[i]=phi_vec[i];
+   }
+   
+   
+   cusp::array1d<ValueType, MemorySpace> x(local_phi);
+   //set stopping criteria:
+   //iteration_limit    = 100
+   //relative_tolerance = 1e-3
+   //absolute_tolerance = 0
+   //verbose            = true
+   cusp::monitor<ValueType> monitor(local_rhs, 1000, 1e-3, 0, true);
 
-    //set stopping criteria:
-    //iteration_limit    = 100
-    //relative_tolerance = 1e-3
-    //absolute_tolerance = 0
-    //verbose            = true
-    cusp::monitor<ValueType> monitor(a, 1000, 1e-3, 0, true);
+   // set preconditioner (identity)
+   cusp::identity_operator<ValueType, MemorySpace> M(A.num_rows, A.num_rows);
+   //cusp::precond::aggregation::smoothed_aggregation<int, ValueType, MemorySpace> M(A);
 
-    // set preconditioner (identity)
-    cusp::identity_operator<ValueType, MemorySpace> M(A.num_rows, A.num_rows);
- //cusp::precond::aggregation::smoothed_aggregation<int, ValueType, MemorySpace> M(A);
-    cusp::krylov::cg(A, x, a, monitor, M);
+   cusp::krylov::cg(A, x, local_rhs, monitor, M);
+   for (int i = 0; i<nodes; i++){
+      phi_vec[i] = x [i];
+   } 
 
-   // cudaFree(device_a);
 	
 }
 

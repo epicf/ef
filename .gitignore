@@ -16,3 +16,5 @@ TAGS
 *.pyc
 *.png
 !doc/figs
+.kdev4/epicf_dev_copy.kdev4
+epicf_dev_copy.kdev4

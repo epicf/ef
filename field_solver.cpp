@@ -1,6 +1,7 @@
 #include "field_solver.h"
 
-extern void solve_poisson_cuda( double *b );
+extern void solve_poisson_cuda( double *rhs,double *phi_vec, int nx, double cell_size );
+extern void allocate_matrix_cuda(int nx);
 
 Field_solver::Field_solver( Spatial_mesh &spat_mesh,
 			    Inner_regions_manager &inner_regions )
@@ -20,13 +21,13 @@ Field_solver::Field_solver( Spatial_mesh &spat_mesh,
     
     alloc_petsc_vector( &phi_vec, nrows, "Solution" );
     ierr = VecSet( phi_vec, 0.0 ); CHKERRXX( ierr );
-    get_vector_ownership_range_and_local_size_for_each_process( &phi_vec, &rstart, &rend, &nlocal );
+    //get_vector_ownership_range_and_local_size_for_each_process( &phi_vec, &rstart, &rend, &nlocal );
     alloc_petsc_vector( &rhs, nrows, "RHS" );
-
-    alloc_petsc_matrix( &A, nlocal, nlocal, nrows, ncols, A_approx_nonzero_per_row );
+    allocate_matrix_cuda(nx);
+    //alloc_petsc_matrix( &A, nlocal, nlocal, nrows, ncols, A_approx_nonzero_per_row );
     
-    construct_equation_matrix( &A, spat_mesh, inner_regions, nlocal, rstart, rend );
-    create_solver_and_preconditioner( &ksp, &pc, &A );
+    //construct_equation_matrix( &A, spat_mesh, inner_regions, nlocal, rstart, rend );
+    //create_solver_and_preconditioner( &ksp, &pc, &A );
 }
 
 void Field_solver::alloc_petsc_vector( Vec *x, int size, const char *name )
@@ -432,8 +433,8 @@ void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A )
     
     PetscErrorCode ierr;
     ierr = KSPCreate( PETSC_COMM_WORLD, ksp ); CHKERRXX(ierr);
-    //ierr = KSPSetOperators( *ksp, *A, *A, DIFFERENT_NONZERO_PATTERN ); CHKERRXX(ierr);
-    ierr = KSPSetOperators( *ksp, *A, *A ); CHKERRXX(ierr);
+    ierr = KSPSetOperators( *ksp, *A, *A, DIFFERENT_NONZERO_PATTERN ); CHKERRXX(ierr);
+    //ierr = KSPSetOperators( *ksp, *A, *A ); CHKERRXX(ierr);
     ierr = KSPGetPC( *ksp, pc ); CHKERRXX(ierr);
     ierr = PCSetType( *pc, PCGAMG ); CHKERRXX(ierr);
     ierr = KSPSetType( *ksp, KSPGMRES ); CHKERRXX(ierr);
@@ -463,7 +464,7 @@ void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh,
     init_rhs_vector( spat_mesh, inner_regions );    
     //ierr = KSPSolve( ksp, rhs, phi_vec); CHKERRXX( ierr );
     
-    double *local_rhs_values;
+    double *local_rhs_values, *local_phi_values;
     //double *phi_vec_cuda;
 
     int recieved_rstart, recieved_rend, recieved_nlocal;
@@ -471,17 +472,42 @@ void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh,
     int mpi_n_of_proc, mpi_process_rank;
     MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
     MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
-    VecView(rhs,PETSC_VIEWER_STDOUT_WORLD);
+    //VecView(rhs,PETSC_VIEWER_STDOUT_WORLD);
     MPI_Barrier( PETSC_COMM_WORLD );
     for( int proc = 0; proc < mpi_n_of_proc; proc++ ){
 	bcast_phi_array_size( &recieved_rstart, &recieved_rend, &recieved_nlocal, proc, mpi_process_rank );
 	allocate_and_populate_rhs_array( &local_rhs_values, recieved_nlocal, proc, mpi_process_rank );
+	allocate_and_populate_phi_array( &local_phi_values, recieved_nlocal, proc, mpi_process_rank );
 
-    solve_poisson_cuda( local_rhs_values );
-    deallocate_rhs_array( local_rhs_values, proc, mpi_process_rank );
+	int nx = spat_mesh.x_n_nodes;
+	int ny = spat_mesh.y_n_nodes;
+	int nz = spat_mesh.z_n_nodes;
+	double cell_size = spat_mesh.x_cell_size;
+	int i_and_j_part;
+	int i,j,k;
+	
+	solve_poisson_cuda( local_rhs_values, local_phi_values, nx ,cell_size);
+	deallocate_rhs_array( local_rhs_values, proc, mpi_process_rank );
+	for (int global_index =0; global_index<(nx-2)*(nx-2)*(nx-2); global_index++){
+//	    std::cout << local_phi_values[global_index] << '\n';
+	        
+	k = global_index / ( ( nx - 2 ) * ( ny - 2 ) ) + 1;
+	i_and_j_part = global_index % ( ( nx - 2 ) * ( ny - 2 ) );
+	j = i_and_j_part / ( nx - 2 ) + 1;
+	i = i_and_j_part % ( nx - 2 ) + 1;
+	spat_mesh.potential[i][j][k] = local_phi_values[global_index];
+	}
+/*	for (int i =0; i<27000; i++){
+	  std::cout << local_rhs_values[i] << '\n';
+	}
+*/	
+;
 
+//	transfer_from_phi_array_to_spat_mesh_potential( local_phi_values, recieved_rstart, recieved_rend, spat_mesh );
+	deallocate_phi_array( local_phi_values, proc, mpi_process_rank );
+    //VecView(rhs,PETSC_VIEWER_STDOUT_WORLD);
     }
-    //VecView(rhs,PETSC_VIEWER_STDOUT_WORLD);  
+    
     // MatZeroRows function but it seems it doesn't work
     //set_solution_at_nodes_of_inner_regions( spat_mesh, inner_regions );
     
@@ -853,6 +879,7 @@ void Field_solver::transfer_from_phi_array_to_spat_mesh_potential( double *local
     int nz = spat_mesh.z_n_nodes;
     int i,j,k;
 
+   
     for( int global_index = recieved_rstart; global_index < recieved_rend; global_index++ ){
 	global_index_in_matrix_to_node_ijk( global_index,
 					    &i, &j, &k,
