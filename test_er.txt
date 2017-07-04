@@ -1,2 +1,0 @@
-mpirun: Forwarding signal 18 to job
-slurmstepd: error: *** JOB 19915 ON blade03 CANCELLED AT 2017-03-17T15:28:37 ***
