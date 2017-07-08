@@ -15,7 +15,7 @@
 #include "inner_region.h"
 #include "particle_to_mesh_map.h"
 #include "field_solver.h"
-#include "External_magnetic_field.h"
+#include "External_field.h"
 #include "particle_interaction_model.h"
 #include "particle_source.h"
 #include "particle.h"
@@ -33,7 +33,7 @@ class Domain {
     Particle_to_mesh_map particle_to_mesh_map;
     Field_solver field_solver;    
     Particle_sources_manager particle_sources;
-    External_magnetic_field external_magnetic_field;
+    External_fields_manager external_fields;
     Particle_interaction_model particle_interaction_model;
   public:
     Domain( Config &conf );

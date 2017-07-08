@@ -16,7 +16,7 @@ Domain::Domain( Config &conf ) :
     particle_to_mesh_map(),
     field_solver( spat_mesh, inner_regions ),
     particle_sources( conf ),
-    external_magnetic_field( conf ),
+    external_fields( conf ),
     particle_interaction_model( conf )
 {
     output_filename_prefix = conf.output_filename_config_part.output_filename_prefix;
@@ -31,8 +31,9 @@ Domain::Domain( hid_t h5file_id ) :
     particle_to_mesh_map(),
     field_solver( spat_mesh, inner_regions ),
     particle_sources( H5Gopen( h5file_id, "/Particle_sources", H5P_DEFAULT ) ),
-    external_magnetic_field( H5Gopen( h5file_id, "/External_magnetic_field", H5P_DEFAULT ) ),
-    particle_interaction_model( H5Gopen( h5file_id, "/Particle_interaction_model", H5P_DEFAULT ) )
+    external_fields( H5Gopen( h5file_id, "/External_fields", H5P_DEFAULT ) ),
+    particle_interaction_model(
+	H5Gopen( h5file_id, "/Particle_interaction_model", H5P_DEFAULT ) )
 {
     return;
 }
@@ -160,14 +161,18 @@ void Domain::leap_frog()
 void Domain::shift_velocities_half_time_step_back()
 {
     double minus_half_dt = -time_grid.time_step_size / 2;
-    Vec3d el_field_force, mgn_field_force, total_force, dp;
+    Vec3d el_field_force, external_field_force, total_force, dp;
 
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
 	    if ( !p.momentum_is_half_time_step_shifted ){
 		el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
-		mgn_field_force = external_magnetic_field.force_on_particle( p );
-		total_force = vec3d_add( el_field_force, mgn_field_force );
+		total_force = vec3d_zero();
+		for( auto &f : external_fields.fields ) {
+		    external_field_force = f.force_on_particle( p );
+		    total_force = vec3d_add( total_force, external_field_force );
+		}
+		total_force = vec3d_add( el_field_force, total_force );
 		dp = vec3d_times_scalar( total_force, minus_half_dt );
 		p.momentum = vec3d_add( p.momentum, dp );
 		p.momentum_is_half_time_step_shifted = true;
@@ -179,13 +184,17 @@ void Domain::shift_velocities_half_time_step_back()
 
 void Domain::update_momentum( double dt )
 {
-    Vec3d el_field_force, mgn_field_force, total_force, dp;
+    Vec3d el_field_force, external_field_force, total_force, dp;
 
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
 	    el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
-	    mgn_field_force = external_magnetic_field.force_on_particle( p );
-	    total_force = vec3d_add( el_field_force, mgn_field_force );
+	    total_force = vec3d_zero();
+	    for( auto &f : external_fields.fields ) {
+		external_field_force = f.force_on_particle( p );
+		total_force = vec3d_add( total_force, external_field_force );
+	    }
+	    total_force = vec3d_add( el_field_force, total_force );
 	    dp = vec3d_times_scalar( total_force, dt );
 	    p.momentum = vec3d_add( p.momentum, dp );
 	}
@@ -293,9 +302,11 @@ void Domain::write()
 						    output_filename_suffix  );
     hid_t plist_id;
     plist_id = H5Pcreate( H5P_FILE_ACCESS ); hdf5_status_check( plist_id );
-    status = H5Pset_fapl_mpio( plist_id, MPI_COMM_WORLD, MPI_INFO_NULL ); hdf5_status_check( status );
+    status = H5Pset_fapl_mpio( plist_id, MPI_COMM_WORLD, MPI_INFO_NULL );
+    hdf5_status_check( status );
 
-    hid_t output_file = H5Fcreate( file_name_to_write.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, plist_id );
+    hid_t output_file = H5Fcreate( file_name_to_write.c_str(),
+				   H5F_ACC_TRUNC, H5P_DEFAULT, plist_id );
     if ( negative( output_file ) ) {
 	std::cout << "Error: can't open file \'" 
 		  << file_name_to_write 
@@ -317,9 +328,9 @@ void Domain::write()
 
     time_grid.write_to_file( output_file );
     spat_mesh.write_to_file( output_file );
-    external_magnetic_field.write_to_file( output_file );
     particle_sources.write_to_file( output_file );
     inner_regions.write_to_file( output_file );
+    external_fields.write_to_file( output_file );
     particle_interaction_model.write_to_file( output_file );
 
     status = H5Pclose( plist_id ); hdf5_status_check( status );
@@ -384,7 +395,8 @@ void Domain::eval_and_write_fields_without_particles()
 
     hid_t plist_id;
     plist_id = H5Pcreate( H5P_FILE_ACCESS ); hdf5_status_check( plist_id );
-    status = H5Pset_fapl_mpio( plist_id, MPI_COMM_WORLD, MPI_INFO_NULL ); hdf5_status_check( status );
+    status = H5Pset_fapl_mpio( plist_id, MPI_COMM_WORLD, MPI_INFO_NULL );
+    hdf5_status_check( status );
 
     hid_t output_file = H5Fcreate( file_name_to_write.c_str(),
 				   H5F_ACC_TRUNC, H5P_DEFAULT, plist_id );
@@ -408,6 +420,7 @@ void Domain::eval_and_write_fields_without_particles()
     }
     
     spat_mesh.write_to_file( output_file );
+    external_fields.write_to_file( output_file );
     inner_regions.write_to_file( output_file );
 
     status = H5Pclose( plist_id ); hdf5_status_check( status );
