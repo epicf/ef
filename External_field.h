@@ -13,6 +13,7 @@
 #include "config.h"
 #include "particle.h"
 #include "vec3d.h"
+#include "lib/tinyexpr/tinyexpr.h"
 
 class External_field{
 public:
@@ -21,7 +22,7 @@ public:
 public:
     External_field( External_field_config_part &field_conf );
     External_field( hid_t h5_external_field_group_id );
-    virtual Vec3d force_on_particle( Particle &p ) = 0;
+    virtual Vec3d force_on_particle( const Particle &p, const double &t ) = 0;
     void write_to_file( hid_t hdf5_file_id );
     virtual void print() {};
     virtual ~External_field() {};
@@ -40,7 +41,7 @@ public:
     External_field_uniform_magnetic(
 	External_field_uniform_magnetic_config_part &field_conf );
     External_field_uniform_magnetic( hid_t h5_external_field_uniform_magnetic_group );
-    Vec3d force_on_particle( Particle &p );
+    Vec3d force_on_particle( const Particle &p, const double &t );
     virtual ~External_field_uniform_magnetic() {};
 private:
     void check_correctness_of_related_config_fields(
@@ -50,6 +51,35 @@ private:
     void write_hdf5_field_parameters( hid_t current_field_group_id );
     void hdf5_status_check( herr_t status );
 };
+
+
+
+class External_field_tinyexpr_magnetic : public External_field
+{
+private:
+    std::string Hx_expr, Hy_expr, Hz_expr;
+    te_expr *Hx, *Hy, *Hz;
+
+    double te_x, te_y, te_z, te_t;
+    //possible or not?
+    //te_variable vars[] = {{"x", &x}, {"y", &y}, {"z", &z}, {"t", &t}};    
+    
+    double speed_of_light;    
+public:    
+    External_field_tinyexpr_magnetic(
+	External_field_tinyexpr_magnetic_config_part &field_conf );
+    External_field_tinyexpr_magnetic( hid_t h5_external_field_tinyexpr_magnetic_group );
+    Vec3d force_on_particle( const Particle &p, const double &t );
+    virtual ~External_field_tinyexpr_magnetic() {
+	te_free( Hx ); te_free( Hy ); te_free( Hz );
+    };
+private:
+    void check_correctness_and_get_values_from_config(
+	External_field_tinyexpr_magnetic_config_part &field_conf );
+    void write_hdf5_field_parameters( hid_t current_field_group_id );
+    void hdf5_status_check( herr_t status );
+};
+
 
 
 class External_fields_manager{
@@ -62,6 +92,11 @@ public:
 	    if( External_field_uniform_magnetic_config_part *uni_mgn_conf =
 		dynamic_cast<External_field_uniform_magnetic_config_part*>( &field_conf )){
 		fields.push_back( new External_field_uniform_magnetic( *uni_mgn_conf ) );
+	    } else if (
+		External_field_tinyexpr_magnetic_config_part *tinyexpr_mgn_conf =
+		dynamic_cast<External_field_tinyexpr_magnetic_config_part*>(&field_conf)){
+		fields.push_back(
+		    new External_field_tinyexpr_magnetic( *tinyexpr_mgn_conf ) );
 	    } else {
 		std::cout << "In fields_manager constructor: " 
 			  << "Unknown config type. Aborting" << std::endl; 

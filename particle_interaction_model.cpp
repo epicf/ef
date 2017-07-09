@@ -14,7 +14,8 @@ Particle_interaction_model::Particle_interaction_model(
     
     status = H5LTget_attribute_string( h5_particle_interaction_model_group, "./",
 				       "particle_interaction_model",
-				       h5_str_read_buffer ); hdf5_status_check( status );
+				       h5_str_read_buffer );
+    hdf5_status_check( status );
     particle_interaction_model = std::string( h5_str_read_buffer );
 
     noninteracting = pic = false;

@@ -399,6 +399,33 @@ public:
 };
 
 
+class External_field_tinyexpr_magnetic_config_part : public External_field_config_part{
+public:
+    std::string magnetic_field_x;
+    std::string magnetic_field_y;
+    std::string magnetic_field_z;
+    double speed_of_light;
+public:
+    External_field_tinyexpr_magnetic_config_part(){};
+    External_field_tinyexpr_magnetic_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	External_field_config_part( name, ptree ),
+	magnetic_field_x( ptree.get<std::string>("magnetic_field_x") ),
+	magnetic_field_y( ptree.get<std::string>("magnetic_field_y") ),
+	magnetic_field_z( ptree.get<std::string>("magnetic_field_z") ),
+	speed_of_light( ptree.get<double>("speed_of_light") )
+	{} ;
+    virtual ~External_field_tinyexpr_magnetic_config_part() {};
+    void print() { 
+	std::cout << "External field tinyexpr magnetic: name = " << name << std::endl;
+	std::cout << "magnetic_field_x = " << magnetic_field_x << std::endl;
+	std::cout << "magnetic_field_y = " << magnetic_field_y << std::endl;
+	std::cout << "magnetic_field_z = " << magnetic_field_z << std::endl;
+	std::cout << "speed_of_light = " << speed_of_light << std::endl;
+    }
+};
+
+
 class Particle_interaction_model_config_part {
 public:
     std::string particle_interaction_model;

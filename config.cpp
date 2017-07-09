@@ -59,6 +59,13 @@ Config::Config( const std::string &filename )
 		fields_config_part.push_back(
 		    new External_field_uniform_magnetic_config_part(
 			field_name, sections.second ) );
+	    } else if ( section_name.find(
+			    "External_field_tinyexpr_magnetic" ) != std::string::npos ) {
+		std::string field_name =
+		    section_name.substr( section_name.find(".") + 1 );
+		fields_config_part.push_back(
+		    new External_field_tinyexpr_magnetic_config_part(
+			field_name, sections.second ) );
 	    } else if (
 		section_name.find( "Particle interaction model" ) != std::string::npos ) {
 		particle_interaction_model_config_part =
