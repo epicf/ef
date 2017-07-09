@@ -213,18 +213,32 @@ External_field_tinyexpr_magnetic::External_field_tinyexpr_magnetic(
 				       h5_str_read_buffer );
     hdf5_status_check( status );
     Hx_expr = std::string( h5_str_read_buffer );
+    if ( Hx_expr.length() >= 900 ) {
+	printf( "Implement support for longer strings! Aborting.\n" );
+	exit( EXIT_FAILURE );
+    }
     
     status = H5LTget_attribute_string( h5_external_field_tinyexpr_magnetic_group, "./",
 				       "tinyexpr_magnetic_field_y",
 				       h5_str_read_buffer );
     hdf5_status_check( status );
     Hy_expr = std::string( h5_str_read_buffer );
+    if ( Hy_expr.length() >= 900 ) {
+	printf( "Implement support for longer strings! Aborting.\n" );
+	exit( EXIT_FAILURE );
+    }
+
     
     status = H5LTget_attribute_string( h5_external_field_tinyexpr_magnetic_group, "./",
 				       "tinyexpr_magnetic_field_z",
 				       h5_str_read_buffer );
     hdf5_status_check( status );
     Hz_expr = std::string( h5_str_read_buffer );
+    if ( Hz_expr.length() >= 900 ) {
+	printf( "Implement support for longer strings! Aborting.\n" );
+	exit( EXIT_FAILURE );
+    }
+
     
     status = H5LTget_attribute_double( h5_external_field_tinyexpr_magnetic_group, "./",
 				       "speed_of_light", &speed_of_light );
@@ -249,14 +263,9 @@ Vec3d External_field_tinyexpr_magnetic::force_on_particle( const Particle &p,
     te_z = vec3d_z( pos );
     te_t = t;
 
-    double H_at_x, H_at_y, H_at_z;
-    printf("x: %.10e\t y: %.10e\t z: %.10e\t t: %.10e\n", te_x, te_y, te_z, t );
-    printf("Hx: %.10e\t Hy: %.10e\t Hz: %.10e\n",
-	   te_x+te_y+te_z+t, t*t, 100*(sin(te_x) + cos(te_y)) );
-    H_at_x = te_eval( Hx ); printf("Hx: %.10e\t", H_at_x );
-    H_at_y = te_eval( Hy ); printf("Hy: %.10e\t", H_at_y );
-    H_at_z = te_eval( Hz ); printf("Hz: %.10e\n", H_at_z );
-    Vec3d magnetic_field = vec3d_init( H_at_x, H_at_y, H_at_z );
+    Vec3d magnetic_field = vec3d_init( te_eval( Hx ),
+				       te_eval( Hy ),
+				       te_eval( Hz ) );
     
     return vec3d_times_scalar( vec3d_cross_product( p.momentum, magnetic_field ),
 			       scale );

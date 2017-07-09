@@ -169,7 +169,6 @@ void Domain::shift_velocities_half_time_step_back()
 		el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
 		total_force = vec3d_zero();
 		for( auto &f : external_fields.fields ) {
-		    printf("t: %.10e\n", time_grid.current_time );
 		    external_field_force = f.force_on_particle(
 			p, time_grid.current_time );
 		    total_force = vec3d_add( total_force, external_field_force );
@@ -193,7 +192,6 @@ void Domain::update_momentum( double dt )
 	    el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
 	    total_force = vec3d_zero();
 	    for( auto &f : external_fields.fields ) {
-		printf("t: %.10e\n", time_grid.current_time );
 		external_field_force = f.force_on_particle(
 		    p, time_grid.current_time );
 		total_force = vec3d_add( total_force, external_field_force );

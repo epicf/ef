@@ -144,6 +144,8 @@ public:
 	std::string field_type( field_type_cstr );
 	if( field_type == "uniform_magnetic" ){
 	    fields.push_back( new External_field_uniform_magnetic( current_field_grpid ));
+	} else if( field_type == "tinyexpr_magnetic" ){
+	    fields.push_back( new External_field_tinyexpr_magnetic( current_field_grpid ));
 	} else {
 	    std::cout << "In External_field_manager constructor-from-h5: "
 		      << "Unknown external_field type. Aborting"
