@@ -19,15 +19,33 @@ Field_solver::Field_solver( Spatial_mesh &spat_mesh,
     MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
     MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );    
     
-    alloc_petsc_vector( &phi_vec, nrows, "Solution" );
-    ierr = VecSet( phi_vec, 0.0 ); CHKERRXX( ierr );
+    //alloc_petsc_vector( &phi_vec, nrows, "Solution" );
+    //ierr = VecSet( phi_vec, 0.0 ); CHKERRXX( ierr );
     //get_vector_ownership_range_and_local_size_for_each_process( &phi_vec, &rstart, &rend, &nlocal );
-    alloc_petsc_vector( &rhs, nrows, "RHS" );
+    //alloc_petsc_vector( &rhs, nrows, "RHS" );
+    allocate_rhs(nrows);
+    allocate_phi_vec(nrows);
     allocate_matrix_cuda(nx);
     //alloc_petsc_matrix( &A, nlocal, nlocal, nrows, ncols, A_approx_nonzero_per_row );
     
     //construct_equation_matrix( &A, spat_mesh, inner_regions, nlocal, rstart, rend );
     //create_solver_and_preconditioner( &ksp, &pc, &A );
+}
+
+void Field_solver::allocate_rhs(int nrows)
+{
+    for (int i = 0; i<nrows; i++){
+	rhs_array.push_back(0);
+    }
+    return;
+}
+
+void Field_solver::allocate_phi_vec(int nrows)
+{
+    for (int i = 0; i<nrows; i++){
+	phi_array.push_back(0);
+    }
+    return;
 }
 
 void Field_solver::alloc_petsc_vector( Vec *x, int size, const char *name )
@@ -453,19 +471,15 @@ void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A )
 void Field_solver::eval_potential( Spatial_mesh &spat_mesh,
 				   Inner_regions_manager &inner_regions )
 {
-    solve_poisson_eqn( spat_mesh, inner_regions );
+    solve_poisson_eqn( spat_mesh, inner_regions);
 }
 
 void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh,
-				      Inner_regions_manager &inner_regions )
+				      Inner_regions_manager &inner_regions)
 {
     PetscErrorCode ierr;
-
-    init_rhs_vector( spat_mesh, inner_regions );    
-    //ierr = KSPSolve( ksp, rhs, phi_vec); CHKERRXX( ierr );
     
-    double *local_rhs_values, *local_phi_values;
-    //double *phi_vec_cuda;
+    
 
     int recieved_rstart, recieved_rend, recieved_nlocal;
 
@@ -475,9 +489,6 @@ void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh,
     //VecView(rhs,PETSC_VIEWER_STDOUT_WORLD);
     MPI_Barrier( PETSC_COMM_WORLD );
     for( int proc = 0; proc < mpi_n_of_proc; proc++ ){
-	bcast_phi_array_size( &recieved_rstart, &recieved_rend, &recieved_nlocal, proc, mpi_process_rank );
-	allocate_and_populate_rhs_array( &local_rhs_values, recieved_nlocal, proc, mpi_process_rank );
-	allocate_and_populate_phi_array( &local_phi_values, recieved_nlocal, proc, mpi_process_rank );
 
 	int nx = spat_mesh.x_n_nodes;
 	int ny = spat_mesh.y_n_nodes;
@@ -485,33 +496,56 @@ void Field_solver::solve_poisson_eqn( Spatial_mesh &spat_mesh,
 	double cell_size = spat_mesh.x_cell_size;
 	int i_and_j_part;
 	int i,j,k;
+	double *local_rhs_values;
+	double *local_phi_values;
+	double dx = spat_mesh.x_cell_size;
+	double dy = spat_mesh.y_cell_size;
+	double dz = spat_mesh.z_cell_size;
+	double rhs_at_node;
+
+	    // todo: split into separate functions
+	
+	for ( int k = 1; k <= nz-2; k++ ) {
+	    for ( int j = 1; j <= ny-2; j++ ) { 
+		for ( int i = 1; i <= nx-2; i++ ) {
+		    // - 4 * pi * rho * dx^2 * dy^2
+		    rhs_at_node = -4.0 * M_PI * spat_mesh.charge_density[i][j][k];
+		    rhs_at_node = rhs_at_node * dx * dx * dy * dy * dz * dz;
+		    // left and right boundary
+		    rhs_at_node = rhs_at_node
+			- dy * dy * dz * dz *
+			( kronecker_delta(i,1) * spat_mesh.potential[0][j][k] +
+			  kronecker_delta(i,nx-2) * spat_mesh.potential[nx-1][j][k] );
+		    // top and bottom boundary
+		    rhs_at_node = rhs_at_node
+			- dx * dx * dz * dz *
+			( kronecker_delta(j,1) * spat_mesh.potential[i][0][k] +
+			  kronecker_delta(j,ny-2) * spat_mesh.potential[i][ny-1][k] );
+		    // near and far boundary
+		    rhs_at_node = rhs_at_node
+			- dx * dx * dy * dy *
+			( kronecker_delta(k,1) * spat_mesh.potential[i][j][0] +
+			  kronecker_delta(k,nz-2) * spat_mesh.potential[i][j][nz-1] );
+		    // set rhs vector values
+		    rhs_array[node_ijk_to_global_index_in_matrix( i, j, k, nx, ny, nz )]=rhs_at_node;
+		}
+	    }
+	}
+	
+	local_phi_values = &phi_array[0];
+	local_rhs_values = &rhs_array[0];
 	
 	solve_poisson_cuda( local_rhs_values, local_phi_values, nx ,cell_size);
-	deallocate_rhs_array( local_rhs_values, proc, mpi_process_rank );
 	for (int global_index =0; global_index<(nx-2)*(nx-2)*(nx-2); global_index++){
-//	    std::cout << local_phi_values[global_index] << '\n';
 	        
 	k = global_index / ( ( nx - 2 ) * ( ny - 2 ) ) + 1;
 	i_and_j_part = global_index % ( ( nx - 2 ) * ( ny - 2 ) );
 	j = i_and_j_part / ( nx - 2 ) + 1;
 	i = i_and_j_part % ( nx - 2 ) + 1;
-	spat_mesh.potential[i][j][k] = local_phi_values[global_index];
+	spat_mesh.potential[i][j][k] = phi_array[global_index];
 	}
-/*	for (int i =0; i<27000; i++){
-	  std::cout << local_rhs_values[i] << '\n';
-	}
-*/	
-;
-
-//	transfer_from_phi_array_to_spat_mesh_potential( local_phi_values, recieved_rstart, recieved_rend, spat_mesh );
-	deallocate_phi_array( local_phi_values, proc, mpi_process_rank );
-    //VecView(rhs,PETSC_VIEWER_STDOUT_WORLD);
     }
-    
-    // MatZeroRows function but it seems it doesn't work
-    //set_solution_at_nodes_of_inner_regions( spat_mesh, inner_regions );
-    
-    //transfer_solution_to_spat_mesh( spat_mesh );
+
     
     return;
 }

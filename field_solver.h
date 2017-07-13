@@ -11,6 +11,8 @@
 
 class Field_solver {
   public:
+    std::vector<double> phi_array;
+    std::vector<double> rhs_array;
     Field_solver( Spatial_mesh &spat_mesh,
 		  Inner_regions_manager &inner_regions );
     void eval_potential( Spatial_mesh &spat_mesh,
@@ -23,6 +25,8 @@ class Field_solver {
     KSP ksp;
     PC pc;
     PetscInt rstart, rend, nlocal;
+    void allocate_rhs(int nrows);
+    void allocate_phi_vec(int nrows);
     void alloc_petsc_vector( Vec *x, PetscInt size, const char *name );
     void get_vector_ownership_range_and_local_size_for_each_process(
 	Vec *x, PetscInt *rstart, PetscInt *rend, PetscInt *nlocal );
@@ -65,9 +69,11 @@ class Field_solver {
     void construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz, PetscInt rstart, PetscInt rend );
     // Solve potential
     void solve_poisson_eqn( Spatial_mesh &spat_mesh,
-			    Inner_regions_manager &inner_regions ); 
+			    Inner_regions_manager &inner_regions); 
     void init_rhs_vector( Spatial_mesh &spat_mesh,
-			  Inner_regions_manager &inner_regions ); 
+			  Inner_regions_manager &inner_regions );
+    void init_rhs_vector_array(double *local_rhs_values, Spatial_mesh &spat_mesh,
+				    Inner_regions_manager &inner_regions);
     void init_rhs_vector_in_full_domain( Spatial_mesh &spat_mesh );
     void set_rhs_at_nodes_occupied_by_objects( Spatial_mesh &spat_mesh,
 					       Inner_regions_manager &inner_regions ); 

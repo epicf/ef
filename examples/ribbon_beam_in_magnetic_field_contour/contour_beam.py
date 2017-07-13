@@ -95,7 +95,7 @@ def contour( z_position , x0_const, R_const, lambda_const, phi_const):
 
 
 
-filename = "contour_cuda_0001000.h5"
+filename = "contour_cuda_0000200.h5"
 h5 = h5py.File( filename, mode="r")
 
 phi_shift = 1.6#1.6 # to combine phase
