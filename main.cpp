@@ -15,12 +15,11 @@ void extract_filename_prefix_and_suffix_from_h5filename( std::string h5_file,
 							 
 int main( int argc, char *argv[] )
 {
-    PetscErrorCode ierr;
-    PetscMPIInt mpi_comm_size;
+    int mpi_comm_size;
     int mpi_process_rank;
-    PetscInitialize( &argc, &argv, (char*)0, NULL );
-    ierr = MPI_Comm_size( PETSC_COMM_WORLD, &mpi_comm_size); CHKERRXX(ierr);
-    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
+    MPI_Init(NULL,NULL);
+    MPI_Comm_size( MPI_COMM_WORLD, &mpi_comm_size); 
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );
 
     std::string config_or_h5_file;
     parse_cmd_line( argc, argv, config_or_h5_file );
@@ -38,7 +37,6 @@ int main( int argc, char *argv[] )
     Domain * devDom = NULL;
     // finalize_whatever_left
     delete dom;
-    ierr = PetscFinalize(); CHKERRXX(ierr);
     return 0;
 }
 
@@ -48,7 +46,7 @@ void construct_domain( std::string config_or_h5_file,
 		       bool *continue_from_h5 )
 {
     int mpi_process_rank;
-    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );
     std::string extension =
 	config_or_h5_file.substr( config_or_h5_file.find_last_of(".") + 1 );
 

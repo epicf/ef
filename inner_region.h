@@ -5,7 +5,6 @@
 #include <iostream>
 #include <algorithm>
 #include <boost/ptr_container/ptr_vector.hpp>
-#include <petscksp.h>
 #include <mpi.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
@@ -33,7 +32,7 @@ public:
     // possible todo: add_boundary_nodes
     // Approx solution and RHS inside region;
     // Should be used in MatZeroRows call, but it seems, it has no effect
-    Vec phi_inside_region, rhs_inside_region;
+    //Vec phi_inside_region, rhs_inside_region;
 public:
     Inner_region(
 	Config &conf,

@@ -7,16 +7,14 @@ SHELL:=/bin/bash -O extglob
 CC = mpic++
 #CC = mpiicpc 
 HDF5FLAGS=-I/usr/include/hdf5/openmpi -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_BSD_SOURCE -D_FORTIFY_SOURCE=2 -g -fstack-protector-strong -Wformat -Werror=format-security
-PETSCFLAGS=-isystem${HOME}/petsc/opt/include/
-CFLAGS = ${HDF5FLAGS} ${PETSCFLAGS} -O2 -std=c++11
+CFLAGS = ${HDF5FLAGS} -O2 -std=c++11
 LDFLAGS = 
 
 ### Libraries
 COMMONLIBS=-lm
 BOOSTLIBS=-lboost_program_options
-PETSCLIBS=-L${HOME}/petsc/opt/lib/ -lpetsc
 HDF5LIBS=-L/usr/lib/x86_64-linux-gnu/hdf5/openmpi -lhdf5_hl -lhdf5 -Wl,-z,relro -lpthread -lz -ldl -lm -Wl,-rpath -Wl,/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-LIBS=${COMMONLIBS} ${BOOSTLIBS} ${PETSCLIBS} ${HDF5LIBS}
+LIBS=${COMMONLIBS} ${BOOSTLIBS} ${HDF5LIBS}
 
 ### Sources and executable
 CPPSOURCES=$(wildcard *.cpp)

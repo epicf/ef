@@ -65,7 +65,7 @@ void Domain::continue_pic_simulation()
 void Domain::run_pic()
 {
     int mpi_process_rank;
-    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
+    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );
     
     int total_time_iterations, current_node;
     total_time_iterations = time_grid.total_nodes - 1;
