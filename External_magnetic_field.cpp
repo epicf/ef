@@ -41,6 +41,12 @@ void External_magnetic_field::get_values_from_config( Config &conf )
     speed_of_light = conf.external_magnetic_field_config_part.speed_of_light;
 }
 
+Vec3d External_magnetic_field::field_at_particle_position( Particle &p )
+{
+    return magnetic_field;
+}
+
+
 Vec3d External_magnetic_field::force_on_particle( Particle &p )
 {
     double scale = p.charge / p.mass / speed_of_light;
