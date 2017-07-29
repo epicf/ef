@@ -53,18 +53,32 @@ Config::Config( const std::string &filename )
 	    } else if ( section_name.find( "Boundary conditions" ) != std::string::npos ) {
 		boundary_config_part = Boundary_config_part( sections.second );
 	    } else if ( section_name.find(
-			    "External_field_uniform_magnetic" ) != std::string::npos ) {
+			    "External_magnetic_field_uniform" ) != std::string::npos ) {
 		std::string field_name =
 		    section_name.substr( section_name.find(".") + 1 );
 		fields_config_part.push_back(
-		    new External_field_uniform_magnetic_config_part(
+		    new External_magnetic_field_uniform_config_part(
 			field_name, sections.second ) );
 	    } else if ( section_name.find(
-			    "External_field_tinyexpr_magnetic" ) != std::string::npos ) {
+			    "External_electric_field_uniform" ) != std::string::npos ) {
 		std::string field_name =
 		    section_name.substr( section_name.find(".") + 1 );
 		fields_config_part.push_back(
-		    new External_field_tinyexpr_magnetic_config_part(
+		    new External_electric_field_uniform_config_part(
+			field_name, sections.second ) );
+	    } else if ( section_name.find(
+			    "External_magnetic_field_tinyexpr" ) != std::string::npos ) {
+		std::string field_name =
+		    section_name.substr( section_name.find(".") + 1 );
+		fields_config_part.push_back(
+		    new External_magnetic_field_tinyexpr_config_part(
+			field_name, sections.second ) );
+	    } else if ( section_name.find(
+			    "External_electric_field_tinyexpr" ) != std::string::npos ) {
+		std::string field_name =
+		    section_name.substr( section_name.find(".") + 1 );
+		fields_config_part.push_back(
+		    new External_electric_field_tinyexpr_config_part(
 			field_name, sections.second ) );
 	    } else if (
 		section_name.find( "Particle interaction model" ) != std::string::npos ) {

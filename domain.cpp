@@ -161,19 +161,25 @@ void Domain::leap_frog()
 void Domain::shift_velocities_half_time_step_back()
 {
     double minus_half_dt = -time_grid.time_step_size / 2;
-    Vec3d el_field_force, external_field_force, total_force, dp;
+    Vec3d pic_el_field_force, external_field_force, total_force, dp;
 
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
 	    if ( !p.momentum_is_half_time_step_shifted ){
-		el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
+		pic_el_field_force = particle_to_mesh_map.force_on_particle(
+		    spat_mesh, p );
 		total_force = vec3d_zero();
-		for( auto &f : external_fields.fields ) {
+		for( auto &f : external_fields.electric ) {
 		    external_field_force = f.force_on_particle(
 			p, time_grid.current_time );
 		    total_force = vec3d_add( total_force, external_field_force );
 		}
-		total_force = vec3d_add( el_field_force, total_force );
+		for( auto &f : external_fields.magnetic ) {
+		    external_field_force = f.force_on_particle(
+			p, time_grid.current_time );
+		    total_force = vec3d_add( total_force, external_field_force );
+		}
+		total_force = vec3d_add( pic_el_field_force, total_force );
 		dp = vec3d_times_scalar( total_force, minus_half_dt );
 		p.momentum = vec3d_add( p.momentum, dp );
 		p.momentum_is_half_time_step_shifted = true;
@@ -185,18 +191,23 @@ void Domain::shift_velocities_half_time_step_back()
 
 void Domain::update_momentum( double dt )
 {
-    Vec3d el_field_force, external_field_force, total_force, dp;
+    Vec3d pic_el_field_force, external_field_force, total_force, dp;
 
     for( auto &src : particle_sources.sources ) {
 	for( auto &p : src.particles ) {
-	    el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
+	    pic_el_field_force = particle_to_mesh_map.force_on_particle( spat_mesh, p );
 	    total_force = vec3d_zero();
-	    for( auto &f : external_fields.fields ) {
+	    for( auto &f : external_fields.electric ) {
 		external_field_force = f.force_on_particle(
 		    p, time_grid.current_time );
 		total_force = vec3d_add( total_force, external_field_force );
 	    }
-	    total_force = vec3d_add( el_field_force, total_force );
+	    for( auto &f : external_fields.magnetic ) {
+		external_field_force = f.force_on_particle(
+		    p, time_grid.current_time );
+		total_force = vec3d_add( total_force, external_field_force );
+	    }
+	    total_force = vec3d_add( pic_el_field_force, total_force );
 	    dp = vec3d_times_scalar( total_force, dt );
 	    p.momentum = vec3d_add( p.momentum, dp );
 	}
