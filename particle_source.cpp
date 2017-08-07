@@ -717,9 +717,9 @@ void Particle_source_box::check_correctness_of_related_config_fields(
     Config &conf, 
     Particle_source_box_config_part &src_conf )
 {
-    x_right_ge_zero( conf, src_conf );
-    x_right_le_particle_source_x_left( conf, src_conf );
-    x_left_le_grid_x_size( conf, src_conf );
+    x_left_ge_zero( conf, src_conf );
+    x_left_le_particle_source_x_right( conf, src_conf );
+    x_right_le_grid_x_size( conf, src_conf );    
     y_bottom_ge_zero( conf, src_conf );
     y_bottom_le_particle_source_y_top( conf, src_conf );
     y_top_le_grid_y_size( conf, src_conf );
@@ -765,31 +765,31 @@ void Particle_source_box::read_hdf5_source_parameters( hid_t h5_particle_source_
     hdf5_status_check( status );
 }
 
-void Particle_source_box::x_right_ge_zero( 
+void Particle_source_box::x_left_ge_zero( 
     Config &conf, 
     Particle_source_box_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.box_x_right >= 0,
-	"box_x_right < 0" );
+	src_conf.box_x_left >= 0,
+	"box_x_left < 0" );
 }
 
-void Particle_source_box::x_right_le_particle_source_x_left( 
+void Particle_source_box::x_left_le_particle_source_x_right( 
     Config &conf, 
     Particle_source_box_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.box_x_right <= src_conf.box_x_left,
-	"box_x_right > box_x_left" );
+	src_conf.box_x_left <= src_conf.box_x_right,
+	"box_x_left > box_x_right" );
 }
 
-void Particle_source_box::x_left_le_grid_x_size( 
+void Particle_source_box::x_right_le_grid_x_size( 
     Config &conf, 
     Particle_source_box_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.box_x_left <= conf.mesh_config_part.grid_x_size,
-	"box_x_left > grid_x_size" );
+	src_conf.box_x_right <= conf.mesh_config_part.grid_x_size,
+	"box_x_right > grid_x_size" );
 }
 
 void Particle_source_box::y_bottom_ge_zero( 
@@ -896,7 +896,7 @@ Vec3d Particle_source_box::uniform_position_in_cube(
     const double xright, const double ybottom, const double znear,
     std::default_random_engine &rnd_gen )
 {
-    return vec3d_init( random_in_range( xright, xleft, rnd_gen ), 
+    return vec3d_init( random_in_range( xleft, xright, rnd_gen ), 
 		       random_in_range( ybottom, ytop, rnd_gen ),
 		       random_in_range( znear, zfar, rnd_gen ) );
 }
