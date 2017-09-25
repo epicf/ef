@@ -39,7 +39,8 @@ def extract_time_pos_mom( h5file ):
     h5 = h5py.File( h5file, mode="r")
     t = h5["/Time_grid"].attrs["current_time"][0]
     t_pos_mom = ()
-    if ( len(h5["/Particle_sources/emit_single_particle"]) > 0 ):
+    if ( len(h5["/Particle_sources/emit_single_particle"]) > 0 and
+         len(h5["/Particle_sources/emit_single_particle/position_x"]) > 0 ):
         x = h5["/Particle_sources/emit_single_particle/position_x"][0]
         y = h5["/Particle_sources/emit_single_particle/position_y"][0]
         z = h5["/Particle_sources/emit_single_particle/position_z"][0]
@@ -80,7 +81,7 @@ def eval_an_trajectory_at_num_time_points( num_trajectory ):
     return( an_trajectory )
     
 def extract_magn_field( h5 ):
-    B0 = h5["/External_magnetic_field"].attrs["external_magnetic_field_z"][0]
+    B0 = h5["/External_fields/mgn_uni"].attrs["magnetic_uniform_field_z"][0]
     return B0
 
 def extract_particle_charge_and_mass( h5 ):
@@ -122,47 +123,57 @@ def plot_trajectories( num , an ):
 def plot_3d( num, an ):
     fig = plt.figure()
     ax = fig.gca( projection='3d' )
-    ax.plot( num['x'], num['y'], num['z'], '.r', label = "Num" )
-    ax.plot( an['x'], an['y'], an['z'], label = "An" )
-    ax.set_xlabel('X') 
-    ax.set_ylabel('Y') 
-    ax.set_zlabel('Z')
+    ax.plot( num['x'], num['z'], num['y'], 'b.', markersize = 12, label = "Num" )
+    ax.plot( an['x'], an['z'], an['y'],  'g-', linewidth = 3, label = "An" )
+    ax.set_xlabel('X [cm]') 
+    ax.set_ylabel('Z [cm]') 
+    ax.set_zlabel('Y [cm]')
     plt.legend( loc = 'upper left', title="3d" )
     #plt.show()
     print( 'Saving 3d trajectory plot to "3d.png"' )
     plt.savefig('3d.png')
-
+    
 def plot_2d( num, an ):
-    plt.figure(1)
+    plt.figure( figsize=( 16, 6 ) )
+    plt.subplots_adjust( left = None, bottom = None,
+                         right = None, top = None,
+                         wspace = 0.4, hspace = None )
     #XY
-    plt.subplot(131)
+    ax = plt.subplot(131)
     plt.plot( num['x'], num['y'],
               linestyle='', marker='o',
               label = "Num" )
     plt.plot( an['x'], an['y'],
               linestyle='-', marker='', lw = 2,
               label = "An" )
-    plt.legend( loc = 'upper right', title="XY" )
-    #XZ
-    plt.subplot(132)
-    plt.plot( num['x'], num['z'],
+    ax.set_xlabel('X [cm]') 
+    ax.set_ylabel('Y [cm]') 
+    plt.legend( loc = 'upper left', title="XY" )
+    #ZX
+    ax = plt.subplot(132)
+    plt.plot( num['z'], num['x'],
         linestyle='', marker='o',
         label = "Num" )
-    plt.plot( an['x'], an['z'],
+    plt.plot( an['z'], an['x'],
               linestyle='-', marker='', lw = 2,
               label = "An" )
-    plt.legend( loc = 'upper right', title="XZ" )
-    #YZ
-    plt.subplot(133)
-    plt.plot( num['y'], num['z'],
+    ax.set_xlabel('Z [cm]') 
+    ax.set_ylabel('X [cm]') 
+    plt.legend( loc = 'upper left', title="ZX" )
+    #ZY
+    ax = plt.subplot(133)
+    plt.plot( num['z'], num['y'],
         linestyle='', marker='o',
         label = "Num" )
-    plt.plot( an['y'], an['z'],
+    plt.plot( an['z'], an['y'],
               linestyle='-', marker='', lw = 2,
               label = "An" )
-    plt.legend( loc = 'upper right', title="YZ" )
+    ax.set_xlabel('Z [cm]') 
+    ax.set_ylabel('Y [cm]') 
+    plt.legend( loc = 'upper left', title="ZY" )
     print( 'Saving 2d trajectory projection plots to "2d.png"' )
     plt.savefig('2d.png')
+
     
 def plot_kin_en( num , an ):
     E_num = ( num['px']**2 + num['py']**2 + num['pz']**2 ) / ( 2 * m )
