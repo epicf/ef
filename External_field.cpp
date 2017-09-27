@@ -99,14 +99,19 @@ External_magnetic_field_uniform::External_magnetic_field_uniform(
     magnetic_field = vec3d_init( H_x, H_y, H_z );
 }
 
-Vec3d External_magnetic_field_uniform::force_on_particle( const Particle &p,
-							  const double &t )
+Vec3d External_magnetic_field_uniform::field_at_particle_position(
+    const Particle &p, const double &t )
 {
-    double scale = p.charge / p.mass / speed_of_light;
-    
-    return vec3d_times_scalar( vec3d_cross_product( p.momentum, magnetic_field ),
-			       scale );
+    return magnetic_field;
 }
+
+// Vec3d External_magnetic_field_uniform::force_on_particle( const Particle &p,
+// 							  const double &t )
+// {
+//     double scale = p.charge / p.mass / speed_of_light;    
+//     return vec3d_times_scalar( vec3d_cross_product( p.momentum, magnetic_field ),
+// 			       scale );
+// }
 
 void External_magnetic_field_uniform::write_hdf5_field_parameters(
     hid_t current_field_group_id )
@@ -197,13 +202,18 @@ External_electric_field_uniform::External_electric_field_uniform(
     electric_field = vec3d_init( E_x, E_y, E_z );
 }
 
-Vec3d External_electric_field_uniform::force_on_particle( const Particle &p,
-							  const double &t )
+Vec3d External_electric_field_uniform::field_at_particle_position(
+    const Particle &p, const double &t )
 {
-    double scale = p.charge / p.mass;
-    
-    return vec3d_times_scalar( electric_field, scale );
+    return electric_field;
 }
+
+// Vec3d External_electric_field_uniform::force_on_particle( const Particle &p,
+// 							  const double &t )
+// {
+//     double scale = p.charge / p.mass;    
+//     return vec3d_times_scalar( electric_field, scale );
+// }
 
 void External_electric_field_uniform::write_hdf5_field_parameters(
     hid_t current_field_group_id )
@@ -344,11 +354,9 @@ External_magnetic_field_tinyexpr::External_magnetic_field_tinyexpr(
     Hz = te_compile( Hz_expr.c_str(), vars, 4, &err );    
 }
 
-Vec3d External_magnetic_field_tinyexpr::force_on_particle( const Particle &p,
-							   const double &t )
+Vec3d External_magnetic_field_tinyexpr::field_at_particle_position(
+    const Particle &p, const double &t )
 {
-    double scale = p.charge / p.mass / speed_of_light;
-
     Vec3d pos = p.position;
     te_x = vec3d_x( pos );
     te_y = vec3d_y( pos );
@@ -359,9 +367,28 @@ Vec3d External_magnetic_field_tinyexpr::force_on_particle( const Particle &p,
 				       te_eval( Hy ),
 				       te_eval( Hz ) );
     
-    return vec3d_times_scalar( vec3d_cross_product( p.momentum, magnetic_field ),
-			       scale );
+    return magnetic_field;
 }
+
+
+// Vec3d External_magnetic_field_tinyexpr::force_on_particle( const Particle &p,
+// 							   const double &t )
+// {
+//     double scale = p.charge / p.mass / speed_of_light;
+
+//     Vec3d pos = p.position;
+//     te_x = vec3d_x( pos );
+//     te_y = vec3d_y( pos );
+//     te_z = vec3d_z( pos );
+//     te_t = t;
+
+//     Vec3d magnetic_field = vec3d_init( te_eval( Hx ),
+// 				       te_eval( Hy ),
+// 				       te_eval( Hz ) );
+    
+//     return vec3d_times_scalar( vec3d_cross_product( p.momentum, magnetic_field ),
+// 			       scale );
+// }
 
 void External_magnetic_field_tinyexpr::write_hdf5_field_parameters(
     hid_t current_field_group_id )
@@ -500,11 +527,9 @@ External_electric_field_tinyexpr::External_electric_field_tinyexpr(
     Ez = te_compile( Ez_expr.c_str(), vars, 4, &err );    
 }
 
-Vec3d External_electric_field_tinyexpr::force_on_particle( const Particle &p,
-							   const double &t )
+Vec3d External_electric_field_tinyexpr::field_at_particle_position(
+    const Particle &p, const double &t )
 {
-    double scale = p.charge / p.mass;
-
     Vec3d pos = p.position;
     te_x = vec3d_x( pos );
     te_y = vec3d_y( pos );
@@ -515,14 +540,31 @@ Vec3d External_electric_field_tinyexpr::force_on_particle( const Particle &p,
 				       te_eval( Ey ),
 				       te_eval( Ez ) );
     
-    return vec3d_times_scalar( electric_field, scale );
+    return electric_field;
 }
+
+// Vec3d External_electric_field_tinyexpr::force_on_particle( const Particle &p,
+// 							   const double &t )
+// {
+//     double scale = p.charge / p.mass;
+
+//     Vec3d pos = p.position;
+//     te_x = vec3d_x( pos );
+//     te_y = vec3d_y( pos );
+//     te_z = vec3d_z( pos );
+//     te_t = t;
+
+//     Vec3d electric_field = vec3d_init( te_eval( Ex ),
+// 				       te_eval( Ey ),
+// 				       te_eval( Ez ) );
+    
+//     return vec3d_times_scalar( electric_field, scale );
+// }
 
 void External_electric_field_tinyexpr::write_hdf5_field_parameters(
     hid_t current_field_group_id )
 {
     herr_t status;
-    int single_element = 1;
     std::string current_group = "./";
 
     status = H5LTset_attribute_string( current_field_group_id, current_group.c_str(),

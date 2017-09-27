@@ -20,6 +20,7 @@
 #include "particle_source.h"
 #include "particle.h"
 #include "vec3d.h"
+#include "physical_constants.h"
 
 //#define M_PI 3.14159265358979323846264338327
 
@@ -48,7 +49,7 @@ class Domain {
     virtual ~Domain();
   private:
     // Pic algorithm
-    void prepare_leap_frog();
+    void prepare_boris_integration();
     void advance_one_time_step();
     void eval_charge_density();
     void eval_potential_and_fields();
@@ -57,7 +58,7 @@ class Domain {
     void remove_particles_inside_inner_regions();
     void update_time_grid();
     // Push particles
-    void leap_frog();
+    void boris_integration();
     void shift_velocities_half_time_step_back();
     void update_momentum( double dt );
     void update_position( double dt );

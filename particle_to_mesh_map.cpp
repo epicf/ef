@@ -69,7 +69,82 @@ void Particle_to_mesh_map::combine_charge_densities_from_all_processes(
     MPI_Allreduce(MPI_IN_PLACE, rho, n_of_elements, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 }
 
-    
+
+Vec3d Particle_to_mesh_map::field_at_particle_position( 
+    Spatial_mesh &spat_mesh, Particle &p )
+{
+    double dx = spat_mesh.x_cell_size;
+    double dy = spat_mesh.y_cell_size;
+    double dz = spat_mesh.z_cell_size;
+    int tlf_i, tlf_j, tlf_k; // 'tlf' = 'top_left_far'
+    double tlf_x_weight, tlf_y_weight, tlf_z_weight;  
+    Vec3d field_from_node, total_field;
+    //
+    next_node_num_and_weight( vec3d_x( p.position ), dx, &tlf_i, &tlf_x_weight );
+    next_node_num_and_weight( vec3d_y( p.position ), dy, &tlf_j, &tlf_y_weight );
+    next_node_num_and_weight( vec3d_z( p.position ), dz, &tlf_k, &tlf_z_weight );
+    // tlf
+    total_field = vec3d_zero();
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.electric_field[tlf_i][tlf_j][tlf_k],
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // trf
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.electric_field[tlf_i-1][tlf_j][tlf_k],
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // blf
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.electric_field[tlf_i][tlf_j - 1][tlf_k],	
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // brf
+    field_from_node = vec3d_times_scalar(			
+	spat_mesh.electric_field[tlf_i-1][tlf_j-1][tlf_k],	
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // tln
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.electric_field[tlf_i][tlf_j][tlf_k-1],
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // trn
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.electric_field[tlf_i-1][tlf_j][tlf_k-1],
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // bln
+    field_from_node = vec3d_times_scalar(
+	spat_mesh.electric_field[tlf_i][tlf_j - 1][tlf_k-1],	
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // brn
+    field_from_node = vec3d_times_scalar(			
+	spat_mesh.electric_field[tlf_i-1][tlf_j-1][tlf_k-1],	
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );    
+    //
+    return total_field;
+}
+
+
 Vec3d Particle_to_mesh_map::force_on_particle( 
     Spatial_mesh &spat_mesh, Particle &p )
 {

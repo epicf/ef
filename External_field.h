@@ -22,7 +22,8 @@ public:
 public:
     External_field( External_field_config_part &field_conf );
     External_field( hid_t h5_external_field_group_id );
-    virtual Vec3d force_on_particle( const Particle &p, const double &t ) = 0;
+    virtual Vec3d field_at_particle_position( const Particle &p, const double &t ) = 0;
+    //virtual Vec3d force_on_particle( const Particle &p, const double &t ) = 0;
     void write_to_file( hid_t hdf5_file_id );
     virtual void print() {};
     virtual ~External_field() {};
@@ -41,7 +42,8 @@ public:
     External_magnetic_field_uniform(
 	External_magnetic_field_uniform_config_part &field_conf );
     External_magnetic_field_uniform( hid_t h5_external_magnetic_field_uniform_group );
-    Vec3d force_on_particle( const Particle &p, const double &t );
+    Vec3d field_at_particle_position( const Particle &p, const double &t );
+    //Vec3d force_on_particle( const Particle &p, const double &t );
     virtual ~External_magnetic_field_uniform() {};
 private:
     void check_correctness_of_related_config_fields(
@@ -62,7 +64,8 @@ public:
     External_electric_field_uniform(
 	External_electric_field_uniform_config_part &field_conf );
     External_electric_field_uniform( hid_t h5_external_electric_field_uniform_group );
-    Vec3d force_on_particle( const Particle &p, const double &t );
+    Vec3d field_at_particle_position( const Particle &p, const double &t );
+    //Vec3d force_on_particle( const Particle &p, const double &t );
     virtual ~External_electric_field_uniform() {};
 private:
     void check_correctness_of_related_config_fields(
@@ -90,7 +93,8 @@ public:
     External_magnetic_field_tinyexpr(
 	External_magnetic_field_tinyexpr_config_part &field_conf );
     External_magnetic_field_tinyexpr( hid_t h5_external_magnetic_field_tinyexpr_group );
-    Vec3d force_on_particle( const Particle &p, const double &t );
+    Vec3d field_at_particle_position( const Particle &p, const double &t );
+    //Vec3d force_on_particle( const Particle &p, const double &t );
     virtual ~External_magnetic_field_tinyexpr() {
 	te_free( Hx ); te_free( Hy ); te_free( Hz );
     };
@@ -112,7 +116,8 @@ public:
     External_electric_field_tinyexpr(
 	External_electric_field_tinyexpr_config_part &field_conf );
     External_electric_field_tinyexpr( hid_t h5_external_electric_field_tinyexpr_group );
-    Vec3d force_on_particle( const Particle &p, const double &t );
+    Vec3d field_at_particle_position( const Particle &p, const double &t );
+    //Vec3d force_on_particle( const Particle &p, const double &t );
     virtual ~External_electric_field_tinyexpr() {
 	te_free( Ex ); te_free( Ey ); te_free( Ez );
     };
