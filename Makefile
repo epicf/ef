@@ -26,25 +26,33 @@ CPPHEADERS=$(wildcard *.h)
 OBJECTS=$(CPPSOURCES:%.cpp=%.o)
 EXECUTABLE=ef.out
 MAKE=make
+TINYEXPR=./lib/tinyexpr
+TINYEXPR_OBJ=./lib/tinyexpr/tinyexpr.o
 SUBDIRS=doc
 
-$(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
+$(EXECUTABLE): $(OBJECTS) $(TINYEXPR)
+	$(CC) $(LDFLAGS) $(OBJECTS) $(TINYEXPR_OBJ) -o $@ $(LIBS)
 
 $(OBJECTS):%.o:%.cpp $(CPPHEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-.PHONY: allsubdirs $(SUBDIRS) clean cleansubdirs cleanall
+.PHONY: allsubdirs $(SUBDIRS) $(TINYEXPR) clean cleansubdirs cleanall
 
 allsubdirs: $(SUBDIRS)
+
+$(TINYEXPR):
+	$(MAKE) -C $@
 
 $(SUBDIRS):
 	$(MAKE) -C $@
 
 all: $(EXECUTABLE) doc
 
-clean: 
+clean: cleansublibs
 	rm -f *.o *.out *.mod *.zip
+
+cleansublibs:
+	for X in $(TINYEXPR); do $(MAKE) clean -C $$X; done 
 
 cleansubdirs:
 	for X in $(SUBDIRS); do $(MAKE) clean -C $$X; done 

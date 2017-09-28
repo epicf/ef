@@ -16,7 +16,7 @@ SI_conv_Fr_to_C = 3.3356409519815207e-10
 Si_conv_G_T = 0.0001
 
 def get_B_field( h5file ):
-    B_field = h5file["/External_fields/mgn_uni"].attrs["magnetic_uniform_field_z"][0]
+    B_field = h5file["/External_magnetic_field"].attrs["external_magnetic_field_z"][0]
     return B_field * Si_conv_G_T
 
 def get_source_current( h5file ):

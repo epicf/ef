@@ -77,7 +77,8 @@ public:
     Particle_source_config_part( std::string name, boost::property_tree::ptree &ptree ) :
 	name( name ),
 	initial_number_of_particles( ptree.get<int>("initial_number_of_particles") ),
-	particles_to_generate_each_step( ptree.get<int>("particles_to_generate_each_step") ),
+	particles_to_generate_each_step(
+	    ptree.get<int>("particles_to_generate_each_step") ),
 	mean_momentum_x( ptree.get<double>("mean_momentum_x") ),
 	mean_momentum_y( ptree.get<double>("mean_momentum_y") ),
 	mean_momentum_z( ptree.get<double>("mean_momentum_z") ),
@@ -354,26 +355,115 @@ public:
     }
 };
 
-class External_magnetic_field_config_part {
+
+class External_field_config_part {
+public:
+    std::string name;
+public:
+    External_field_config_part(){};
+    External_field_config_part(
+	std::string name, boost::property_tree::ptree &ptree ):
+	name( name )
+	{};	
+    virtual ~External_field_config_part() {};
+    virtual void print() {
+	std::cout << "External field:" << std::endl;
+	std::cout << "name = " << name << std::endl;
+    }
+};
+
+class External_magnetic_field_uniform_config_part : public External_field_config_part{
 public:
     double magnetic_field_x;
     double magnetic_field_y;
     double magnetic_field_z;
-    double speed_of_light;
 public:
-    External_magnetic_field_config_part(){};
-    External_magnetic_field_config_part( boost::property_tree::ptree &ptree ) :
+    External_magnetic_field_uniform_config_part(){};
+    External_magnetic_field_uniform_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	External_field_config_part( name, ptree ),
 	magnetic_field_x( ptree.get<double>("magnetic_field_x") ),
 	magnetic_field_y( ptree.get<double>("magnetic_field_y") ),
-	magnetic_field_z( ptree.get<double>("magnetic_field_z") ),
-	speed_of_light( ptree.get<double>("speed_of_light") )
+	magnetic_field_z( ptree.get<double>("magnetic_field_z") )
 	{} ;
-    virtual ~External_magnetic_field_config_part() {};
-    void print() {
+    virtual ~External_magnetic_field_uniform_config_part() {};
+    void print() { 
+	std::cout << "External magnetic field uniform : name = " << name << std::endl;
 	std::cout << "magnetic_field_x = " << magnetic_field_x << std::endl;
 	std::cout << "magnetic_field_y = " << magnetic_field_y << std::endl;
 	std::cout << "magnetic_field_z = " << magnetic_field_z << std::endl;
-	std::cout << "speed_of_light = " << speed_of_light << std::endl;
+    }
+};
+
+
+class External_electric_field_uniform_config_part : public External_field_config_part{
+public:
+    double electric_field_x;
+    double electric_field_y;
+    double electric_field_z;
+public:
+    External_electric_field_uniform_config_part(){};
+    External_electric_field_uniform_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	External_field_config_part( name, ptree ),
+	electric_field_x( ptree.get<double>("electric_field_x") ),
+	electric_field_y( ptree.get<double>("electric_field_y") ),
+	electric_field_z( ptree.get<double>("electric_field_z") )
+	{} ;
+    virtual ~External_electric_field_uniform_config_part() {};
+    void print() { 
+	std::cout << "External electric field uniform : name = " << name << std::endl;
+	std::cout << "electric_field_x = " << electric_field_x << std::endl;
+	std::cout << "electric_field_y = " << electric_field_y << std::endl;
+	std::cout << "electric_field_z = " << electric_field_z << std::endl;
+    }
+};
+
+
+class External_magnetic_field_tinyexpr_config_part : public External_field_config_part{
+public:
+    std::string magnetic_field_x;
+    std::string magnetic_field_y;
+    std::string magnetic_field_z;
+public:
+    External_magnetic_field_tinyexpr_config_part(){};
+    External_magnetic_field_tinyexpr_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	External_field_config_part( name, ptree ),
+	magnetic_field_x( ptree.get<std::string>("magnetic_field_x") ),
+	magnetic_field_y( ptree.get<std::string>("magnetic_field_y") ),
+	magnetic_field_z( ptree.get<std::string>("magnetic_field_z") )
+	{} ;
+    virtual ~External_magnetic_field_tinyexpr_config_part() {};
+    void print() { 
+	std::cout << "External magnetic field tinyexpr: name = " << name << std::endl;
+	std::cout << "magnetic_field_x = " << magnetic_field_x << std::endl;
+	std::cout << "magnetic_field_y = " << magnetic_field_y << std::endl;
+	std::cout << "magnetic_field_z = " << magnetic_field_z << std::endl;
+    }
+};
+
+
+class External_electric_field_tinyexpr_config_part : public External_field_config_part{
+public:
+    std::string electric_field_x;
+    std::string electric_field_y;
+    std::string electric_field_z;
+public:
+    External_electric_field_tinyexpr_config_part(){};
+    External_electric_field_tinyexpr_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	External_field_config_part( name, ptree ),
+	electric_field_x( ptree.get<std::string>("electric_field_x") ),
+	electric_field_y( ptree.get<std::string>("electric_field_y") ),
+	electric_field_z( ptree.get<std::string>("electric_field_z") )
+	{} ;
+    virtual ~External_electric_field_tinyexpr_config_part() {};
+    void print() { 
+	std::cout << "External electric field tinyexpr: name = " << name << std::endl;
+	std::cout << "electric_field_x = " << electric_field_x << std::endl;
+	std::cout << "electric_field_y = " << electric_field_y << std::endl;
+	std::cout << "electric_field_z = " << electric_field_z << std::endl;
     }
 };
 
@@ -388,7 +478,8 @@ public:
 	{} ;
     virtual ~Particle_interaction_model_config_part() {};
     void print() {
-	std::cout << "Particle_interaction_model = " << particle_interaction_model << std::endl;
+	std::cout << "Particle_interaction_model = "
+		  << particle_interaction_model << std::endl;
     }
 };
 
@@ -416,8 +507,8 @@ public:
     Mesh_config_part mesh_config_part;
     boost::ptr_vector<Particle_source_config_part> sources_config_part;
     boost::ptr_vector<Inner_region_config_part> inner_regions_config_part;
+    boost::ptr_vector<External_field_config_part> fields_config_part;
     Boundary_config_part boundary_config_part;
-    External_magnetic_field_config_part external_magnetic_field_config_part;
     Particle_interaction_model_config_part particle_interaction_model_config_part;
     Output_filename_config_part output_filename_config_part;
 public:
@@ -436,7 +527,9 @@ public:
 	boundary_config_part.print();
 	particle_interaction_model_config_part.print();
 	output_filename_config_part.print();
-	external_magnetic_field_config_part.print();
+	for ( auto &f : fields_config_part ) {
+	    f.print();
+	}
 	std::cout << "======" << std::endl;
     }
 };

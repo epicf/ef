@@ -105,11 +105,11 @@ private:
     // Check config
     virtual void check_correctness_of_related_config_fields( 
 	Config &conf, Particle_source_box_config_part &src_conf );
-    void x_right_ge_zero( 
+    void x_left_ge_zero( 
 	Config &conf, Particle_source_box_config_part &src_conf );
-    void x_right_le_particle_source_x_left( 
+    void x_left_le_particle_source_x_right( 
 	Config &conf, Particle_source_box_config_part &src_conf );
-    void x_left_le_grid_x_size( 
+    void x_right_le_grid_x_size( 
 	Config &conf, Particle_source_box_config_part &src_conf );
     void y_bottom_ge_zero( 
 	Config &conf, Particle_source_box_config_part &src_conf );
