@@ -13,6 +13,7 @@
 #include "config.h"
 #include "particle.h"
 #include "vec3d.h"
+#include "physical_constants.h"
 #include "lib/tinyexpr/tinyexpr.h"
 
 class External_field{
@@ -37,7 +38,6 @@ class External_magnetic_field_uniform : public External_field
 {
 private:
     Vec3d magnetic_field;
-    double speed_of_light;
 public:    
     External_magnetic_field_uniform(
 	External_magnetic_field_uniform_config_part &field_conf );
@@ -88,7 +88,6 @@ private:
     //possible or not?
     //te_variable vars[] = {{"x", &te_x}, {"y", &te_y}, {"z", &te_z}, {"t", &te_t}};    
     
-    double speed_of_light;    
 public:    
     External_magnetic_field_tinyexpr(
 	External_magnetic_field_tinyexpr_config_part &field_conf );

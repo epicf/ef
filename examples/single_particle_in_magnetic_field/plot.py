@@ -67,7 +67,7 @@ def eval_an_trajectory_at_num_time_points( num_trajectory ):
     v_prll = vz0
 
     global speed_of_light, larmor_rad, larmor_freq
-    speed_of_light = 3e10
+    speed_of_light = 3e10 # todo 
     larmor_rad = m / abs(q) * v_perp_len / B0 * speed_of_light
     larmor_freq = abs(q) / m * B0 / speed_of_light
 

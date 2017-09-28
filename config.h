@@ -377,7 +377,6 @@ public:
     double magnetic_field_x;
     double magnetic_field_y;
     double magnetic_field_z;
-    double speed_of_light;
 public:
     External_magnetic_field_uniform_config_part(){};
     External_magnetic_field_uniform_config_part(
@@ -385,8 +384,7 @@ public:
 	External_field_config_part( name, ptree ),
 	magnetic_field_x( ptree.get<double>("magnetic_field_x") ),
 	magnetic_field_y( ptree.get<double>("magnetic_field_y") ),
-	magnetic_field_z( ptree.get<double>("magnetic_field_z") ),
-	speed_of_light( ptree.get<double>("speed_of_light") )
+	magnetic_field_z( ptree.get<double>("magnetic_field_z") )
 	{} ;
     virtual ~External_magnetic_field_uniform_config_part() {};
     void print() { 
@@ -394,7 +392,6 @@ public:
 	std::cout << "magnetic_field_x = " << magnetic_field_x << std::endl;
 	std::cout << "magnetic_field_y = " << magnetic_field_y << std::endl;
 	std::cout << "magnetic_field_z = " << magnetic_field_z << std::endl;
-	std::cout << "speed_of_light = " << speed_of_light << std::endl;
     }
 };
 
@@ -428,7 +425,6 @@ public:
     std::string magnetic_field_x;
     std::string magnetic_field_y;
     std::string magnetic_field_z;
-    double speed_of_light;
 public:
     External_magnetic_field_tinyexpr_config_part(){};
     External_magnetic_field_tinyexpr_config_part(
@@ -436,8 +432,7 @@ public:
 	External_field_config_part( name, ptree ),
 	magnetic_field_x( ptree.get<std::string>("magnetic_field_x") ),
 	magnetic_field_y( ptree.get<std::string>("magnetic_field_y") ),
-	magnetic_field_z( ptree.get<std::string>("magnetic_field_z") ),
-	speed_of_light( ptree.get<double>("speed_of_light") )
+	magnetic_field_z( ptree.get<std::string>("magnetic_field_z") )
 	{} ;
     virtual ~External_magnetic_field_tinyexpr_config_part() {};
     void print() { 
@@ -445,7 +440,6 @@ public:
 	std::cout << "magnetic_field_x = " << magnetic_field_x << std::endl;
 	std::cout << "magnetic_field_y = " << magnetic_field_y << std::endl;
 	std::cout << "magnetic_field_z = " << magnetic_field_z << std::endl;
-	std::cout << "speed_of_light = " << speed_of_light << std::endl;
     }
 };
 

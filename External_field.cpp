@@ -71,7 +71,6 @@ void External_magnetic_field_uniform::get_values_from_config(
     magnetic_field = vec3d_init( field_conf.magnetic_field_x,
 				 field_conf.magnetic_field_y,
 				 field_conf.magnetic_field_z );
-    speed_of_light = field_conf.speed_of_light;
 }
 
 External_magnetic_field_uniform::External_magnetic_field_uniform(
@@ -91,9 +90,6 @@ External_magnetic_field_uniform::External_magnetic_field_uniform(
     hdf5_status_check( status );
     status = H5LTget_attribute_double( h5_external_magnetic_field_uniform_group, "./",
 				       "magnetic_uniform_field_z", &H_z );
-    hdf5_status_check( status );
-    status = H5LTget_attribute_double( h5_external_magnetic_field_uniform_group, "./",
-				       "speed_of_light", &speed_of_light );
     hdf5_status_check( status );
 
     magnetic_field = vec3d_init( H_x, H_y, H_z );
@@ -137,7 +133,8 @@ void External_magnetic_field_uniform::write_hdf5_field_parameters(
 				       "magnetic_uniform_field_z", &H_z, single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_field_group_id, current_group.c_str(),
-				       "speed_of_light", &speed_of_light, single_element );
+				       "speed_of_light", &physconst_speed_of_light,
+				       single_element );
     hdf5_status_check( status );
     
     return;
@@ -274,7 +271,6 @@ void External_magnetic_field_tinyexpr::check_correctness_and_get_values_from_con
     Hx_expr = field_conf.magnetic_field_x;
     Hy_expr = field_conf.magnetic_field_y;
     Hz_expr = field_conf.magnetic_field_z;
-    speed_of_light = field_conf.speed_of_light;
     
     Hx = te_compile( Hx_expr.c_str(), vars, 4, &err );
     if ( !Hx ) {
@@ -340,11 +336,6 @@ External_magnetic_field_tinyexpr::External_magnetic_field_tinyexpr(
 	printf( "Implement support for longer strings! Aborting.\n" );
 	exit( EXIT_FAILURE );
     }
-
-    
-    status = H5LTget_attribute_double( h5_external_magnetic_field_tinyexpr_group, "./",
-				       "speed_of_light", &speed_of_light );
-    hdf5_status_check( status );
 
     int err;
     te_variable vars[] = { {"x", &te_x}, {"y", &te_y},
@@ -414,7 +405,7 @@ void External_magnetic_field_tinyexpr::write_hdf5_field_parameters(
 				       Hz_expr.c_str() );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_field_group_id, current_group.c_str(),
-				       "speed_of_light", &speed_of_light,
+				       "speed_of_light", &physconst_speed_of_light,
 				       single_element );
     hdf5_status_check( status );
     
