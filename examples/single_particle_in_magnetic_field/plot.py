@@ -123,11 +123,12 @@ def plot_trajectories( num , an ):
 def plot_3d( num, an ):
     fig = plt.figure()
     ax = fig.gca( projection='3d' )
-    ax.plot( num['x'], num['z'], num['y'], 'b.', markersize = 12, label = "Num" )
-    ax.plot( an['x'], an['z'], an['y'],  'g-', linewidth = 3, label = "An" )
+    ax.plot( an['x'], an['y'], an['z'], 'g-', linewidth = 3, label = "An" )
+    ax.plot( num['x'][::2], num['y'][::2], num['z'][::2], 'b.',
+             markersize = 6, label = "Num" )
     ax.set_xlabel('X [cm]') 
-    ax.set_ylabel('Z [cm]') 
-    ax.set_zlabel('Y [cm]')
+    ax.set_ylabel('Y [cm]') 
+    ax.set_zlabel('Z [cm]')
     plt.legend( loc = 'upper left', title="3d" )
     #plt.show()
     print( 'Saving 3d trajectory plot to "3d.png"' )
@@ -144,33 +145,37 @@ def plot_2d( num, an ):
               linestyle='', marker='o',
               label = "Num" )
     plt.plot( an['x'], an['y'],
-              linestyle='-', marker='', lw = 2,
+              linestyle='-', marker='', lw = 3,
               label = "An" )
     ax.set_xlabel('X [cm]') 
     ax.set_ylabel('Y [cm]') 
-    plt.legend( loc = 'upper left', title="XY" )
+    plt.legend( loc = 'upper left', title="XY", bbox_to_anchor=(-0.6,1) )
     #ZX
     ax = plt.subplot(132)
     plt.plot( num['z'], num['x'],
-        linestyle='', marker='o',
-        label = "Num" )
+              linestyle='', marker='o',
+              label = "Num" )
     plt.plot( an['z'], an['x'],
-              linestyle='-', marker='', lw = 2,
+              linestyle='-', marker='', lw = 3,
               label = "An" )
     ax.set_xlabel('Z [cm]') 
-    ax.set_ylabel('X [cm]') 
-    plt.legend( loc = 'upper left', title="ZX" )
+    ax.set_ylabel('X [cm]')
+    ax.text(0.05, 0.92, 'ZX',
+            transform=ax.transAxes, fontsize=15)
+    #plt.legend( loc = 'upper left', title="ZX" )
     #ZY
     ax = plt.subplot(133)
     plt.plot( num['z'], num['y'],
-        linestyle='', marker='o',
-        label = "Num" )
+              linestyle='', marker='o',
+              label = "Num" )
     plt.plot( an['z'], an['y'],
-              linestyle='-', marker='', lw = 2,
+              linestyle='-', marker='', lw = 3,
               label = "An" )
     ax.set_xlabel('Z [cm]') 
-    ax.set_ylabel('Y [cm]') 
-    plt.legend( loc = 'upper left', title="ZY" )
+    ax.set_ylabel('Y [cm]')
+    ax.text(0.88, 0.92, 'ZY',
+            transform=ax.transAxes, fontsize=15)
+    #plt.legend( loc = 'upper left', title="ZY" )
     print( 'Saving 2d trajectory projection plots to "2d.png"' )
     plt.savefig('2d.png')
 
@@ -187,7 +192,7 @@ def plot_kin_en( num , an ):
     #                 max( E_an.max(), E_num.max() ) ] )
     line, = plt.plot( t, E_num, 'o' )
     line.set_label( "Num" )
-    line, = plt.plot( t, E_an, ls = 'solid', lw = 5 )
+    line, = plt.plot( t, E_an, ls = 'solid', lw = 3 )
     line.set_label( "An" )
     plt.legend( loc = 'upper right' )
     print( 'Saving kinetic energy comparison plot to "kin_en.png"' )
