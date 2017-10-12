@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <petscksp.h>
-#include <mpi.h>
 #include <boost/multi_array.hpp>
 #include <vector>
 #include "spatial_mesh.h"
@@ -24,21 +23,16 @@ class Field_solver {
     PC pc;
     PetscInt rstart, rend, nlocal;
     void alloc_petsc_vector( Vec *x, PetscInt size, const char *name );
-    void get_vector_ownership_range_and_local_size_for_each_process(
-	Vec *x, PetscInt *rstart, PetscInt *rend, PetscInt *nlocal );
     void alloc_petsc_matrix( Mat *A,
-			     PetscInt nrow_local, PetscInt ncol_local,
 			     PetscInt nrow, PetscInt ncol,
 			     PetscInt nonzero_per_row );
     void alloc_petsc_matrix_seqaij( Mat *A, PetscInt nrow, PetscInt ncol, PetscInt nonzero_per_row );
     void construct_equation_matrix( Mat *A,
 				    Spatial_mesh &spat_mesh,				    
-				    Inner_regions_manager &inner_regions,
-				    PetscInt nlocal, PetscInt rstart, PetscInt rend );
+				    Inner_regions_manager &inner_regions );
     void construct_equation_matrix_in_full_domain( Mat *A,
 						   int nx, int ny, int nz,
-						   double dx, double dy, double dz,
-						   PetscInt nlocal, PetscInt rstart, PetscInt rend );
+						   double dx, double dy, double dz );
     void cross_out_nodes_occupied_by_objects( Mat *A,
 					      int nx, int ny, int nz,
 					      Inner_regions_manager &inner_regions ); 
@@ -60,9 +54,9 @@ class Field_solver {
 	int nx, int ny, int nz,
 	double dx, double dy, double dz );
     void create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A );
-    void construct_d2dx2_in_3d( Mat *d2dx2_3d, int nx, int ny, int nz, PetscInt rstart, PetscInt rend );
-    void construct_d2dy2_in_3d( Mat *d2dy2_3d, int nx, int ny, int nz, PetscInt rstart, PetscInt rend );
-    void construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz, PetscInt rstart, PetscInt rend );
+    void construct_d2dx2_in_3d( Mat *d2dx2_3d, int nx, int ny, int nz );
+    void construct_d2dy2_in_3d( Mat *d2dy2_3d, int nx, int ny, int nz );
+    void construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz );
     // Solve potential
     void solve_poisson_eqn( Spatial_mesh &spat_mesh,
 			    Inner_regions_manager &inner_regions ); 
@@ -95,14 +89,6 @@ class Field_solver {
 					     int *i, int *j, int *k,
 					     int nx, int ny, int nz );
     void transfer_solution_to_spat_mesh( Spatial_mesh &spat_mesh );
-    void bcast_phi_array_size( int *recieved_rstart, int *recieved_rend, int *recieved_nlocal,
-			       int proc, int mpi_process_rank );
-    void allocate_and_populate_phi_array( double **local_phi_values, int recieved_nlocal,
-					  int proc, int mpi_process_rank );
-    void transfer_from_phi_array_to_spat_mesh_potential( double *local_phi_values,
-							 int recieved_rstart, int recieved_rend,
-							 Spatial_mesh &spat_mesh );
-    void deallocate_phi_array( double *local_phi_values, int proc, int mpi_process_rank );
     // Eval fields from potential
     double boundary_difference( double phi1, double phi2, double dx );
     double central_difference( double phi1, double phi2, double dx );

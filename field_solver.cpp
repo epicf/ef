@@ -11,19 +11,15 @@ Field_solver::Field_solver( Spatial_mesh &spat_mesh,
 
     PetscErrorCode ierr;
     PetscInt A_approx_nonzero_per_row = 7;
-
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );    
     
     alloc_petsc_vector( &phi_vec, nrows, "Solution" );
     ierr = VecSet( phi_vec, 0.0 ); CHKERRXX( ierr );
-    get_vector_ownership_range_and_local_size_for_each_process( &phi_vec, &rstart, &rend, &nlocal );
     alloc_petsc_vector( &rhs, nrows, "RHS" );
-
-    alloc_petsc_matrix( &A, nlocal, nlocal, nrows, ncols, A_approx_nonzero_per_row );
     
-    construct_equation_matrix( &A, spat_mesh, inner_regions, nlocal, rstart, rend );
+    //alloc_petsc_matrix( &A, nrows, ncols, A_approx_nonzero_per_row );
+    alloc_petsc_matrix_seqaij( &A, nrows, ncols, A_approx_nonzero_per_row );    
+
+    construct_equation_matrix( &A, spat_mesh, inner_regions );
     create_solver_and_preconditioner( &ksp, &pc, &A );
 }
 
@@ -37,17 +33,7 @@ void Field_solver::alloc_petsc_vector( Vec *x, int size, const char *name )
     return;
 }
 
-void Field_solver::get_vector_ownership_range_and_local_size_for_each_process(
-    Vec *x, PetscInt *rstart, PetscInt *rend, PetscInt *nlocal )
-{
-    PetscErrorCode ierr;
-    ierr = VecGetOwnershipRange( *x, rstart, rend ); CHKERRXX(ierr);
-    ierr = VecGetLocalSize( *x, nlocal ); CHKERRXX(ierr);
-    return;
-}
-
 void Field_solver::alloc_petsc_matrix( Mat *A,
-				       PetscInt nrow_local, PetscInt ncol_local,
 				       PetscInt nrow, PetscInt ncol,
 				       PetscInt nonzero_per_row )
 {
@@ -55,20 +41,23 @@ void Field_solver::alloc_petsc_matrix( Mat *A,
     // PetscInt approx_nonzero_per_row = 7;
 
     ierr = MatCreate( PETSC_COMM_WORLD, A ); CHKERRXX( ierr );
-    ierr = MatSetSizes( *A, nrow_local, ncol_local, nrow, ncol ); CHKERRXX( ierr );
+    ierr = MatSetSizes( *A, PETSC_DECIDE, PETSC_DECIDE, nrow, ncol ); CHKERRXX( ierr );
     ierr = MatSetFromOptions( *A ); CHKERRXX( ierr );
     ierr = MatSetType( *A, MATAIJ ); CHKERRXX( ierr );
     // redo; set nonzero_per_row more accurately
     // if           nlocal >= (nx-2)*(ny-2): max_diag_nonzero_per_row = 7, max_offdiag_nonzer_per_row = 3
     //    (nx-2) <= nlocal < (nx-2)*(ny-2) : max_diag_nonzero_per_row = 5, max_offdiag_nonzer_per_row = 4
-    // probably. 
-    ierr = MatMPIAIJSetPreallocation( *A, nonzero_per_row, NULL, nonzero_per_row, NULL); CHKERRXX( ierr ); 
+    // probably.
+    //ierr = MatSeqAIJSetPreallocation( *A, nonzero_per_row, NULL, nonzero_per_row, NULL);
+    ierr = MatSeqAIJSetPreallocation( *A, nonzero_per_row, NULL );    
+    CHKERRXX( ierr ); 
     ierr = MatSetUp( *A ); CHKERRXX( ierr );
     return;
 }
 
-void Field_solver::alloc_petsc_matrix_seqaij( Mat *A, PetscInt nrow,
-					      PetscInt ncol, PetscInt nonzero_per_row )
+void Field_solver::alloc_petsc_matrix_seqaij( Mat *A,
+					      PetscInt nrow, PetscInt ncol,
+					      PetscInt nonzero_per_row )
 {
     PetscErrorCode ierr;
     ierr = MatCreateSeqAIJ( PETSC_COMM_SELF, nrow, ncol,
@@ -80,8 +69,7 @@ void Field_solver::alloc_petsc_matrix_seqaij( Mat *A, PetscInt nrow,
 
 void Field_solver::construct_equation_matrix( Mat *A,
 					      Spatial_mesh &spat_mesh,
-					      Inner_regions_manager &inner_regions,
-					      PetscInt nlocal, PetscInt rstart, PetscInt rend )
+					      Inner_regions_manager &inner_regions )
 {
     int nx = spat_mesh.x_n_nodes;
     int ny = spat_mesh.y_n_nodes;
@@ -90,16 +78,16 @@ void Field_solver::construct_equation_matrix( Mat *A,
     double dy = spat_mesh.y_cell_size;
     double dz = spat_mesh.z_cell_size;    
     
-    construct_equation_matrix_in_full_domain( A, nx, ny, nz, dx, dy, dz, nlocal, rstart, rend );
+    construct_equation_matrix_in_full_domain( A, nx, ny, nz, dx, dy, dz );
     cross_out_nodes_occupied_by_objects( A, nx, ny, nz, inner_regions );
     modify_equation_near_object_boundaries( A, nx, ny, nz, dx, dy, dz, inner_regions );
 }
 
 
-void Field_solver::construct_equation_matrix_in_full_domain( Mat *A,
-							     int nx, int ny, int nz,
-							     double dx, double dy, double dz,
-							     PetscInt nlocal, PetscInt rstart, PetscInt rend )
+void Field_solver::construct_equation_matrix_in_full_domain(
+    Mat *A,
+    int nx, int ny, int nz,
+    double dx, double dy, double dz )
 {
     PetscErrorCode ierr;
     Mat d2dy2, d2dz2;
@@ -107,17 +95,19 @@ void Field_solver::construct_equation_matrix_in_full_domain( Mat *A,
     int ncol = nrow;
     PetscInt nonzero_per_row = 7; // approx
 
-    construct_d2dx2_in_3d( A, nx, ny, nz, rstart, rend );
+    construct_d2dx2_in_3d( A, nx, ny, nz );
     ierr = MatScale( *A, dy * dy * dz * dz ); CHKERRXX( ierr );
     
-    alloc_petsc_matrix( &d2dy2, nlocal, nlocal, nrow, ncol, nonzero_per_row );
-    construct_d2dy2_in_3d( &d2dy2, nx, ny, nz, rstart, rend );
-    ierr = MatAXPY( *A, dx * dx * dz * dz, d2dy2, DIFFERENT_NONZERO_PATTERN ); CHKERRXX( ierr );
+    alloc_petsc_matrix( &d2dy2, nrow, ncol, nonzero_per_row );
+    construct_d2dy2_in_3d( &d2dy2, nx, ny, nz );
+    ierr = MatAXPY( *A, dx * dx * dz * dz, d2dy2, DIFFERENT_NONZERO_PATTERN );
+    CHKERRXX( ierr );
     ierr = MatDestroy( &d2dy2 ); CHKERRXX( ierr );
 
-    alloc_petsc_matrix( &d2dz2, nlocal, nlocal, nrow, ncol, nonzero_per_row );
-    construct_d2dz2_in_3d( &d2dz2, nx, ny, nz, rstart, rend );
-    ierr = MatAXPY( *A, dx * dx * dy * dy, d2dz2, DIFFERENT_NONZERO_PATTERN ); CHKERRXX( ierr );
+    alloc_petsc_matrix( &d2dz2, nrow, ncol, nonzero_per_row );
+    construct_d2dz2_in_3d( &d2dz2, nx, ny, nz );
+    ierr = MatAXPY( *A, dx * dx * dy * dy, d2dz2, DIFFERENT_NONZERO_PATTERN );
+    CHKERRXX( ierr );
     ierr = MatDestroy( &d2dz2 ); CHKERRXX( ierr );
 
     return;
@@ -242,11 +232,10 @@ std::vector<PetscInt> Field_solver::adjacent_nodes_not_at_domain_edge_and_inside
 
 
 void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d,
-			        int nx, int ny, int nz,
-			        PetscInt rstart, PetscInt rend )
+			        int nx, int ny, int nz )
 {
     PetscErrorCode ierr;
-    //int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
     //int ncol = nrow;
     int at_boundary_pattern_size = 2;
     int no_boundaries_pattern_size = 3;
@@ -263,7 +252,7 @@ void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d,
     at_left_boundary_pattern[1] = -2.0;
 
     int i, j, k;
-    for( int row_idx = rstart; row_idx < rend; row_idx++ ) {
+    for( int row_idx = 0; row_idx < nrow; row_idx++ ) {
 	global_index_in_matrix_to_node_ijk( row_idx, &i, &j, &k, nx, ny, nz );
 	if ( i == 1 ) {
 	    // right boundary
@@ -304,11 +293,10 @@ void Field_solver::construct_d2dx2_in_3d( Mat *d2dx2_3d,
 
 
 void Field_solver::construct_d2dy2_in_3d( Mat *d2dy2_3d,
-			        int nx, int ny, int nz,
-			        PetscInt rstart, PetscInt rend )
+			        int nx, int ny, int nz )
 {
     PetscErrorCode ierr;
-    //int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
     //int ncol = nrow;
     int at_boundary_pattern_size = 2;
     int no_boundaries_pattern_size = 3;
@@ -325,7 +313,7 @@ void Field_solver::construct_d2dy2_in_3d( Mat *d2dy2_3d,
     at_top_boundary_pattern[1] = -2.0;
   
     int i, j, k;
-    for( int row_idx = rstart; row_idx < rend; row_idx++ ) {
+    for( int row_idx = 0; row_idx < nrow; row_idx++ ) {
 	global_index_in_matrix_to_node_ijk( row_idx, &i, &j, &k, nx, ny, nz );
 	if ( j == 1 ) {
 	    // bottom boundary
@@ -364,11 +352,11 @@ void Field_solver::construct_d2dy2_in_3d( Mat *d2dy2_3d,
     return;
 }
 
-void Field_solver::construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz,
-					  PetscInt rstart, PetscInt rend )
+void Field_solver::construct_d2dz2_in_3d( Mat *d2dz2_3d,
+					  int nx, int ny, int nz )
 {
     PetscErrorCode ierr;    
-    //int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
     //int ncol = nrow;
     const int at_boundary_pattern_size = 2;
     const int no_boundaries_pattern_size = 3;
@@ -384,7 +372,7 @@ void Field_solver::construct_d2dz2_in_3d( Mat *d2dz2_3d, int nx, int ny, int nz,
     at_far_boundary_pattern[0] = 1.0;
     at_far_boundary_pattern[1] = -2.0;
   
-    for( int i = rstart; i < rend; i++ ) {	
+    for( int i = 0; i < nrow; i++ ) {	
 	if ( i < ( nx - 2 ) * ( ny - 2 ) ) {
 	    // near boundary
 	    cols[0] = i;
@@ -623,33 +611,25 @@ void Field_solver::indicies_of_near_boundary_nodes_and_rhs_modifications(
     int max_possible_nodes_where_to_modify_rhs = inner_region.near_boundary_nodes_not_at_domain_edge.size();
     indices_of_nodes_near_boundaries.reserve( max_possible_nodes_where_to_modify_rhs );
     rhs_modification_for_nodes_near_boundaries.reserve( max_possible_nodes_where_to_modify_rhs );
-
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
     
     for( auto &node : inner_region.near_boundary_nodes_not_at_domain_edge ){
 	PetscScalar rhs_mod = 0.0;
-	// todo: parallelize instead of making one process
-	// to do all the work. 
-	if( mpi_process_rank == 0 ){
-	    for( auto &adj_node : node.adjacent_nodes() ){
-		// possible todo: separate function for rhs_mod evaluation?
-		if( !adj_node.at_domain_edge( nx, ny, nz ) &&
-		    inner_region.check_if_node_inside( adj_node, dx, dy, dz ) ){
-		    if( adj_node.left_from( node ) ) {
-			rhs_mod += -inner_region.potential * dy * dy * dz * dz;
-		    } else if( adj_node.right_from( node ) ) {
-			rhs_mod += -inner_region.potential * dy * dy * dz * dz;
-		    } else if( adj_node.top_from( node ) ) {
-			rhs_mod += -inner_region.potential * dx * dx * dz * dz;
-		    } else if( adj_node.bottom_from( node ) ) {
-			rhs_mod += -inner_region.potential * dx * dx * dz * dz;
-		    } else if( adj_node.near_from( node ) ) {
-			rhs_mod += -inner_region.potential * dx * dx * dy * dy;
-		    } else if( adj_node.far_from( node ) ) {
-			rhs_mod += -inner_region.potential * dx * dx * dy * dy;
-		    }
+	for( auto &adj_node : node.adjacent_nodes() ){
+	    // possible todo: separate function for rhs_mod evaluation?
+	    if( !adj_node.at_domain_edge( nx, ny, nz ) &&
+		inner_region.check_if_node_inside( adj_node, dx, dy, dz ) ){
+		if( adj_node.left_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dy * dy * dz * dz;
+		} else if( adj_node.right_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dy * dy * dz * dz;
+		} else if( adj_node.top_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dx * dx * dz * dz;
+		} else if( adj_node.bottom_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dx * dx * dz * dz;
+		} else if( adj_node.near_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dx * dx * dy * dy;
+		} else if( adj_node.far_from( node ) ) {
+		    rhs_mod += -inner_region.potential * dx * dx * dy * dy;
 		}
 	    }
 	}
@@ -759,74 +739,26 @@ void Field_solver::global_index_in_matrix_to_node_ijk( int global_index,
 
 void Field_solver::transfer_solution_to_spat_mesh( Spatial_mesh &spat_mesh )
 {
-    int recieved_rstart, recieved_rend, recieved_nlocal;
-    double *local_phi_values;
-
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( PETSC_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
-
-    MPI_Barrier( PETSC_COMM_WORLD );
-    for( int proc = 0; proc < mpi_n_of_proc; proc++ ){
-	bcast_phi_array_size( &recieved_rstart, &recieved_rend, &recieved_nlocal, proc, mpi_process_rank );
-	allocate_and_populate_phi_array( &local_phi_values, recieved_nlocal, proc, mpi_process_rank );
-	transfer_from_phi_array_to_spat_mesh_potential( local_phi_values, recieved_rstart, recieved_rend, spat_mesh );
-	deallocate_phi_array( local_phi_values, proc, mpi_process_rank );
-    }
-}
-
-void Field_solver::bcast_phi_array_size( int *recieved_rstart, int *recieved_rend, int *recieved_nlocal,
-					 int proc, int mpi_process_rank )
-{
-    if( proc == mpi_process_rank ){
-	*recieved_rstart = rstart;
-	*recieved_rend = rend;
-    }
-    MPI_Bcast( recieved_rstart, 1, MPI_INT, proc, PETSC_COMM_WORLD );
-    MPI_Bcast( recieved_rend, 1, MPI_INT, proc, PETSC_COMM_WORLD );
-    *recieved_nlocal = *recieved_rend - *recieved_rstart;
-    return;
-}
-
-void Field_solver::allocate_and_populate_phi_array( double **local_phi_values, int recieved_nlocal,
-						    int proc, int mpi_process_rank )
-{
+    double phi_value;
+    PetscInt extract_single = 1;
     PetscErrorCode ierr;
-    if( proc == mpi_process_rank ){
-	ierr = VecGetArray( phi_vec, local_phi_values ); CHKERRXX( ierr );
-    } else {
-	*local_phi_values = new double [recieved_nlocal];
-    }
-    MPI_Bcast( *local_phi_values, recieved_nlocal, MPI_DOUBLE, proc, PETSC_COMM_WORLD );
-}
-
-void Field_solver::transfer_from_phi_array_to_spat_mesh_potential( double *local_phi_values,
-								   int recieved_rstart, int recieved_rend,
-								   Spatial_mesh &spat_mesh )
-{
+    
     int nx = spat_mesh.x_n_nodes;
     int ny = spat_mesh.y_n_nodes;
     int nz = spat_mesh.z_n_nodes;
     int i,j,k;
 
-    for( int global_index = recieved_rstart; global_index < recieved_rend; global_index++ ){
+    int nrow = ( nx - 2 ) * ( ny - 2 ) * ( nz - 2 );
+    int ncol = nrow;
+    
+    for( int global_index = 0; global_index < ncol; global_index++ ){
 	global_index_in_matrix_to_node_ijk( global_index,
 					    &i, &j, &k,
 					    nx, ny, nz );
-	spat_mesh.potential[i][j][k] = local_phi_values[ global_index - recieved_rstart ];
+	ierr = VecGetValues( phi_vec, extract_single,
+			     &global_index, &phi_value ); CHKERRXX( ierr );
+	spat_mesh.potential[i][j][k] = phi_value;
     }
-    
-}
-
-void Field_solver::deallocate_phi_array( double *local_phi_values, int proc, int mpi_process_rank )
-{
-    PetscErrorCode ierr;
-
-    if( proc == mpi_process_rank ){
-	ierr = VecRestoreArray( phi_vec, &local_phi_values ); CHKERRXX( ierr );
-    } else {
-	delete[] local_phi_values;
-    }		    
 }
 
 void Field_solver::eval_fields_from_potential( Spatial_mesh &spat_mesh )

@@ -2,9 +2,8 @@
 SHELL:=/bin/bash -O extglob
 
 ##### Compilers
-##### Prll
-#export OMPI_CXX=clang++
-CC = mpic++
+#CC=clang++
+CC=mpic++
 HDF5FLAGS=-I/usr/include/hdf5/openmpi -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_BSD_SOURCE -D_FORTIFY_SOURCE=2 -g -fstack-protector-strong -Wformat -Werror=format-security
 PETSCFLAGS=-isystem /usr/include/petsc
 SUPPRESS_MPI_C11_WARNING=-Wno-literal-suffix

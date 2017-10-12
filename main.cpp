@@ -16,12 +16,12 @@ void extract_filename_prefix_and_suffix_from_h5filename( std::string h5_file,
 
 int main( int argc, char *argv[] )
 {
-    PetscErrorCode ierr;
     PetscMPIInt mpi_comm_size;
-    int mpi_process_rank;
+    PetscErrorCode ierr;
     PetscInitialize( &argc, &argv, (char*)0, NULL );
     ierr = MPI_Comm_size( PETSC_COMM_WORLD, &mpi_comm_size); CHKERRXX(ierr);
-    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
+    if (mpi_comm_size != 1)
+        SETERRQ( PETSC_COMM_WORLD, 1, "This is a uniprocessor example only!" );
 
     std::string config_or_h5_file;
     parse_cmd_line( argc, argv, config_or_h5_file );
@@ -47,8 +47,6 @@ void construct_domain( std::string config_or_h5_file,
 		       Domain **dom,
 		       bool *continue_from_h5 )
 {
-    int mpi_process_rank;
-    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
     std::string extension =
 	config_or_h5_file.substr( config_or_h5_file.find_last_of(".") + 1 );
 
@@ -68,9 +66,7 @@ void construct_domain( std::string config_or_h5_file,
 	*continue_from_h5 = true;
     } else {    
 	Config conf( config_or_h5_file );
-	if ( mpi_process_rank == 0 )
-	    conf.print();
-	
+	conf.print();	
 	*dom = new Domain( conf );
     }
 }

@@ -65,18 +65,13 @@ void Domain::continue_pic_simulation()
 
 void Domain::run_pic()
 {
-    int mpi_process_rank;
-    MPI_Comm_rank( PETSC_COMM_WORLD, &mpi_process_rank );
-    
     int total_time_iterations, current_node;
     total_time_iterations = time_grid.total_nodes - 1;
     current_node = time_grid.current_node;
 
     for ( int i = current_node; i < total_time_iterations; i++ ){
-	if ( mpi_process_rank == 0 ){
-	    std::cout << "Time step from " << i << " to " << i+1
-		      << " of " << total_time_iterations << std::endl;
-	}
+	std::cout << "Time step from " << i << " to " << i+1
+		  << " of " << total_time_iterations << std::endl;
     	advance_one_time_step();
     	write_step_to_save();
     }
@@ -305,7 +300,6 @@ void Domain::remove_particles_inside_inner_regions()
 	    [this]( Particle &p ){
 		return inner_regions.check_if_particle_inside_and_count_charge( p );
 	    } ); 
-	inner_regions.sync_absorbed_charge_and_particles_across_proc();
 	src.particles.erase( remove_starting_from, std::end( src.particles ) );
     }
     return;
@@ -367,13 +361,9 @@ void Domain::write()
     file_name_to_write = construct_output_filename( output_filename_prefix, 
 						    time_grid.current_node,
 						    output_filename_suffix  );
-    hid_t plist_id;
-    plist_id = H5Pcreate( H5P_FILE_ACCESS ); hdf5_status_check( plist_id );
-    status = H5Pset_fapl_mpio( plist_id, MPI_COMM_WORLD, MPI_INFO_NULL );
-    hdf5_status_check( status );
 
     hid_t output_file = H5Fcreate( file_name_to_write.c_str(),
-				   H5F_ACC_TRUNC, H5P_DEFAULT, plist_id );
+				   H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
     if ( negative( output_file ) ) {
 	std::cout << "Error: can't open file \'" 
 		  << file_name_to_write 
@@ -386,12 +376,8 @@ void Domain::write()
 	exit( EXIT_FAILURE );
     }
 
-    int mpi_process_rank;
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-    if( mpi_process_rank == 0 ){    
-	std::cout << "Writing step " << time_grid.current_node 
-		  << " to file " << file_name_to_write << std::endl;
-    }
+    std::cout << "Writing step " << time_grid.current_node 
+	      << " to file " << file_name_to_write << std::endl;
 
     time_grid.write_to_file( output_file );
     spat_mesh.write_to_file( output_file );
@@ -400,7 +386,6 @@ void Domain::write()
     external_fields.write_to_file( output_file );
     particle_interaction_model.write_to_file( output_file );
 
-    status = H5Pclose( plist_id ); hdf5_status_check( status );
     status = H5Fclose( output_file ); hdf5_status_check( status );
 
     return;
@@ -460,13 +445,8 @@ void Domain::eval_and_write_fields_without_particles()
 	"fieldsWithoutParticles" + 
 	output_filename_suffix;
 
-    hid_t plist_id;
-    plist_id = H5Pcreate( H5P_FILE_ACCESS ); hdf5_status_check( plist_id );
-    status = H5Pset_fapl_mpio( plist_id, MPI_COMM_WORLD, MPI_INFO_NULL );
-    hdf5_status_check( status );
-
     hid_t output_file = H5Fcreate( file_name_to_write.c_str(),
-				   H5F_ACC_TRUNC, H5P_DEFAULT, plist_id );
+				   H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT );
     if ( negative( output_file ) ) {
 	std::cout << "Error: can't open file \'" 
 		  << file_name_to_write 
@@ -479,18 +459,13 @@ void Domain::eval_and_write_fields_without_particles()
 	exit( EXIT_FAILURE );
     }
 
-    int mpi_process_rank;
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-    if( mpi_process_rank == 0 ){    
-	std::cout << "Writing initial fields" << " "
-		  << "to file " << file_name_to_write << std::endl;
-    }
+    std::cout << "Writing initial fields" << " "
+	      << "to file " << file_name_to_write << std::endl;
     
     spat_mesh.write_to_file( output_file );
     external_fields.write_to_file( output_file );
     inner_regions.write_to_file( output_file );
 
-    status = H5Pclose( plist_id ); hdf5_status_check( status );
     status = H5Fclose( output_file ); hdf5_status_check( status );
 
     return;

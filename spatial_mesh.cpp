@@ -320,38 +320,14 @@ void Spatial_mesh::write_hdf5_attributes( hid_t group_id )
 
 void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
 {   
-    hid_t filespace, memspace, dset;
-    hid_t plist_id;
+    hid_t filespace, dset;
     herr_t status;
     int rank = 1;
-    hsize_t dims[rank], subset_dims[rank], subset_offset[rank];
+    hsize_t dims[rank];
     dims[0] = node_coordinates.num_elements();
-    
-    plist_id = H5Pcreate( H5P_DATASET_XFER );
-    hdf5_status_check( plist_id );
-    status = H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE );
-    hdf5_status_check( status ); 
-    
-    subset_dims[0] = n_of_elements_to_write_for_each_process_for_1d_dataset( dims[0] );
-    subset_offset[0] = data_offset_for_each_process_for_1d_dataset( dims[0] );
 
-    // todo: remove
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-    // std::cout << "total = " << dims[0] << " "
-    // 	      << "proc_n = " << mpi_process_rank << " "
-    // 	      << "count = " << subset_dims[0] << " "
-    // 	      << "offset = " << subset_offset[0] << std::endl;
-    
-    memspace = H5Screate_simple( rank, subset_dims, NULL );
-    hdf5_status_check( memspace );
     filespace = H5Screate_simple( rank, dims, NULL );
-    hdf5_status_check( filespace );
-    status = H5Sselect_hyperslab( filespace, H5S_SELECT_SET,
-				  subset_offset, NULL, subset_dims, NULL );
-    hdf5_status_check( status );
-
+    
     // todo: without compound datasets
     // there is this copying problem.
     double *nx = new double[ dims[0] ];
@@ -367,8 +343,8 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
 		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
     hdf5_status_check( dset );
     status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
-		       memspace, filespace, plist_id,
-		       ( nx + subset_offset[0] ) );
+		       H5S_ALL, filespace, H5P_DEFAULT,
+		       nx );
     hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
 
@@ -377,8 +353,8 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
 		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
     hdf5_status_check( dset );
     status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
-		       memspace, filespace, plist_id,
-		       ( ny + subset_offset[0] ) );
+		       H5S_ALL, filespace, H5P_DEFAULT,
+		       ny );
     hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
 
@@ -387,8 +363,8 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
 		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
     hdf5_status_check( dset );
     status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
-		       memspace, filespace, plist_id,
-		       ( nz + subset_offset[0] ) );
+		       H5S_ALL, filespace, H5P_DEFAULT,
+		       nz );
     hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
     delete[] nx;
@@ -400,8 +376,8 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
 		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
     hdf5_status_check( dset );
     status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
-		       memspace, filespace, plist_id,
-		       ( charge_density.data() + subset_offset[0] ) );
+		       H5S_ALL, filespace, H5P_DEFAULT,
+		       charge_density.data() );
     hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
 
@@ -410,8 +386,8 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
 		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
     hdf5_status_check( dset );
     status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
-		       memspace, filespace, plist_id,
-		       ( potential.data() + subset_offset[0] ) );
+		       H5S_ALL, filespace, H5P_DEFAULT,
+		       potential.data() );
     hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
 
@@ -429,8 +405,8 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
 		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
     hdf5_status_check( dset );
     status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
-		       memspace, filespace, plist_id,
-		       ( ex + subset_offset[0] ) );
+		       H5S_ALL, filespace, H5P_DEFAULT,
+		       ex );
     hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
 
@@ -439,8 +415,8 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
 		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
     hdf5_status_check( dset );
     status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
-		       memspace, filespace, plist_id,
-		       ( ey + subset_offset[0] ) );
+		       H5S_ALL, filespace, H5P_DEFAULT,
+		       ey );
     hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
 
@@ -449,72 +425,15 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
 		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
     hdf5_status_check( dset );
     status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
-		       memspace, filespace, plist_id,
-		       ( ez + subset_offset[0] ) );
+		       H5S_ALL, filespace, H5P_DEFAULT,
+		       ez );
     hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
     delete[] ex;
     delete[] ey;
     delete[] ez;
-
-    // for testing
-    int *mpi_proc_ranks = new int[ dims[0] ];
-    for( unsigned int i = 0; i < dims[0]; i++ ){
-	mpi_proc_ranks[i] = mpi_process_rank;
-    }
-    dset = H5Dcreate( group_id, "./mpi_proc",
-		      H5T_STD_I32BE, filespace,
-		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
-    hdf5_status_check( dset );
-    status = H5Dwrite( dset, H5T_NATIVE_INT,
-		       memspace, filespace, plist_id,
-		       ( mpi_proc_ranks + subset_offset[0] ) );
-    hdf5_status_check( status );
-    status = H5Dclose( dset ); hdf5_status_check( status );
-    delete[] mpi_proc_ranks;
-    //
     
     status = H5Sclose( filespace ); hdf5_status_check( status );
-    status = H5Sclose( memspace ); hdf5_status_check( status );
-    status = H5Pclose( plist_id ); hdf5_status_check( status );
-}
-
-int Spatial_mesh::n_of_elements_to_write_for_each_process_for_1d_dataset( int total_elements )
-{
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-
-    int n_of_elements_for_process = total_elements / mpi_n_of_proc;
-    int rest = total_elements % mpi_n_of_proc;
-    if( mpi_process_rank < rest ){
-	n_of_elements_for_process++;
-    }
-
-    return n_of_elements_for_process;
-}
-
-int Spatial_mesh::data_offset_for_each_process_for_1d_dataset( int total_elements )
-{
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-
-    // todo: it is simpler to calclulate offset directly than
-    // to perform MPI broadcast of n_of_elements_for_each_proc. 
-    int offset;
-    int min_n_of_elements_for_process = total_elements / mpi_n_of_proc;
-    int max_n_of_elements_for_process = min_n_of_elements_for_process + 1;
-    int rest = total_elements % mpi_n_of_proc;
-
-    if( mpi_process_rank < rest ){
-	offset = mpi_process_rank * max_n_of_elements_for_process;
-    } else {
-	offset = rest * max_n_of_elements_for_process +
-	    ( mpi_process_rank - rest ) * min_n_of_elements_for_process;
-    }
-
-    return offset;
 }
 
 void Spatial_mesh::grid_x_size_gt_zero( Config &conf )
