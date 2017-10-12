@@ -57,11 +57,16 @@ def find_necessary_out_files():
     return h5files
 
 out_files = find_necessary_out_files()
+out_files.sort()
+print( out_files )
 
 plt.figure()
 plt.xlabel( "V_prll [cm/s]" )
 plt.ylabel( "N of saved file" )
 plt.yticks( range( len(out_files) ) )
+# todo: show current time on yticks
+# time_step = h5file["/Time_grid"].attrs["current_time"][0]
+
 
 for time_step_num, filename in enumerate(out_files):
     h5file = h5py.File( filename, mode = "r" )
