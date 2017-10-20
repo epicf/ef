@@ -37,7 +37,7 @@ def evaluate_k_const(velocity,current,square):
 
 sgse_to_volts = 300
 
-filename = "pot_0000401.h5"
+filename = "pot_0000101.h5"
 h5file = h5py.File( filename, mode="r")
 
 pot = np.transpose(get_mesh_parameters(h5file))
