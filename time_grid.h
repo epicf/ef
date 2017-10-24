@@ -14,12 +14,17 @@ class Time_grid {
     double time_step_size;
     double time_save_step;
     int total_nodes, current_node, node_to_save;
+    //
+    double dev_total_time, dev_current_time;
+    double dev_time_step_size;
+    double dev_time_save_step;
+    int dev_total_nodes, dev_current_node, dev_node_to_save;    
   public:
     Time_grid( Config &conf );
     Time_grid( hid_t h5_time_grid_group );
     void update_to_next_step();
     void print();
-    void write_to_file( hid_t hdf5_file_id );
+    void write_to_file( hid_t hdf5_file_id );    
   private:
     // initialisation
     void check_correctness_of_related_config_fields( Config &conf );
@@ -35,6 +40,8 @@ class Time_grid {
     void check_and_exit_if_not( const bool &should_be, const std::string &message );
     // write to file
     void hdf5_status_check( herr_t status );
+    // gpu
+    void init_on_device();
 }; 
 
 #endif /* _TIME_GRID_H_ */
