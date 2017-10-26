@@ -16,12 +16,12 @@ Config::Config( const std::string &filename )
 		mesh_config_part = Mesh_config_part( sections.second );
 	    } else if (
 		section_name.find( "Particle_source_box." ) != std::string::npos ) {
-		std::string source_name = section_name.substr( section_name.find(".") + 1 );
+		std::string source_name = section_name.substr(section_name.find(".") + 1);
 		sources_config_part.push_back(
 		    new Particle_source_box_config_part( source_name, sections.second ) );
 	    } else if (
 		section_name.find( "Particle_source_cylinder." ) != std::string::npos ) {
-		std::string source_name = section_name.substr( section_name.find(".") + 1 );
+		std::string source_name = section_name.substr(section_name.find(".") + 1);
 		sources_config_part.push_back(
 		    new Particle_source_cylinder_config_part(
 			source_name, sections.second ) );
@@ -31,7 +31,14 @@ Config::Config( const std::string &filename )
 		inner_regions_config_part.push_back(
 		    new Inner_region_box_config_part(
 			inner_region_name, sections.second ) );
-	    } else if ( section_name.find( "Inner_region_sphere." ) != std::string::npos ) {
+	    } else if ( section_name.find( "Inner_region_box_with_rotation." ) !=
+			std::string::npos ) {
+		std::string inner_region_name =
+		    section_name.substr( section_name.find(".") + 1 );
+		inner_regions_config_part.push_back(
+		    new Inner_region_box_with_rotation_config_part(
+			inner_region_name, sections.second ) );
+	    } else if (section_name.find( "Inner_region_sphere." ) != std::string::npos ) {
 		std::string inner_region_name =
 		    section_name.substr( section_name.find(".") + 1 );
 		inner_regions_config_part.push_back(

@@ -82,10 +82,10 @@ def create_inner_region( inner_region_name, inner_region_group ):
         xleft, xright, ybottom, ytop, znear, zfar = extract_box_position(
             inner_region_name, inner_region_group )
         reg = Box()
-        reg.XLength = xleft - xright
+        reg.XLength = xright - xleft
         reg.YLength = ytop - ybottom
         reg.ZLength = zfar - znear
-        reg.Center = [ xright + reg.XLength / 2,
+        reg.Center = [ xleft + reg.XLength / 2,
                        ybottom + reg.YLength / 2,
                        znear + reg.ZLength / 2 ]
         RenameSource( "inner_region_" + inner_region_name, reg )

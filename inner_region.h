@@ -119,6 +119,48 @@ private:
 };
 
 
+class Inner_region_box_with_rotation : public Inner_region{
+public:
+    double x_center; 
+    double x_size; 
+    double y_center;
+    double y_size;
+    double z_center;
+    double z_size;
+    double clockwise_angle_from_y_deg;
+public:
+    Inner_region_box_with_rotation( Config &conf,
+		      Inner_region_box_with_rotation_config_part &inner_region_conf,
+		      Spatial_mesh &spat_mesh );
+    Inner_region_box_with_rotation( hid_t h5_inner_region_box_with_rotation_group_id,
+		      Spatial_mesh &spat_mesh );
+    virtual ~Inner_region_box_with_rotation() {};
+    void print() {
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "x_center = " << x_center << std::endl;
+	std::cout << "x_size = " << x_size << std::endl;
+	std::cout << "y_center = " << y_center << std::endl;
+	std::cout << "y_size = " << y_size << std::endl;
+	std::cout << "z_center = " << z_center << std::endl;
+	std::cout << "z_size = " << z_size << std::endl;
+	std::cout << "clockwise_angle_from_y_deg = "
+		  << clockwise_angle_from_y_deg << std::endl;
+    }
+    virtual bool check_if_point_inside( double x, double y, double z );
+private:
+    virtual void check_correctness_of_related_config_fields(
+	Config &conf,
+	Inner_region_box_with_rotation_config_part &inner_region_box_with_rotation_conf );
+    virtual void get_values_from_config(
+	Inner_region_box_with_rotation_config_part &inner_region_box_with_rotation_conf );
+    virtual void get_values_from_h5(
+        hid_t h5_inner_region_box_with_rotation_group_id );
+    virtual void write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id );
+};
+
+
 class Inner_region_sphere : public Inner_region{
 public:
     double origin_x;
@@ -255,6 +297,13 @@ public:
 		regions.push_back( new Inner_region_box( conf,
 							 *box_conf,
 							 spat_mesh ) );
+	    } else if( Inner_region_box_with_rotation_config_part *box_with_rotation_conf =
+		dynamic_cast<Inner_region_box_with_rotation_config_part*>(
+		    &inner_region_conf ) ){
+		regions.push_back( new Inner_region_box_with_rotation(
+				       conf,
+				       *box_with_rotation_conf,
+				       spat_mesh ) );
 	    } else if( Inner_region_sphere_config_part *sphere_conf =
 		dynamic_cast<Inner_region_sphere_config_part*>( &inner_region_conf ) ){
 		regions.push_back( new Inner_region_sphere( conf,
@@ -324,6 +373,9 @@ public:
 	if( obj_type == "box" ){
 	    regions.push_back( new Inner_region_box( current_ir_grpid,
 						     spat_mesh ) );
+	} else if ( obj_type == "box_with_rotation" ) {
+	    regions.push_back( new Inner_region_box_with_rotation( current_ir_grpid,
+							spat_mesh ) );
 	} else if ( obj_type == "sphere" ) {
 	    regions.push_back( new Inner_region_sphere( current_ir_grpid,
 							spat_mesh ) );

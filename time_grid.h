@@ -15,10 +15,10 @@ class Time_grid {
     double time_save_step;
     int total_nodes, current_node, node_to_save;
     //
-    double dev_total_time, dev_current_time;
-    double dev_time_step_size;
-    double dev_time_save_step;
-    int dev_total_nodes, dev_current_node, dev_node_to_save;    
+    /* double dev_total_time, dev_current_time; */
+    /* double dev_time_step_size; */
+    /* double dev_time_save_step; */
+    /* int dev_total_nodes, dev_current_node, dev_node_to_save;     */
   public:
     Time_grid( Config &conf );
     Time_grid( hid_t h5_time_grid_group );

@@ -9,7 +9,7 @@ Time_grid::Time_grid( Config &conf )
     shrink_time_save_step_if_necessary( conf ); 
     set_current_time_and_node();
 
-    init_on_device();
+    //init_on_device();
 }
 
 Time_grid::Time_grid( hid_t h5_time_grid_group )
@@ -179,13 +179,13 @@ void Time_grid::init_on_device()
     size_t single_int = sizeof( int );
     size_t single_double = sizeof( double );
         
-    cudaMallocManaged( &total_time, single_double );
-    cudaMallocManaged( &current_time, single_double );
-    cudaMallocManaged( &time_step_size, single_double );
-    cudaMallocManaged( &time_save_step, single_double );
-    cudaMallocManaged( &total_nodes, single_int );
-    cudaMallocManaged( &current_node, single_int );
-    cudaMallocManaged( &node_to_save, single_int );
-    cudaDeviceSynchronize();
+    // cudaMallocManaged( &total_time, single_double );
+    // cudaMallocManaged( &current_time, single_double );
+    // cudaMallocManaged( &time_step_size, single_double );
+    // cudaMallocManaged( &time_save_step, single_double );
+    // cudaMallocManaged( &total_nodes, single_int );
+    // cudaMallocManaged( &current_node, single_int );
+    // cudaMallocManaged( &node_to_save, single_int );
+    // cudaDeviceSynchronize();
 }
 

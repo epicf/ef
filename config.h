@@ -221,6 +221,46 @@ public:
     }
 };
 
+
+class Inner_region_box_with_rotation_config_part : public Inner_region_config_part{
+public:
+    double box_x_center; 
+    double box_x_size; 
+    double box_y_center;
+    double box_y_size;
+    double box_z_center;
+    double box_z_size;
+    double clockwise_angle_from_y_deg;
+public:
+    Inner_region_box_with_rotation_config_part(){};
+    Inner_region_box_with_rotation_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	Inner_region_config_part( name, ptree ),
+	box_x_center( ptree.get<double>("box_x_center") ),
+	box_x_size( ptree.get<double>("box_x_size") ),
+        box_y_center( ptree.get<double>("box_y_center") ),
+	box_y_size( ptree.get<double>("box_y_size") ),
+	box_z_center( ptree.get<double>("box_z_center") ),
+	box_z_size( ptree.get<double>("box_z_size") ),
+	clockwise_angle_from_y_deg( ptree.get<double>("clockwise_angle_from_y_deg") )
+	{};
+    virtual ~Inner_region_box_with_rotation_config_part() {};
+    void print() { 
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "box_x_center = " << box_x_center << std::endl;
+	std::cout << "box_x_size = " << box_x_size << std::endl;
+	std::cout << "box_y_center = " << box_y_center << std::endl;
+	std::cout << "box_y_size = " << box_y_size << std::endl;
+	std::cout << "box_z_center = " << box_z_center << std::endl;
+	std::cout << "box_z_size = " << box_z_size << std::endl;
+	std::cout << "clockwise_angle_from_y_deg = "
+		  << clockwise_angle_from_y_deg << std::endl;	
+    }
+};
+
+
+
 class Inner_region_sphere_config_part : public Inner_region_config_part{
 public:
     double sphere_origin_x;

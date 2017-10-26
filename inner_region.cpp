@@ -331,6 +331,155 @@ void Inner_region_box::write_hdf5_region_specific_parameters(
 
 
 
+// Box with rotation
+
+Inner_region_box_with_rotation::Inner_region_box_with_rotation(
+    Config &conf,
+    Inner_region_box_with_rotation_config_part &inner_region_box_with_rotation_conf,
+    Spatial_mesh &spat_mesh ) :
+    Inner_region( conf, inner_region_box_with_rotation_conf )
+{
+    object_type = "box_with_rotation";
+    check_correctness_of_related_config_fields(conf, inner_region_box_with_rotation_conf);
+    get_values_from_config( inner_region_box_with_rotation_conf );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
+Inner_region_box_with_rotation::Inner_region_box_with_rotation(
+    hid_t h5_inner_region_box_with_rotation_group_id,
+    Spatial_mesh &spat_mesh ) :
+    Inner_region( h5_inner_region_box_with_rotation_group_id )
+{
+    object_type = "box_with_rotation";
+    //check_correctness_of_related_config_fields(conf,inner_region_box_with_rotation_conf);
+    get_values_from_h5( h5_inner_region_box_with_rotation_group_id );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
+
+void Inner_region_box_with_rotation::check_correctness_of_related_config_fields(
+    Config &conf,
+    Inner_region_box_with_rotation_config_part &inner_region_box_with_rotation_conf )
+{
+    // check if region lies inside the domain
+}
+
+void Inner_region_box_with_rotation::get_values_from_config(
+    Inner_region_box_with_rotation_config_part &inner_region_box_with_rotation_conf )
+{
+    x_center = inner_region_box_with_rotation_conf.box_x_center;
+    x_size = inner_region_box_with_rotation_conf.box_x_size;
+    y_center = inner_region_box_with_rotation_conf.box_y_center;
+    y_size = inner_region_box_with_rotation_conf.box_y_size;
+    z_center = inner_region_box_with_rotation_conf.box_z_center;
+    z_size = inner_region_box_with_rotation_conf.box_z_size;
+    clockwise_angle_from_y_deg =
+	inner_region_box_with_rotation_conf.clockwise_angle_from_y_deg;
+}
+
+void Inner_region_box_with_rotation::get_values_from_h5(
+        hid_t h5_inner_region_box_with_rotation_group_id )
+{
+    herr_t status;
+    status = H5LTget_attribute_double( h5_inner_region_box_with_rotation_group_id, "./",
+				       "x_center", &x_center );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_box_with_rotation_group_id, "./",
+				       "x_size", &x_size ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_box_with_rotation_group_id, "./",
+				       "y_center", &y_center );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_box_with_rotation_group_id, "./",
+				       "y_size", &y_size ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_box_with_rotation_group_id, "./",
+				       "z_center", &z_center );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_box_with_rotation_group_id, "./",
+				       "z_size", &z_size ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_box_with_rotation_group_id, "./",
+				       "clockwise_angle_from_y_deg",
+				       &clockwise_angle_from_y_deg );
+    hdf5_status_check( status );    
+}
+
+
+bool Inner_region_box_with_rotation::check_if_point_inside( double x, double y, double z )
+{
+    // shift_axes();
+    // Rect_pos + Shifted_Particle = Orig_Particle
+    double shifted_x = x - x_center;
+    double shifted_y = y - y_center;
+    double shifted_z = z - z_center;
+    // rotate_axes();
+    double rotated_x = shifted_x;
+    double rotated_y = shifted_y * cos( clockwise_angle_from_y_deg )
+	- shifted_z * sin( clockwise_angle_from_y_deg );
+    double rotated_z = shifted_y * sin( clockwise_angle_from_y_deg )
+	+ shifted_z * cos( clockwise_angle_from_y_deg );
+    //
+    bool in = 
+	( rotated_x <= x_center + x_size / 2.0 ) &&
+	( rotated_x >= x_center - x_size / 2.0 ) &&
+	( rotated_y <= y_center + y_size / 2.0 ) &&
+	( rotated_y >= y_center - y_size / 2.0 ) &&
+	( rotated_z <= z_center + z_size / 2.0 ) &&
+	( rotated_z >= z_center - z_size / 2.0 ) ;
+
+    return in;
+}
+
+
+void Inner_region_box_with_rotation::write_hdf5_region_specific_parameters(
+    hid_t current_region_group_id )
+{
+    herr_t status;
+    int single_element = 1;
+    std::string current_region_groupname = "./";
+    
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "x_center", &x_center, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "x_size", &x_size, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "y_center", &y_center, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "y_size", &y_size, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "z_center", &z_center, single_element );
+    hdf5_status_check( status );
+
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "z_size", &z_size, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "clockwise_angle_from_y_deg",
+				       &clockwise_angle_from_y_deg, single_element );
+    hdf5_status_check( status );
+}
+
+
+
 // Sphere
 
 Inner_region_sphere::Inner_region_sphere(
