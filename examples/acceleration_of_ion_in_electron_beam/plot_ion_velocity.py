@@ -3,13 +3,15 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
-def get_electrons_current( h5file ):
-    time_step = h5file["/Time_grid"].attrs["time_step_size"][0]
-    charge = h5file["/Particle_sources/electrons"].attrs["charge"][0]
+def get_electrons_concentration( h5file ):
     particles_per_step = h5file[
         "/Particle_sources/electrons"].attrs["particles_to_generate_each_step"][0]
-    current = particles_per_step * charge / time_step
-    return current
+    radius = h5file["/Particle_sources/electrons"].attrs["cylinder_radius"][0]
+    start = h5file["/Particle_sources/electrons"].attrs["cylinder_axis_start_z"][0]
+    end = h5file["/Particle_sources/electrons"].attrs["cylinder_axis_end_z"][0]
+    source_volume = np.pi * radius ** 2 * np.abs( end - start )
+    n_e = particles_per_step / source_volume
+    return n_e
 
 def get_electrons_current_density( h5file ):
     I = get_electrons_current( h5file )
@@ -17,32 +19,37 @@ def get_electrons_current_density( h5file ):
     current_density = I / ( np.pi * radius * radius )
     return current_density
 
-def get_electrons_energy( h5file ):    
+def get_electron_energy( h5file ):    
     pz = h5file["/Particle_sources/electrons"].attrs["mean_momentum_z"][0]
     m = h5file["/Particle_sources/electrons"].attrs["mass"][0]
     E = pz * pz / ( 2.0 * m )
     return E
+
+def get_electron_velocity( h5file ):    
+    pz = h5file["/Particle_sources/electrons"].attrs["mean_momentum_z"][0]
+    m = h5file["/Particle_sources/electrons"].attrs["mass"][0]
+    v_e = pz / m
+    return v_e
+
+def get_electron_parameters( h5file ):
+    mass = h5file["/Particle_sources/electrons"].attrs["mass"][0]
+    charge = h5file["/Particle_sources/electrons"].attrs["charge"][0]
+    return ( mass, charge )
 
 def get_ions_parameters( h5file ):
     mass = h5file["/Particle_sources/ions"].attrs["mass"][0]
     charge = h5file["/Particle_sources/ions"].attrs["charge"][0]
     return ( mass, charge )
 
-def eq10_test( j, xi, A, E_e ):
-    # j - beam current density [ Ampere / cm^2 ]
-    # xi - charge state of the ion
-    # A - atomic weight of the ion
-    # E_e - electron energy [keV] !!!
-    return 5.8e6 * j * xi * xi / A / np.sqrt( E_e * E_e * E_e )
+def get_electron_beam_radius( h5file ):
+    return h5file["/Particle_sources/electrons"].attrs["cylinder_radius"][0]
 
-def eq9_test( m_electron, e, v_e, n_e, M_ion, xi ):
-    kT = 1.380e-16 * 3000
-    p_0 = xi * e * e / m_electron / v_e ** 2
-    debaye_len = np.sqrt( kT / ( 4 * np.pi * n_e * e * e ) )
-    Lambda = debaye_len / p_0
-    tmp1 = 2.0 * np.pi * m_electron / M_ion
-    tmp2 = n_e * v_e ** 2 * p_0 ** 2
-    return tmp1 * tmp2 * np.log( 1 + Lambda ** 2 )
+
+def eval_a_prll( m_e, q_e, M_i, Q_i, v_e, n_e, R ):
+    rho_0 = q_e * Q_i / ( m_e * v_e ** 2 )    
+    tmp1 = 2.0 * np.pi * m_e / M_i * rho_0 ** 2 * v_e ** 2
+    tmp2 = np.log( R ** 2 / rho_0 ** 2 + 1 )
+    return tmp1 * tmp2
 
 
 def find_necessary_out_files():
@@ -60,21 +67,19 @@ out_files.sort()
 print( out_files )
 
 h5file = h5py.File( out_files[0], mode = "r" )
-I = get_electrons_current( h5file )
-j = get_electrons_current_density( h5file )
-E_e = get_electrons_energy( h5file )
-m, q = get_ions_parameters( h5file )
+M_i, Q_i = get_ions_parameters( h5file )
+m_e, q_e = get_electron_parameters( h5file )
+v_e = get_electron_velocity( h5file )
+n_e = get_electrons_concentration( h5file )
+R = get_electron_beam_radius( h5file )
 z_volume_size = h5file["/Spatial_mesh"].attrs["z_volume_size"][0]
 x_volume_size = h5file["/Spatial_mesh"].attrs["x_volume_size"][0]
 
 ### V_prll
-xi = 1
-A = 1
 ampere_to_cgs = 2997924536.8431
-j_ampere = j / ampere_to_cgs
 ev_to_cgs = 1.60218e-12
-E_e_keV = E_e / ev_to_cgs / 1000
-a_prll = eq10_test( np.abs(j_ampere), xi, A, E_e_keV )
+a_prll = eval_a_prll( m_e, q_e, M_i, Q_i, v_e, n_e, R )
+print( "aprll = ", a_prll )
 v_prll_initial = 0 # todo: read from config
 
 plt.figure()
@@ -87,7 +92,7 @@ yticks_label = []
 for time_step_num, filename in enumerate(out_files):
     h5file = h5py.File( filename, mode = "r" )
     p_z_num = h5file["/Particle_sources/ions/momentum_z"]
-    v_prll = p_z_num / m
+    v_prll = p_z_num / M_i
 
     time_step = h5file["/Time_grid"].attrs["current_time"][0]
     yticks_label.append( time_step )
@@ -130,7 +135,7 @@ for time_step_num, filename in enumerate(out_files):
     h5file = h5py.File( filename, mode = "r" )
     p_x_num = h5file["/Particle_sources/ions/momentum_x"]
     p_y_num = h5file["/Particle_sources/ions/momentum_y"]
-    v_perp = np.sqrt( np.square( p_x_num ) + np.square( p_y_num ) ) / m
+    v_perp = np.sqrt( np.square( p_x_num ) + np.square( p_y_num ) ) / M_i
 
     time_step = h5file["/Time_grid"].attrs["current_time"][0]
     yticks_label.append( time_step )
@@ -164,8 +169,8 @@ h5file = h5py.File( filename, mode = "r" )
 p_x_num = h5file["/Particle_sources/ions/momentum_x"]
 p_y_num = h5file["/Particle_sources/ions/momentum_y"]
 p_z_num = h5file["/Particle_sources/ions/momentum_z"]
-v_prll = p_z_num / m
-v_perp = np.sqrt( np.square( p_x_num ) + np.square( p_y_num ) ) / m
+v_prll = p_z_num / M_i
+v_perp = np.sqrt( np.square( p_x_num ) + np.square( p_y_num ) ) / M_i
 
 plt.figure()
 plt.xlabel( "V_prll [cm/s]" )
