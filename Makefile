@@ -29,7 +29,7 @@ TINYEXPR=./lib/tinyexpr
 TINYEXPR_OBJ=./lib/tinyexpr/tinyexpr.o
 SUBDIRS=doc
 
-$(EXECUTABLE): $(OBJECTS) $(TINYEXPR)
+$(EXECUTABLE): $(TINYEXPR) $(OBJECTS) 
 	$(CC) $(LDFLAGS) $(OBJECTS) $(TINYEXPR_OBJ) -o $@ $(LIBS)
 
 $(OBJECTS):%.o:%.cpp $(CPPHEADERS)
