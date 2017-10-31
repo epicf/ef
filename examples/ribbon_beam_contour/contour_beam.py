@@ -35,12 +35,12 @@ def get_source_geometry( h5file ):
     end_y = h5file["/Particle_sources/cathode_emitter"].attrs["box_y_bottom"][0]
     start_x = h5file["/Particle_sources/cathode_emitter"].attrs["box_x_left"][0]
     end_x = h5file["/Particle_sources/cathode_emitter"].attrs["box_x_right"][0]
-    length_of_cathode = start_y-end_y
-    half_width_of_cathode = (start_x-end_x) / 2
-    center_of_beam = (start_x+end_x) / 2    
+    length_of_cathode = start_y - end_y
+    half_width_of_cathode = ( end_x - start_x ) / 2
+    center_of_beam = ( start_x + end_x ) / 2    
     return ( length_of_cathode * SI_conv_cm_to_m, 
-            half_width_of_cathode * SI_conv_cm_to_m, 
-            center_of_beam * SI_conv_cm_to_m )
+             half_width_of_cathode * SI_conv_cm_to_m, 
+             center_of_beam * SI_conv_cm_to_m )
     
 def get_zlim( h5file ):
     start_z = h5file["/Particle_sources/cathode_emitter"].attrs["box_z_near"][0]
@@ -57,7 +57,7 @@ def get_current_dens(current,length_of_cathode):
     current_dens = current / length_of_cathode 
     return current_dens
 
-def p_const( linear_current_density , voltage, charge , mass):                                     
+def p_const( linear_current_density , voltage, charge , mass):
     eps = 8.85e-12
     p_const = 1 / (4*eps*(np.abs(2*charge/mass))**0.5) * linear_current_density / voltage**1.5 ;   
     return p_const                                           

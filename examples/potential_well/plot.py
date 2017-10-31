@@ -37,7 +37,7 @@ def evaluate_k_const(velocity,current,square):
 
 sgse_to_volts = 300
 
-filename = "pot_0000401.h5"
+filename = "pot_0000101.h5"
 h5file = h5py.File( filename, mode="r")
 
 pot = np.transpose(get_mesh_parameters(h5file))
@@ -56,11 +56,14 @@ pot = pot[np.where(pot[:, 0] == beam_center_x)]
 pot = pot[np.where(pot[:, 2] == beam_middle_z)]
 plt.xlabel("X coordinate, [cm]")
 plt.ylabel("Potential, [V]")
-plt.plot(pot[:, 1], pot[:, 3]*sgse_to_volts, '.', label = "num")
-plt.plot(R_beam+beam_center_x,phi_beam, label = "theory_beam")
-plt.plot(R_empty+beam_center_x,phi_empty, label = "theory_empty_space")
+plt.plot(pot[:, 1], pot[:, 3]*sgse_to_volts, '.', color = "blue", label = "num")
+plt.plot(R_beam+beam_center_x,phi_beam, color = 'r', label = "theory_beam")
+plt.plot(-1*R_beam+beam_center_x,phi_beam, color = 'r')
+plt.plot(R_empty+beam_center_x,phi_empty, color = 'g', label = "theory_empty_space")
+plt.plot(-1*R_empty+beam_center_x,phi_empty, color = 'g')
 plt.legend(loc='lower right')
 plt.savefig("pot.png")
 h5file.close()
+
 
 
