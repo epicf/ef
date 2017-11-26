@@ -33,7 +33,9 @@ class EfWorkbench( Workbench ):
         # and append them to Toolbar and Menu
         import Commands
         self.cmd_list = [ "CreateEfConfig",
-                          "AddSourceRegion", "AddInnerRegionBox",
+                          "AddSourceRegion",
+                          "AddCylindricalSource",
+                          "AddInnerRegionBox",
                           "GenerateConfFile" ]        
         self.appendToolbar( "Ef commands", self.cmd_list )
         self.appendMenu( "Ef", self.cmd_list )
