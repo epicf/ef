@@ -430,8 +430,8 @@ void Field_solver::create_solver_and_preconditioner( KSP *ksp, PC *pc, Mat *A )
     
     PetscErrorCode ierr;
     ierr = KSPCreate( PETSC_COMM_WORLD, ksp ); CHKERRXX(ierr);
-    ierr = KSPSetOperators( *ksp, *A, *A, DIFFERENT_NONZERO_PATTERN ); CHKERRXX(ierr);
-    //ierr = KSPSetOperators( *ksp, *A, *A ); CHKERRXX(ierr);
+    //ierr = KSPSetOperators( *ksp, *A, *A, DIFFERENT_NONZERO_PATTERN ); CHKERRXX(ierr);
+    ierr = KSPSetOperators( *ksp, *A, *A ); CHKERRXX(ierr);
     ierr = KSPGetPC( *ksp, pc ); CHKERRXX(ierr);
     ierr = PCSetType( *pc, PCGAMG ); CHKERRXX(ierr);
     ierr = KSPSetType( *ksp, KSPGMRES ); CHKERRXX(ierr);
