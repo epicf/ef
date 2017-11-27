@@ -664,9 +664,16 @@ class ParticleSourceConfigPart():
     def __init__( self, obj ):
         obj.addProperty(
             "App::PropertyEnumeration",
-            "set_of_parameters",
+            "individual_charge_or_total_current",
             "Base",
-            "Specify particles' charge or total source current").set_of_parameters = ["Particles' charge", "Source current"]
+            "Specify particles' charge or total source current")
+        obj.individual_charge_or_total_current = ["Particles' charge", "Source current"]
+        obj.addProperty(
+            "App::PropertyEnumeration",
+            "mass_or_charge_to_mass",
+            "Base",
+            "Specify particles' mass or charge-to-mass ratio")
+        obj.mass_or_charge_to_mass = [ "Mass", "Charge-to-mass" ]
         obj.addProperty(
             "App::PropertyString",
             "initial_number_of_particles",
@@ -760,22 +767,33 @@ class ParticleSourceConfigPart():
         '''Executed when document is recomputated. This method is mandatory'''
         dt = self.get_time_step( obj )
         N = int( obj.particles_to_generate_each_step )
-        parameters_set = obj.getPropertyByName("set_of_parameters")
+        individual_charge_or_total_current = obj.getPropertyByName(
+            "individual_charge_or_total_current")
+        mass_or_charge_to_mass = obj.getPropertyByName(
+            "mass_or_charge_to_mass")
         
-        if parameters_set == "Particles' charge":
+        if individual_charge_or_total_current == "Particles' charge":
             # todo: make certain fields read-only
             # e.g., obj.setEditorMode( "current", readonly )
             q = float( obj.charge )
             I = q * N / dt
             obj.current = str( I )
-        elif parameters_set == "Source current":
+        elif individual_charge_or_total_current == "Source current":
             I = float( obj.current )
             q = I * dt / N        
             obj.charge = str( q )
-            
-        q_to_m = float( obj.charge_to_mass_ratio )
-        m = abs( 1 / q_to_m * q )
-        obj.mass = str( m )
+
+        if mass_or_charge_to_mass == "Mass":
+            # todo: make certain fields read-only
+            # e.g., obj.setEditorMode( "current", readonly )
+            m = float( obj.mass )
+            q_to_m = q / m
+            obj.charge_to_mass_ratio = str( q_to_m )
+        elif mass_or_charge_to_mass == "Charge-to-mass":
+            q_to_m = float( obj.charge_to_mass_ratio )
+            m = abs( 1 / q_to_m * q )
+            obj.mass = str( m )            
+
         return
 
     def attach(self, obj):
@@ -879,7 +897,8 @@ class ParticleSourceConfigPart():
             conf_part.append(
                 "{0} = {1}\n".format( x, self.doc_object.getPropertyByName( x ) ) )
 
-        comments = [ "set_of_parameters",
+        comments = [ "individual_charge_or_total_current",
+                     "mass_or_charge_to_mass",
                      "charge_to_mass_ratio",
                      "current" ]
         for x in comments:
@@ -899,10 +918,16 @@ class ParticleCylindricalSourceConfigPart():
     def __init__( self, obj ):
         obj.addProperty(
             "App::PropertyEnumeration",
-            "set_of_parameters",
+            "individual_charge_or_total_current",
             "Base",
-            "Specify particles' charge or total source current").set_of_parameters = [
-                "Particles' charge", "Source current"]
+            "Specify particles' charge or total source current")
+        obj.individual_charge_or_total_current = ["Particles' charge", "Source current"]
+        obj.addProperty(
+            "App::PropertyEnumeration",
+            "mass_or_charge_to_mass",
+            "Base",
+            "Specify particles' mass or charge-to-mass ratio")
+        obj.mass_or_charge_to_mass = [ "Mass", "Charge-to-mass" ]
         obj.addProperty(
             "App::PropertyString",
             "initial_number_of_particles",
@@ -1020,22 +1045,33 @@ class ParticleCylindricalSourceConfigPart():
         '''Executed when document is recomputated. This method is mandatory'''
         dt = self.get_time_step( obj )
         N = int( obj.particles_to_generate_each_step )
-        parameters_set = obj.getPropertyByName("set_of_parameters")
+        individual_charge_or_total_current = obj.getPropertyByName(
+            "individual_charge_or_total_current")
+        mass_or_charge_to_mass = obj.getPropertyByName(
+            "mass_or_charge_to_mass")
+
         
-        if parameters_set == "Particles' charge":
+        if individual_charge_or_total_current == "Particles' charge":
             # todo: make certain fields read-only
             # e.g., obj.setEditorMode( "current", readonly )
             q = float( obj.charge )
             I = q * N / dt
             obj.current = str( I )
-        elif parameters_set == "Source current":
+        elif individual_charge_or_total_current == "Source current":
             I = float( obj.current )
             q = I * dt / N        
             obj.charge = str( q )
-            
-        q_to_m = float( obj.charge_to_mass_ratio )
-        m = abs( 1 / q_to_m * q )
-        obj.mass = str( m )
+
+        if mass_or_charge_to_mass == "Mass":
+            # todo: make certain fields read-only
+            # e.g., obj.setEditorMode( "current", readonly )
+            m = float( obj.mass )
+            q_to_m = q / m
+            obj.charge_to_mass_ratio = str( q_to_m )
+        elif mass_or_charge_to_mass == "Charge-to-mass":
+            q_to_m = float( obj.charge_to_mass_ratio )
+            m = abs( 1 / q_to_m * q )
+            obj.mass = str( m )            
 
         cylinder_axis_direction = obj.cylinder_axis_direction
         cylinder_length = float( obj.cylinder_length )
@@ -1084,8 +1120,7 @@ class ParticleCylindricalSourceConfigPart():
         return
 
     def updateData( self, obj, prop ):
-        "Executed when propery in field 'data' is changed"
-        # todo: move charge-current recomputation here from 'execute'
+        "Executed when propery in field 'data' is changed"        
         cylinder_axis_direction = obj.getPropertyByName("cylinder_axis_direction")
         cylinder_length = float( obj.getPropertyByName("cylinder_length") )
         cylinder_radius = float( obj.getPropertyByName("cylinder_radius") )
@@ -1183,7 +1218,8 @@ class ParticleCylindricalSourceConfigPart():
             conf_part.append(
                 "{0} = {1}\n".format( x, self.doc_object.getPropertyByName( x ) ) )
 
-        comments = [ "set_of_parameters",
+        comments = [ "individual_charge_or_total_current",
+                     "mass_or_charge_to_mass",
                      "charge_to_mass_ratio",
                      "current",
                      "cylinder_axis_direction",
