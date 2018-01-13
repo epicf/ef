@@ -5,6 +5,8 @@ from math import *
 from pivy import coin
 from PySide import QtGui, QtCore
 
+import subprocess
+
 class CreateEfConfig():
     """Create objects for new ef config"""
  
@@ -43,6 +45,10 @@ class CreateEfConfig():
             "App::FeaturePython", "Magnetic field" )
         MagneticFieldConfigPart( magn_field_conf )
 
+        run_ef = ef_conf_group.newObject(
+            "App::FeaturePython", "Run_Ef" )
+        RunEfConfig( run_ef )
+        
         FreeCAD.ActiveDocument.recompute()
         return
  
@@ -221,6 +227,58 @@ class GenerateConfFile():
             with open( conf_filename, 'w') as f:
                 f.writelines( config_text )
         return conf_filename        
+
+
+
+class RunEf():
+    """Run Ef"""
+ 
+    def GetResources(self):
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/ef"
+        return {'Pixmap'  : moddir + '/icons/run_ef.svg',
+                'Accel' : "Shift+S", # a default shortcut (optional)
+                'MenuText': "Run Ef",
+                'ToolTip' : "Run Ef"}
+ 
+    def Activated(self):        
+        for ef_conf_group in self.selected_ef_conf_groups:
+            # todo: generate config to temp file in temp directory, run ef on this config
+            # Rename 'command' to 'ef_command' 
+            run_ef = ef_conf_group.getObject("Run_Ef")
+            freecad_workdir = os.getcwd()
+            os.chdir( run_ef.change_workdir_to )
+            stdout = subprocess.Popen( run_ef.command, shell = True,
+                                       stdout = subprocess.PIPE ).stdout.read()
+            FreeCAD.Console.PrintMessage( stdout )
+            # https://stackoverflow.com/questions/803265/getting-realtime-output-using-subprocess
+            # realtime output for subprocess
+            os.chdir( freecad_workdir )
+        FreeCAD.ActiveDocument.recompute()
+        return
+ 
+    def IsActive(self):
+        # Add source only if ef-group is selected
+        # todo: check if selected object is ef-conf group
+        # or directly belongs to ef-conf group
+        sel = FreeCADGui.Selection.getSelection()
+        self.selected_ef_conf_groups = []
+        active = False
+        for obj in sel:
+            if "ef" in obj.Name:
+                self.selected_ef_conf_groups.append( obj )
+                active = True
+            else:
+                for parent_obj in obj.InList:
+                    if "ef" in parent_obj.Name:
+                        self.selected_ef_conf_groups.append( parent_obj )
+                        active = True            
+        return active
+
+
+    
+
+###
+
 
     
 class TimeGridConfigPart:
@@ -1372,9 +1430,66 @@ class InnerRegionBoxConfigPart():
         return conf_part
 
 
+
+class RunEfConfig:
+    """Parameters to run computation"""
+
+    def __init__( self, obj ):
+        obj.addProperty(
+            "App::PropertyString", "current_workdir",
+            "Run Parameters", "Path to working directory" ).current_workdir = os.getcwd()
+        obj.setEditorMode( "current_workdir", 1 )
+        obj.addProperty(
+            "App::PropertyString", "change_workdir_to",
+            "Run Parameters", "Path to working directory" ).change_workdir_to = "/tmp/"
+        obj.addProperty(
+            "App::PropertyString", "command",
+            "Run Parameters", "Command to execute" ).command = "./ef.out test.conf"
+        obj.Proxy = self
+        obj.ViewObject.Proxy = self
+        self.doc_object = obj
+        self.view_object = obj.ViewObject
+        
+    def execute(self, fp):
+        '''Executed when document is recomputated. This method is mandatory'''
+        return
+
+    def updateData(self, fp, prop):
+        '''If a property of the handled feature has changed 
+        we have the chance to handle this here'''
+        return
+
+    def attach(self, obj):
+        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
+        return
+    
+    def __getstate__(self):
+        '''When saving the document this object gets stored using Python's json module.
+        Since we have some un-serializable parts 
+        here -- the Coin stuff -- we must define this method
+        to return a tuple of all serializable objects or None.'''
+        doc_object_name = self.doc_object.Name
+        return { "doc_object_name": doc_object_name }
+ 
+    def __setstate__(self, state):
+        '''When restoring the serialized object from document 
+        we have the chance to set some internals here.
+        Since no data were serialized nothing needs to be done here.'''
+        doc_object_name = state[ "doc_object_name" ]
+        self.doc_object = FreeCAD.ActiveDocument.getObject( doc_object_name )
+        self.view_object = self.doc_object.ViewObject
+        return None
+
+    def generate_config_part( self ):
+        # no need to add something to config; return empty list
+        # todo: avoid calling this method for this class
+        return []
+
+    
         
 FreeCADGui.addCommand( 'CreateEfConfig', CreateEfConfig() )
 FreeCADGui.addCommand( 'AddSourceRegion', AddSourceRegion() )
 FreeCADGui.addCommand( 'AddCylindricalSource', AddCylindricalSource() )
 FreeCADGui.addCommand( 'AddInnerRegionBox', AddInnerRegionBox() )
 FreeCADGui.addCommand( 'GenerateConfFile', GenerateConfFile() )
+FreeCADGui.addCommand( 'RunEf', RunEf() )

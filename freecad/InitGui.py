@@ -36,7 +36,8 @@ class EfWorkbench( Workbench ):
                           "AddSourceRegion",
                           "AddCylindricalSource",
                           "AddInnerRegionBox",
-                          "GenerateConfFile" ]        
+                          "GenerateConfFile",
+                          "RunEf" ]        
         self.appendToolbar( "Ef commands", self.cmd_list )
         self.appendMenu( "Ef", self.cmd_list )
             
