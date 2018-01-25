@@ -12,6 +12,87 @@ Spatial_mesh::Spatial_mesh( Config &conf )
 }
 
 
+Spatial_mesh::Spatial_mesh( hid_t h5_spat_mesh_group )
+{
+    herr_t status;
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "x_volume_size", &x_volume_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "y_volume_size", &y_volume_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "z_volume_size", &z_volume_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "x_cell_size", &x_cell_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "y_cell_size", &y_cell_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+			      "z_cell_size", &z_cell_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_spat_mesh_group, "./",
+			   "x_n_nodes", &x_n_nodes );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_spat_mesh_group, "./",
+			   "y_n_nodes", &y_n_nodes );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_spat_mesh_group, "./",
+			   "z_n_nodes", &z_n_nodes );
+    hdf5_status_check( status );
+
+    
+    allocate_ongrid_values();
+
+    
+    int dim = node_coordinates.num_elements();
+    double *h5_tmp_buf_1 = new double[ dim ];
+    double *h5_tmp_buf_2 = new double[ dim ];
+    double *h5_tmp_buf_3 = new double[ dim ];
+    
+    H5LTread_dataset_double( h5_spat_mesh_group, "./node_coordinates_x", h5_tmp_buf_1);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./node_coordinates_y", h5_tmp_buf_2);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./node_coordinates_z", h5_tmp_buf_3);
+    for ( int i = 0; i < dim; i++ ) {
+    	( node_coordinates.data() )[i] = vec3d_init( h5_tmp_buf_1[i],
+						     h5_tmp_buf_2[i],
+						     h5_tmp_buf_3[i] );
+    }
+
+    H5LTread_dataset_double( h5_spat_mesh_group, "./charge_density", h5_tmp_buf_1);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./potential", h5_tmp_buf_2);
+    for ( int i = 0; i < dim; i++ ) {
+	( charge_density.data() )[i] = h5_tmp_buf_1[i];
+	( potential.data() )[i] = h5_tmp_buf_2[i];	
+    }
+
+    H5LTread_dataset_double( h5_spat_mesh_group, "./electric_field_x", h5_tmp_buf_1);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./electric_field_y", h5_tmp_buf_2);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./electric_field_z", h5_tmp_buf_3);
+    for ( int i = 0; i < dim; i++ ) {
+    	( electric_field.data() )[i] = vec3d_init( h5_tmp_buf_1[i],
+						   h5_tmp_buf_2[i],
+						   h5_tmp_buf_3[i] );
+    }
+    
+    H5LTread_dataset_double( h5_spat_mesh_group, "./magnetic_field_x", h5_tmp_buf_1);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./magnetic_field_y", h5_tmp_buf_2);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./magnetic_field_z", h5_tmp_buf_3);
+    for ( int i = 0; i < dim; i++ ) {
+    	( magnetic_field.data() )[i] = vec3d_init( h5_tmp_buf_1[i],
+						   h5_tmp_buf_2[i],
+						   h5_tmp_buf_3[i] );
+    }    
+    
+    delete[] h5_tmp_buf_1;
+    delete[] h5_tmp_buf_2;
+    delete[] h5_tmp_buf_3;
+    
+    return;
+}
+
 void Spatial_mesh::check_correctness_of_related_config_fields( Config &conf )
 {
     grid_x_size_gt_zero( conf );
@@ -76,6 +157,7 @@ void Spatial_mesh::allocate_ongrid_values()
     charge_density.resize( boost::extents[nx][ny][nz] );
     potential.resize( boost::extents[nx][ny][nz] );
     electric_field.resize( boost::extents[nx][ny][nz] );
+    magnetic_field.resize( boost::extents[nx][ny][nz] );
 
     return;
 }
@@ -385,6 +467,48 @@ void Spatial_mesh::write_hdf5_ongrid_values( hid_t group_id )
     delete[] ey;
     delete[] ez;
 
+    double *bx = new double[ dims[0] ];
+    double *by = new double[ dims[0] ];
+    double *bz = new double[ dims[0] ];
+    for( unsigned int i = 0; i < dims[0]; i++ ){
+	bx[i] = vec3d_x( magnetic_field.data()[i] );
+	by[i] = vec3d_y( magnetic_field.data()[i] );
+	bz[i] = vec3d_z( magnetic_field.data()[i] );
+    }
+    dset = H5Dcreate( group_id, "./magnetic_field_x",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( bx + subset_offset[0] ) );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./magnetic_field_y",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( by + subset_offset[0] ) );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+
+    dset = H5Dcreate( group_id, "./magnetic_field_z",
+		      H5T_IEEE_F64BE, filespace,
+		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
+    hdf5_status_check( dset );
+    status = H5Dwrite( dset, H5T_NATIVE_DOUBLE,
+		       memspace, filespace, plist_id,
+		       ( bz + subset_offset[0] ) );
+    hdf5_status_check( status );
+    status = H5Dclose( dset ); hdf5_status_check( status );
+    delete[] bx;
+    delete[] by;
+    delete[] bz;
+    
+    
     // for testing
     int *mpi_proc_ranks = new int[ dims[0] ];
     for( unsigned int i = 0; i < dims[0]; i++ ){
