@@ -25,6 +25,40 @@ void Inner_region::get_values_from_config( Inner_region_config_part &inner_regio
 }
 
 
+Inner_region::Inner_region( hid_t h5_inner_region_group_id )
+{
+    // Read from h5
+    get_values_from_h5( h5_inner_region_group_id );
+    absorbed_particles_current_timestep_current_proc = 0;
+    absorbed_charge_current_timestep_current_proc = 0;
+}
+
+void Inner_region::get_values_from_h5( hid_t h5_inner_region_group_id )
+{
+    herr_t status;
+
+    size_t grp_name_size = 0;
+    char *grp_name = NULL;
+    grp_name_size = H5Iget_name( h5_inner_region_group_id, grp_name, grp_name_size );
+    grp_name_size = grp_name_size + 1;
+    grp_name = new char[ grp_name_size ];
+    grp_name_size = H5Iget_name( h5_inner_region_group_id, grp_name, grp_name_size );
+    std::string longname = std::string( grp_name );
+    name = longname.substr( longname.find_last_of("/") + 1 );
+    delete[] grp_name;
+    
+    status = H5LTget_attribute_double( h5_inner_region_group_id, "./",
+				       "potential", &potential );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_inner_region_group_id, "./",
+				       "total_absorbed_particles", &total_absorbed_particles );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_group_id, "./",
+				       "total_absorbed_charge", &total_absorbed_charge );
+    hdf5_status_check( status );
+}
+
+
 bool Inner_region::check_if_particle_inside( Particle &p )
 {
     double px = vec3d_x( p.position );
@@ -215,6 +249,21 @@ Inner_region_box::Inner_region_box(
     select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
 }
 
+Inner_region_box::Inner_region_box(
+    hid_t h5_inner_region_box_group_id,
+    Spatial_mesh &spat_mesh ) :
+    Inner_region( h5_inner_region_box_group_id )
+{
+    object_type = "box";
+    //check_correctness_of_related_config_fields( conf, inner_region_box_conf );
+    get_values_from_h5( h5_inner_region_box_group_id );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
+
 void Inner_region_box::check_correctness_of_related_config_fields(
     Config &conf,
     Inner_region_box_config_part &inner_region_box_conf )
@@ -231,6 +280,24 @@ void Inner_region_box::get_values_from_config(
     y_top = inner_region_box_conf.box_y_top;
     z_near = inner_region_box_conf.box_z_near;
     z_far = inner_region_box_conf.box_z_far;
+}
+
+void Inner_region_box::get_values_from_h5(
+        hid_t h5_inner_region_box_group_id )
+{
+    herr_t status;
+    status = H5LTget_attribute_double( h5_inner_region_box_group_id, "./",
+				       "x_left", &x_left ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_box_group_id, "./",
+				       "x_right", &x_right ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_box_group_id, "./",
+				       "y_bottom", &y_bottom ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_box_group_id, "./",
+				       "y_top", &y_top ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_box_group_id, "./",
+				       "z_near", &z_near ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_box_group_id, "./",
+				       "z_far", &z_far ); hdf5_status_check( status );
 }
 
 
@@ -301,6 +368,22 @@ Inner_region_sphere::Inner_region_sphere(
     select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
 }
 
+
+Inner_region_sphere::Inner_region_sphere(
+    hid_t h5_inner_region_sphere_group_id,
+    Spatial_mesh &spat_mesh ) :
+    Inner_region( h5_inner_region_sphere_group_id )
+{
+    object_type = "sphere";
+    //check_correctness_of_related_config_fields( conf, inner_region_sphere_conf );
+    get_values_from_h5( h5_inner_region_sphere_group_id );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
+
 void Inner_region_sphere::check_correctness_of_related_config_fields(
     Config &conf,
     Inner_region_sphere_config_part &inner_region_sphere_conf )
@@ -316,6 +399,22 @@ void Inner_region_sphere::get_values_from_config(
     origin_z = inner_region_sphere_conf.sphere_origin_z;
     radius = inner_region_sphere_conf.sphere_radius;
 }
+
+
+void Inner_region_sphere::get_values_from_h5(
+        hid_t h5_inner_region_sphere_group_id )
+{
+    herr_t status;
+    status = H5LTget_attribute_double( h5_inner_region_sphere_group_id, "./",
+				       "origin_x", &origin_x ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_sphere_group_id, "./",
+				       "origin_y", &origin_y ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_sphere_group_id, "./",
+				       "origin_z", &origin_z ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_sphere_group_id, "./",
+				       "radius", &radius ); hdf5_status_check( status );
+}
+
 
 
 bool Inner_region_sphere::check_if_point_inside( double x, double y, double z )
@@ -375,6 +474,21 @@ Inner_region_cylinder::Inner_region_cylinder(
     select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
 }
 
+Inner_region_cylinder::Inner_region_cylinder(
+    hid_t h5_inner_region_cylinder_group_id,
+    Spatial_mesh &spat_mesh ) :
+    Inner_region( h5_inner_region_cylinder_group_id )
+{
+    object_type = "cylinder";
+    //check_correctness_of_related_config_fields( conf, inner_region_cylinder_conf );
+    get_values_from_h5( h5_inner_region_cylinder_group_id );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
+
 void Inner_region_cylinder::check_correctness_of_related_config_fields(
     Config &conf,
     Inner_region_cylinder_config_part &inner_region_cylinder_conf )
@@ -393,6 +507,28 @@ void Inner_region_cylinder::get_values_from_config(
     axis_end_z = inner_region_cylinder_conf.cylinder_axis_end_z;
     radius = inner_region_cylinder_conf.cylinder_radius;
 }
+
+
+void Inner_region_cylinder::get_values_from_h5(
+        hid_t h5_inner_region_cylinder_group_id )
+{
+    herr_t status;
+    status = H5LTget_attribute_double( h5_inner_region_cylinder_group_id, "./",
+				       "axis_start_x", &axis_start_x ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_cylinder_group_id, "./",
+				       "axis_start_y", &axis_start_y ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_cylinder_group_id, "./",
+				       "axis_start_z", &axis_start_z ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_cylinder_group_id, "./",
+				       "axis_end_x", &axis_end_x ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_cylinder_group_id, "./",
+				       "axis_end_y", &axis_end_y ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_cylinder_group_id, "./",
+				       "axis_end_z", &axis_end_z ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_cylinder_group_id, "./",
+				       "radius", &radius ); hdf5_status_check( status );
+}
+
 
 
 bool Inner_region_cylinder::check_if_point_inside( double x, double y, double z )
@@ -477,6 +613,20 @@ Inner_region_tube::Inner_region_tube(
     select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
 }
 
+Inner_region_tube::Inner_region_tube(
+    hid_t h5_inner_region_tube_group_id,
+    Spatial_mesh &spat_mesh ) :
+    Inner_region( h5_inner_region_tube_group_id )
+{
+    object_type = "tube";
+    //check_correctness_of_related_config_fields( conf, inner_region_tube_conf );
+    get_values_from_h5( h5_inner_region_tube_group_id );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
 void Inner_region_tube::check_correctness_of_related_config_fields(
     Config &conf,
     Inner_region_tube_config_part &inner_region_tube_conf )
@@ -496,6 +646,29 @@ void Inner_region_tube::get_values_from_config(
     inner_radius = inner_region_tube_conf.tube_inner_radius;
     outer_radius = inner_region_tube_conf.tube_outer_radius;
 }
+
+void Inner_region_tube::get_values_from_h5(
+        hid_t h5_inner_region_tube_group_id )
+{
+    herr_t status;
+    status = H5LTget_attribute_double( h5_inner_region_tube_group_id, "./",
+				       "axis_start_x", &axis_start_x ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_tube_group_id, "./",
+				       "axis_start_y", &axis_start_y ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_tube_group_id, "./",
+				       "axis_start_z", &axis_start_z ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_tube_group_id, "./",
+				       "axis_end_x", &axis_end_x ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_tube_group_id, "./",
+				       "axis_end_y", &axis_end_y ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_tube_group_id, "./",
+				       "axis_end_z", &axis_end_z ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_tube_group_id, "./",
+				       "inner_radius", &inner_radius ); hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_inner_region_tube_group_id, "./",
+				       "outer_radius", &outer_radius ); hdf5_status_check( status );
+}
+
 
 
 bool Inner_region_tube::check_if_point_inside( double x, double y, double z )

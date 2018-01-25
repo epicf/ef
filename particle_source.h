@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <random>
+#include <ctime>
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -35,6 +36,7 @@ protected:
     std::default_random_engine rnd_gen;
 public:
     Particle_source( Config &conf, Particle_source_config_part &src_conf );
+    Particle_source( hid_t h5_particle_source_group_id );
     void generate_each_step();
     void update_particles_position( double dt );
     void print_particles();
@@ -43,6 +45,8 @@ public:
 protected:
     // Initialization
     virtual void set_parameters_from_config( Particle_source_config_part &src_conf );
+    virtual void read_hdf5_source_parameters( hid_t h5_particle_source_group_id );
+    void read_hdf5_particles( hid_t h5_particle_source_group_id );
     // Particles generation 
     void generate_initial_particles();
     void generate_num_of_particles( int num_of_particles );
@@ -87,10 +91,12 @@ private:
     double zfar;
 public:
     Particle_source_box( Config &conf, Particle_source_box_config_part &src_conf );
+    Particle_source_box( hid_t h5_particle_source_box_group_id );
     virtual ~Particle_source_box() {};
 private:
     // Particle generation
     virtual void set_parameters_from_config( Particle_source_box_config_part &src_conf );
+    virtual void read_hdf5_source_parameters( hid_t h5_particle_source_box_group_id );
     virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen );
     Vec3d uniform_position_in_cube( const double xleft, const double ytop,
 				    const double zfar, const double xright,
@@ -133,11 +139,15 @@ private:
     double axis_end_z;
     double radius;
 public:
-    Particle_source_cylinder( Config &conf, Particle_source_cylinder_config_part &src_conf );
+    Particle_source_cylinder( Config &conf,
+			      Particle_source_cylinder_config_part &src_conf );
+    Particle_source_cylinder( hid_t h5_particle_source_cylinder_group_id );
     virtual ~Particle_source_cylinder() {};
 private:
     // Particle generation
-    virtual void set_parameters_from_config( Particle_source_cylinder_config_part &src_conf );
+    virtual void set_parameters_from_config(
+	Particle_source_cylinder_config_part &src_conf );
+    virtual void read_hdf5_source_parameters( hid_t h5_particle_source_cylinder_group_id );
     virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen );
     Vec3d uniform_position_in_cylinder( std::default_random_engine &rnd_gen );
     // Check config
@@ -191,12 +201,61 @@ public:
 	    	sources.push_back( new Particle_source_cylinder( conf,
 	    							 *cyl_conf ) );
 	    } else {
-		std::cout << "In sources_manager constructor: Unknown config type. Aborting" << std::endl; 
+		std::cout << "In sources_manager constructor: " 
+			  << "Unknown config type. Aborting" << std::endl; 
 		exit( EXIT_FAILURE );
 	    }
 	}
     }
+
+    Particle_sources_manager( hid_t h5_particle_sources_group )
+    {
+	hsize_t nobj;
+	ssize_t len;
+	herr_t err;
+	int otype;
+	size_t MAX_NAME = 1024;
+	char memb_name_cstr[MAX_NAME];
+	hid_t current_src_grpid;
+	err = H5Gget_num_objs(h5_particle_sources_group, &nobj);
+
+	for( hsize_t i = 0; i < nobj; i++ ){
+	    len = H5Gget_objname_by_idx( h5_particle_sources_group, i, 
+					 memb_name_cstr, MAX_NAME );
+	    hdf5_status_check( len );
+	    otype = H5Gget_objtype_by_idx( h5_particle_sources_group, i );
+	    if ( otype == H5G_GROUP ) {
+		current_src_grpid = H5Gopen( h5_particle_sources_group,
+					     memb_name_cstr, H5P_DEFAULT );
+		parse_hdf5_particle_source( current_src_grpid );
+		err = H5Gclose( current_src_grpid ); hdf5_status_check( err );
+	    }		
+	}
+    }
+
+    void parse_hdf5_particle_source( hid_t current_src_grpid )
+    {
+	herr_t status;
+	char geometry_type_cstr[50];
+	status = H5LTget_attribute_string( current_src_grpid, "./",
+					   "geometry_type", geometry_type_cstr );
+	hdf5_status_check( status );
+
+	std::string geometry_type( geometry_type_cstr );
+	if( geometry_type == "box" ){
+	    sources.push_back( new Particle_source_box( current_src_grpid ) );
+	} else if ( geometry_type == "cylinder" ) {
+	    sources.push_back( new Particle_source_cylinder( current_src_grpid ) );
+	} else {
+	    std::cout << "In Particle_source_manager constructor-from-h5: "
+		      << "Unknown particle_source type. Aborting"
+		      << std::endl;
+	    exit( EXIT_FAILURE );
+	}	
+    }
+    
     virtual ~Particle_sources_manager() {};
+
     void write_to_file( hid_t hdf5_file_id )
     {
 	hid_t group_id;
@@ -220,25 +279,29 @@ public:
 	status = H5Gclose( group_id );
 	hdf5_status_check( status );
     }; 
+
     void generate_each_step()
     {
 	for( auto &src : sources )
 	    src.generate_each_step();
     };
+
     void print_particles()
     {
 	for( auto &src : sources )
 	    src.print_particles();
     };
+
     void update_particles_position( double dt )
     {
 	for( auto &src : sources )
 	    src.update_particles_position( dt );
     };
+
     void hdf5_status_check( herr_t status )
     {
 	if( status < 0 ){
-	    std::cout << "Something went wrong while writing"
+	    std::cout << "Something went wrong while writing or reading"
 		      << "'Particle_sources' group. Aborting."
 		      << std::endl;
 	    exit( EXIT_FAILURE );

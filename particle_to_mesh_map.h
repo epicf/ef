@@ -16,6 +16,7 @@ class Particle_to_mesh_map {
 							     Particle_sources_manager &particle_sources );
     void combine_charge_densities_from_all_processes( Spatial_mesh &spat_mesh );
     Vec3d force_on_particle( Spatial_mesh &spat_mesh, Particle &p );
+    Vec3d magnetic_force_on_particle(  Spatial_mesh &spat_mesh, Particle &p );
   private:
     void next_node_num_and_weight( const double x, const double grid_step, 
 				   int *next_node, double *weight );

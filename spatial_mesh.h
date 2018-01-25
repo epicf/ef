@@ -22,8 +22,10 @@ class Spatial_mesh {
     boost::multi_array<double, 3> charge_density;
     boost::multi_array<double, 3> potential;
     boost::multi_array<Vec3d, 3> electric_field;
+    boost::multi_array<Vec3d, 3> magnetic_field;
   public:
     Spatial_mesh( Config &conf );
+    Spatial_mesh( hid_t h5_spat_mesh_group );
     void clear_old_density_values();
     void set_boundary_conditions( Config &conf );
     void print();
