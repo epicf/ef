@@ -304,7 +304,7 @@ void Inner_region_box::get_values_from_h5(
 bool Inner_region_box::check_if_point_inside( double x, double y, double z )
 {	
     bool in = 
-	( x <= x_right ) && ( x >= x_left ) &&
+	( x <= x_left ) && ( x >= x_right ) &&
 	( y <= y_top ) && ( y >= y_bottom ) &&
 	( z <= z_far ) && ( z >= z_near ) ;
     return in;
