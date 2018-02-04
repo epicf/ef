@@ -4,9 +4,13 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <algorithm>
+#include <functional>
 #include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/multi_array.hpp>
+#include <set>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include <mpi.h>
@@ -128,6 +132,76 @@ private:
 };
 
 
+class External_magnetic_field_RectGrid : public External_field
+{
+private:
+    std::string field_filename;
+    double x_start, x_end;
+    double dx;
+    int x_n_nodes;
+    double y_start, y_end;
+    double dy;
+    int y_n_nodes;
+    double z_start, z_end;
+    double dz;
+    int z_n_nodes;
+    boost::multi_array<Vec3d, 3> magnetic_field;
+public:    
+    External_magnetic_field_RectGrid(
+	External_magnetic_field_RectGrid_config_part &field_conf );
+    External_magnetic_field_RectGrid( hid_t h5_external_magnetic_field_RectGrid_group );
+    Vec3d field_at_particle_position( const Particle &p, const double &t );
+    //Vec3d force_on_particle( const Particle &p, const double &t );
+    virtual ~External_magnetic_field_RectGrid() {};
+private:
+    void check_correctness_of_related_config_fields(
+	External_magnetic_field_RectGrid_config_part &field_conf );
+    void get_values_from_config(
+	External_magnetic_field_RectGrid_config_part &field_conf );
+    void init_fields_from_file();
+    void write_hdf5_field_parameters( hid_t current_field_group_id );
+    void hdf5_status_check( herr_t status );
+    void next_node_num_and_weight( const double x, const double grid_step, 
+				   int *next_node, double *weight );
+};
+
+
+class External_electric_field_RectGrid : public External_field
+{
+private:
+    std::string field_filename;
+    double x_start, x_end;
+    double dx;
+    int x_n_nodes;
+    double y_start, y_end;
+    double dy;
+    int y_n_nodes;
+    double z_start, z_end;
+    double dz;
+    int z_n_nodes;
+    boost::multi_array<Vec3d, 3> electric_field;
+public:    
+    External_electric_field_RectGrid(
+	External_electric_field_RectGrid_config_part &field_conf );
+    External_electric_field_RectGrid( hid_t h5_external_electric_field_RectGrid_group );
+    Vec3d field_at_particle_position( const Particle &p, const double &t );
+    //Vec3d force_on_particle( const Particle &p, const double &t );
+    virtual ~External_electric_field_RectGrid() {};
+private:
+    void check_correctness_of_related_config_fields(
+	External_electric_field_RectGrid_config_part &field_conf );
+    void get_values_from_config(
+	External_electric_field_RectGrid_config_part &field_conf );
+    void init_fields_from_file();
+    void write_hdf5_field_parameters( hid_t current_field_group_id );
+    void hdf5_status_check( herr_t status );
+    void next_node_num_and_weight( const double x, const double grid_step, 
+				   int *next_node, double *weight );
+};
+
+
+
+
 class External_fields_manager{
 public:
     boost::ptr_vector<External_field> electric;
@@ -153,6 +227,16 @@ public:
 		dynamic_cast<External_electric_field_tinyexpr_config_part*>(&field_conf)){
 		electric.push_back(
 		    new External_electric_field_tinyexpr( *tinyexpr_el_conf ) );
+	    } else if (
+		External_magnetic_field_RectGrid_config_part *rectgrid_mgn_conf =
+		dynamic_cast<External_magnetic_field_RectGrid_config_part*>(&field_conf)){
+		magnetic.push_back(
+		    new External_magnetic_field_RectGrid( *rectgrid_mgn_conf ) );
+	    } else if (
+		External_electric_field_RectGrid_config_part *rectgrid_el_conf =
+		dynamic_cast<External_electric_field_RectGrid_config_part*>(&field_conf)){
+		electric.push_back(
+		    new External_electric_field_RectGrid( *rectgrid_el_conf ) );
 	    } else {
 		std::cout << "In fields_manager constructor: " 
 			  << "Unknown config type. Aborting" << std::endl; 
@@ -210,6 +294,12 @@ public:
 	} else if( field_type == "electric_tinyexpr" ){
 	    electric.push_back(
 		new External_electric_field_tinyexpr( current_field_grpid ));
+	} else if( field_type == "magnetic_rectgrid" ){
+	    magnetic.push_back(
+		new External_magnetic_field_RectGrid( current_field_grpid ));
+	} else if( field_type == "electric_rectgrid" ){
+	    electric.push_back(
+		new External_electric_field_RectGrid( current_field_grpid ));
 	} else {
 	    std::cout << "In External_field_manager constructor-from-h5: "
 		      << "Unknown external_field type. Aborting"

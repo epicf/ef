@@ -468,6 +468,45 @@ public:
 };
 
 
+class External_magnetic_field_RectGrid_config_part : public External_field_config_part{
+public:
+    std::string field_filename;
+public:
+    External_magnetic_field_RectGrid_config_part(){};
+    External_magnetic_field_RectGrid_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	External_field_config_part( name, ptree ),
+	field_filename( ptree.get<std::string>("field_filename") )
+	{} ;
+    virtual ~External_magnetic_field_RectGrid_config_part() {};
+    void print() { 
+	std::cout << "External magnetic field RectGrid : name = " << name << std::endl;
+	std::cout << "field_filename = " << field_filename << std::endl;
+    }
+};
+
+
+class External_electric_field_RectGrid_config_part : public External_field_config_part{
+public:
+    std::string field_filename;
+public:
+    External_electric_field_RectGrid_config_part(){};
+    External_electric_field_RectGrid_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	External_field_config_part( name, ptree ),
+	field_filename( ptree.get<std::string>("field_filename") )
+	{} ;
+    virtual ~External_electric_field_RectGrid_config_part() {};
+    void print() { 
+	std::cout << "External electric field RectGrid : name = " << name << std::endl;
+	std::cout << "field_filename = " << field_filename << std::endl;
+    }
+};
+
+
+
+
+
 class Particle_interaction_model_config_part {
 public:
     std::string particle_interaction_model;

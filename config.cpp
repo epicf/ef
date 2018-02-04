@@ -80,6 +80,20 @@ Config::Config( const std::string &filename )
 		fields_config_part.push_back(
 		    new External_electric_field_tinyexpr_config_part(
 			field_name, sections.second ) );
+	    } else if ( section_name.find(
+			    "External_magnetic_field_RectGrid" ) != std::string::npos ) {
+		std::string field_name =
+		    section_name.substr( section_name.find(".") + 1 );
+		fields_config_part.push_back(
+		    new External_magnetic_field_RectGrid_config_part(
+			field_name, sections.second ) );
+	    } else if ( section_name.find(
+			    "External_electric_field_RectGrid" ) != std::string::npos ) {
+		std::string field_name =
+		    section_name.substr( section_name.find(".") + 1 );
+		fields_config_part.push_back(
+		    new External_electric_field_RectGrid_config_part(
+			field_name, sections.second ) );
 	    } else if (
 		section_name.find( "Particle interaction model" ) != std::string::npos ) {
 		particle_interaction_model_config_part =

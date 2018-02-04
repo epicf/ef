@@ -587,3 +587,512 @@ void External_electric_field_tinyexpr::hdf5_status_check( herr_t status )
 	exit( EXIT_FAILURE );
     }
 }
+
+
+
+
+// RectGrid magnetic
+
+External_magnetic_field_RectGrid::External_magnetic_field_RectGrid(
+    External_magnetic_field_RectGrid_config_part &field_conf ) :
+    External_field( field_conf )
+{
+    field_type = "magnetic_rectgrid";
+    check_correctness_of_related_config_fields( field_conf );
+    get_values_from_config( field_conf );
+    init_fields_from_file();
+}
+
+void External_magnetic_field_RectGrid::check_correctness_of_related_config_fields(
+    External_magnetic_field_RectGrid_config_part &field_conf )
+{
+    std::string test_filename = field_conf.field_filename;
+    std::ifstream f( test_filename.c_str() );
+    if ( f.good() ){
+	printf("good field file: %s", test_filename.c_str() );
+    } else {
+	printf("bad field file: %s", test_filename.c_str() );
+	printf("Aboring.\n");
+	exit( EXIT_FAILURE );
+    }
+}
+
+void External_magnetic_field_RectGrid::get_values_from_config(
+    External_magnetic_field_RectGrid_config_part &field_conf )
+{
+    field_filename = field_conf.field_filename;
+}
+
+External_magnetic_field_RectGrid::External_magnetic_field_RectGrid(
+    hid_t h5_external_magnetic_field_RectGrid_group ) :
+    External_field( h5_external_magnetic_field_RectGrid_group )
+{
+    herr_t status;
+    field_type = "magnetic_rectgrid";
+    
+    char h5_str_read_buffer[200]; // todo: accept longer filenames
+    
+    status = H5LTget_attribute_string( h5_external_magnetic_field_RectGrid_group, "./",
+				       "field_filename",
+				       h5_str_read_buffer );
+    hdf5_status_check( status );
+    field_filename = std::string( h5_str_read_buffer );
+
+    
+    // todo: split into functions
+    std::ifstream f( field_filename.c_str() );
+    if ( f.good() ){
+	printf("good field file: %s", field_filename.c_str() );
+    } else {
+	printf("bad field file: %s", field_filename.c_str() );
+	printf("Aboring.\n");
+	exit( EXIT_FAILURE );
+    }
+    f.close();
+
+    // 
+    init_fields_from_file();
+}
+
+void External_magnetic_field_RectGrid::init_fields_from_file()
+{
+    std::ifstream f( field_filename.c_str() );
+    std::string line;
+    std::string::size_type sz;
+    std::stringstream ss; // cpp trick to read string word by word
+    std::string word;
+    
+    std::vector<double> x;
+    std::vector<double> y;
+    std::vector<double> z;
+    std::vector<double> Bx;
+    std::vector<double> By;
+    std::vector<double> Bz;
+    std::vector<double> Ex;
+    std::vector<double> Ey;
+    std::vector<double> Ez;
+    
+    while( getline( f, line ) ){
+	ss.str( line );
+	ss >> word;
+	x.push_back( std::stod( word ) );
+	//y.push_back( std::stod( line.substr( sz ), &sz ) ); doesn't work
+	//z.push_back( std::stod( line.substr( sz ), &sz ) ); doesn't work
+	ss >> word;
+	y.push_back( std::stod( word ) );
+	ss >> word;
+	z.push_back( std::stod( word ) );
+	ss >> word;
+	Bx.push_back( std::stod( word ) );
+	ss >> word;
+	By.push_back( std::stod( word ) );
+	ss >> word;
+	Bz.push_back( std::stod( word ) );
+	ss >> word;
+	Ex.push_back( std::stod( word ) );
+	ss >> word;
+	Ey.push_back( std::stod( word ) );
+	ss >> word;
+	Ez.push_back( std::stod( word ) );
+	// printf( "xyz: %f, %f, %f \n", x.back(),  y.back(),  z.back() );
+	// printf( "B: %f, %f, %f \n", Bx.back(), By.back(), Bz.back() );
+	// printf( "E: %f, %f, %f \n", Ex.back(), Ey.back(), Ez.back() );
+    }
+    f.close();
+    
+    std::set<double> x_nodes( x.begin(), x.end() );    
+    x_start = *( x_nodes.begin() ); // no [i] for sets
+    x_end = *( x_nodes.rbegin() ); // x_nodes.end() - 1 doesn't work
+    dx = *( std::next( x_nodes.begin() ) ) - *( x_nodes.begin() );
+    x_n_nodes = x_nodes.size();
+    // printf( "xset: %f, %f, %f, %d \n", x_start, x_end, dx, x_n_nodes );
+    // for (int i = 0; i < x_nodes.size(); ++i){
+    // 	printf( "%f ", *( std::next( x_nodes.begin(), i ) ) ); 
+    // }
+    std::set<double> y_nodes( y.begin(), y.end() );
+    y_start = *( y_nodes.begin() );
+    y_end = *( y_nodes.rbegin() );
+    dy = *( std::next( y_nodes.begin() ) ) - *( y_nodes.begin() );
+    y_n_nodes = y_nodes.size();
+    // printf( "%f, %f, %f, %d \n", y_start, y_end, dy, y_n_nodes );
+    std::set<double> z_nodes( z.begin(), z.end() );
+    z_start = *( z_nodes.begin() );
+    z_end = *( z_nodes.rbegin() );
+    dz = *( std::next( z_nodes.begin() ) ) - *( z_nodes.begin() );
+    // for (int i = 0; i < z_nodes.size(); ++i){
+    // 	printf( "%f ", *( std::next( z_nodes.begin(), i ) ) ); 
+    // }    
+    z_n_nodes = z_nodes.size();
+    // printf( "%f, %f, %f, %d \n", z_start, z_end, dz, z_n_nodes );
+    // printf( "nodes: %d, %d \ n", Bx.size(), x_n_nodes * y_n_nodes * z_n_nodes );
+
+    magnetic_field.resize( boost::extents[x_n_nodes][y_n_nodes][z_n_nodes] );
+    
+    // // todo: assert order. Is it x, y, z? 
+    for ( unsigned int i = 0; i < Bx.size(); i++ ){	
+    	( magnetic_field.data() )[i] = vec3d_init( Bx[i], By[i], Bz[i] );
+    }
+}
+
+Vec3d External_magnetic_field_RectGrid::field_at_particle_position(
+    const Particle &p, const double &t )
+{
+    bool out = 
+	( vec3d_x( p.position ) >= x_end ) || ( vec3d_x( p.position ) <= x_start ) ||
+	( vec3d_y( p.position ) >= y_end ) || ( vec3d_y( p.position ) <= y_start ) ||
+	( vec3d_z( p.position ) >= z_end ) || ( vec3d_z( p.position ) <= z_start ) ;
+    if( out ){
+	printf("particle not inside field grid \n");
+	return vec3d_zero();
+    }
+    
+    // copied from Particle_to_mesh_map::field_at_particle_position
+    // todo: avoid copy. Make grid class?
+    int tlf_i, tlf_j, tlf_k; // 'tlf' = 'top_left_far'
+    double tlf_x_weight, tlf_y_weight, tlf_z_weight;  
+    Vec3d field_from_node, total_field;
+    //
+    next_node_num_and_weight( vec3d_x( p.position ), dx, &tlf_i, &tlf_x_weight );
+    next_node_num_and_weight( vec3d_y( p.position ), dy, &tlf_j, &tlf_y_weight );
+    next_node_num_and_weight( vec3d_z( p.position ), dz, &tlf_k, &tlf_z_weight );
+    // tlf
+    total_field = vec3d_zero();
+    field_from_node = vec3d_times_scalar(
+	magnetic_field[tlf_i][tlf_j][tlf_k],
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // trf
+    field_from_node = vec3d_times_scalar(
+	magnetic_field[tlf_i-1][tlf_j][tlf_k],
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // blf
+    field_from_node = vec3d_times_scalar(
+	magnetic_field[tlf_i][tlf_j - 1][tlf_k],	
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // brf
+    field_from_node = vec3d_times_scalar(			
+	magnetic_field[tlf_i-1][tlf_j-1][tlf_k],	
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // tln
+    field_from_node = vec3d_times_scalar(
+	magnetic_field[tlf_i][tlf_j][tlf_k-1],
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // trn
+    field_from_node = vec3d_times_scalar(
+	magnetic_field[tlf_i-1][tlf_j][tlf_k-1],
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // bln
+    field_from_node = vec3d_times_scalar(
+	magnetic_field[tlf_i][tlf_j - 1][tlf_k-1],	
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // brn
+    field_from_node = vec3d_times_scalar(			
+	magnetic_field[tlf_i-1][tlf_j-1][tlf_k-1],	
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    //vec3d_print( total_field );
+    //
+    return total_field;
+}
+
+void External_magnetic_field_RectGrid::next_node_num_and_weight( 
+    const double x, const double grid_step, 
+    int *next_node, double *weight )
+{
+    double x_in_grid_units = x / grid_step;
+    *next_node = ceil( x_in_grid_units );
+    *weight = 1.0 - ( *next_node - x_in_grid_units );
+    return;
+}
+
+
+void External_magnetic_field_RectGrid::write_hdf5_field_parameters(
+    hid_t current_field_group_id )
+{
+    herr_t status;
+    // int single_element = 1;
+    std::string current_group = "./";
+
+    status = H5LTset_attribute_string( current_field_group_id, current_group.c_str(),
+				       "field_type", field_type.c_str() );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_string( current_field_group_id, current_group.c_str(),
+				       "field_filename", field_filename.c_str() );
+    hdf5_status_check( status );
+
+    // todo: decide whether to write fields into h5 or not. 
+    
+    return;
+}
+
+void External_magnetic_field_RectGrid::hdf5_status_check( herr_t status )
+{
+    if( status < 0 ){
+	std::cout << "Something went wrong while reading or writing "
+		  << "External_magnetic_field_RectGrid group. "
+		  << "Aborting." << std::endl;
+	exit( EXIT_FAILURE );
+    }
+}
+
+
+
+
+// RectGrid electric
+
+External_electric_field_RectGrid::External_electric_field_RectGrid(
+    External_electric_field_RectGrid_config_part &field_conf ) :
+    External_field( field_conf )
+{
+    field_type = "electric_rectgrid";
+    check_correctness_of_related_config_fields( field_conf );
+    get_values_from_config( field_conf );
+    init_fields_from_file();
+}
+
+void External_electric_field_RectGrid::check_correctness_of_related_config_fields(
+    External_electric_field_RectGrid_config_part &field_conf )
+{
+    std::string test_filename = field_conf.field_filename;
+    std::ifstream f( test_filename.c_str() );
+    if ( f.good() ){
+	printf("good field file: %s", test_filename.c_str() );
+    } else {
+	printf("bad field file: %s", test_filename.c_str() );
+	printf("Aboring.\n");
+	exit( EXIT_FAILURE );
+    }
+}
+
+void External_electric_field_RectGrid::get_values_from_config(
+    External_electric_field_RectGrid_config_part &field_conf )
+{
+    field_filename = field_conf.field_filename;
+}
+
+External_electric_field_RectGrid::External_electric_field_RectGrid(
+    hid_t h5_external_electric_field_RectGrid_group ) :
+    External_field( h5_external_electric_field_RectGrid_group )
+{
+    herr_t status;
+    field_type = "electric_rectgrid";
+    
+    char h5_str_read_buffer[200]; // todo: accept longer filenames
+    
+    status = H5LTget_attribute_string( h5_external_electric_field_RectGrid_group, "./",
+				       "field_filename",
+				       h5_str_read_buffer );
+    hdf5_status_check( status );
+    field_filename = std::string( h5_str_read_buffer );
+
+    
+    // todo: split into functions
+    std::ifstream f( field_filename.c_str() );
+    if ( f.good() ){
+	printf("good field file: %s", field_filename.c_str() );
+    } else {
+	printf("bad field file: %s", field_filename.c_str() );
+	printf("Aboring.\n");
+	exit( EXIT_FAILURE );
+    }
+    f.close();
+
+    // 
+    init_fields_from_file();
+}
+
+void External_electric_field_RectGrid::init_fields_from_file()
+{
+    std::ifstream f( field_filename.c_str() );
+    std::string line;
+    std::string::size_type sz;
+    
+    std::vector<double> x;
+    std::vector<double> y;
+    std::vector<double> z;
+    std::vector<double> Bx;
+    std::vector<double> By;
+    std::vector<double> Bz;
+    std::vector<double> Ex;
+    std::vector<double> Ey;
+    std::vector<double> Ez;
+    
+    while( getline( f, line ) ){
+	x.push_back( std::stod( line, &sz ) );
+	y.push_back( std::stod( line.substr( sz ), &sz ) );
+	z.push_back( std::stod( line.substr( sz ), &sz ) );
+	Bx.push_back( std::stod( line.substr( sz ), &sz ) );
+	By.push_back( std::stod( line.substr( sz ), &sz ) );
+	Bz.push_back( std::stod( line.substr( sz ), &sz ) );
+	Ex.push_back( std::stod( line.substr( sz ), &sz ) );
+	Ey.push_back( std::stod( line.substr( sz ), &sz ) );
+	Ez.push_back( std::stod( line.substr( sz ), &sz ) );	
+    }
+    f.close();
+    
+    std::set<double> x_nodes( x.begin(), x.end() );    
+    x_start = *( x.begin() ); // no [i] for sets
+    x_end = *( x.end() );
+    dx = *( std::next( x.begin() ) ) - *( x.begin() );
+    x_n_nodes = x_nodes.size();
+    std::set<double> y_nodes( y.begin(), y.end() );
+    y_start = *( y.begin() );
+    y_end = *( y.end() );
+    dy = *( std::next( y.begin() ) ) - *( y.begin() );
+    y_n_nodes = y_nodes.size();
+    std::set<double> z_nodes( z.begin(), z.end() );
+    z_start = *( z.begin() );
+    z_end = *( z.end() );
+    dz = *( std::next( z.begin() ) ) - *( z.begin() );
+    z_n_nodes = z_nodes.size();
+    
+    electric_field.resize( boost::extents[x_n_nodes][y_n_nodes][z_n_nodes] );
+
+    // todo: assert order. Is it x, y, z? 
+    for ( unsigned int i = 0; i < Ex.size(); i++ ){	
+	( electric_field.data() )[i] = vec3d_init( Ex[i], Ey[i], Ez[i] );
+    }
+}
+
+Vec3d External_electric_field_RectGrid::field_at_particle_position(
+    const Particle &p, const double &t )
+{
+    bool out = 
+	( vec3d_x( p.position ) >= x_end ) || ( vec3d_x( p.position ) <= x_start ) ||
+	( vec3d_y( p.position ) >= y_end ) || ( vec3d_y( p.position ) <= y_start ) ||
+	( vec3d_z( p.position ) >= z_end ) || ( vec3d_z( p.position ) <= z_start ) ;
+    if( out ){
+	return vec3d_zero();
+    }
+    
+    // copied from Particle_to_mesh_map::field_at_particle_position
+    // todo: avoid copy. Make grid class?
+    int tlf_i, tlf_j, tlf_k; // 'tlf' = 'top_left_far'
+    double tlf_x_weight, tlf_y_weight, tlf_z_weight;  
+    Vec3d field_from_node, total_field;
+    //
+    next_node_num_and_weight( vec3d_x( p.position ), dx, &tlf_i, &tlf_x_weight );
+    next_node_num_and_weight( vec3d_y( p.position ), dy, &tlf_j, &tlf_y_weight );
+    next_node_num_and_weight( vec3d_z( p.position ), dz, &tlf_k, &tlf_z_weight );
+    // tlf
+    total_field = vec3d_zero();
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i][tlf_j][tlf_k],
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // trf
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i-1][tlf_j][tlf_k],
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // blf
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i][tlf_j - 1][tlf_k],	
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // brf
+    field_from_node = vec3d_times_scalar(			
+	electric_field[tlf_i-1][tlf_j-1][tlf_k],	
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // tln
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i][tlf_j][tlf_k-1],
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // trn
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i-1][tlf_j][tlf_k-1],
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // bln
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i][tlf_j - 1][tlf_k-1],	
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // brn
+    field_from_node = vec3d_times_scalar(			
+	electric_field[tlf_i-1][tlf_j-1][tlf_k-1],	
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );    
+    //
+    return total_field;
+}
+
+void External_electric_field_RectGrid::next_node_num_and_weight( 
+    const double x, const double grid_step, 
+    int *next_node, double *weight )
+{
+    double x_in_grid_units = x / grid_step;
+    *next_node = ceil( x_in_grid_units );
+    *weight = 1.0 - ( *next_node - x_in_grid_units );
+    return;
+}
+
+
+void External_electric_field_RectGrid::write_hdf5_field_parameters(
+    hid_t current_field_group_id )
+{
+    herr_t status;
+    // int single_element = 1;
+    std::string current_group = "./";
+
+    status = H5LTset_attribute_string( current_field_group_id, current_group.c_str(),
+				       "field_type", field_type.c_str() );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_string( current_field_group_id, current_group.c_str(),
+				       "field_filename", field_filename.c_str() );
+    hdf5_status_check( status );
+
+    // todo: decide whether to write fields into h5 or not. 
+    
+    return;
+}
+
+void External_electric_field_RectGrid::hdf5_status_check( herr_t status )
+{
+    if( status < 0 ){
+	std::cout << "Something went wrong while reading or writing "
+		  << "External_electric_field_RectGrid group. "
+		  << "Aborting." << std::endl;
+	exit( EXIT_FAILURE );
+    }
+}
