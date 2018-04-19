@@ -741,3 +741,171 @@ void Inner_region_tube::write_hdf5_region_specific_parameters(
 }
 
 
+
+
+// Tube_Along_Z_Segment
+
+Inner_region_tube_along_z_segment::Inner_region_tube_along_z_segment(
+    Config &conf,
+    Inner_region_tube_along_z_segment_config_part &inner_region_tube_along_z_segment_conf,
+    Spatial_mesh &spat_mesh )
+    : Inner_region( conf, inner_region_tube_along_z_segment_conf )
+{
+    object_type = "tube_along_z_segment";
+    check_correctness_of_related_config_fields(
+	conf,
+	inner_region_tube_along_z_segment_conf );
+    get_values_from_config( inner_region_tube_along_z_segment_conf );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
+Inner_region_tube_along_z_segment::Inner_region_tube_along_z_segment(
+    hid_t h5_inner_region_tube_along_z_segment_group_id,
+    Spatial_mesh &spat_mesh ) :
+    Inner_region( h5_inner_region_tube_along_z_segment_group_id )
+{
+    object_type = "tube_along_z_segment";
+    // check_correctness_of_related_config_fields( conf,
+    // 						inner_region_tube_along_z_segment_conf );
+    get_values_from_h5( h5_inner_region_tube_along_z_segment_group_id );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
+void Inner_region_tube_along_z_segment::check_correctness_of_related_config_fields(
+    Config &conf,
+    Inner_region_tube_along_z_segment_config_part &inner_region_tube_along_z_segment_conf )
+{
+    // check if region lies inside the domain
+}
+
+void Inner_region_tube_along_z_segment::get_values_from_config(
+    Inner_region_tube_along_z_segment_config_part &inner_region_tube_along_z_segment_conf )
+{
+    axis_x = inner_region_tube_along_z_segment_conf.tube_along_z_segment_axis_x;
+    axis_y = inner_region_tube_along_z_segment_conf.tube_along_z_segment_axis_y;
+    axis_start_z =
+	inner_region_tube_along_z_segment_conf.tube_along_z_segment_axis_start_z;
+    axis_end_z =
+	inner_region_tube_along_z_segment_conf.tube_along_z_segment_axis_end_z;
+    inner_radius =
+	inner_region_tube_along_z_segment_conf.tube_along_z_segment_inner_radius;
+    outer_radius =
+	inner_region_tube_along_z_segment_conf.tube_along_z_segment_outer_radius;
+    start_angle_deg =
+	inner_region_tube_along_z_segment_conf.tube_along_z_segment_start_angle_deg;
+    end_angle_deg =
+	inner_region_tube_along_z_segment_conf.tube_along_z_segment_end_angle_deg;
+}
+
+
+void Inner_region_tube_along_z_segment::get_values_from_h5(
+    hid_t h5_inner_region_tube_along_z_segment_group_id )
+{
+    herr_t status;
+    status = H5LTget_attribute_double(
+	h5_inner_region_tube_along_z_segment_group_id, "./",
+	"axis_x", &axis_x ); hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_tube_along_z_segment_group_id, "./",
+	"axis_y", &axis_y ); hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_tube_along_z_segment_group_id, "./",
+	"axis_start_z", &axis_start_z ); hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_tube_along_z_segment_group_id, "./",
+	"axis_end_z", &axis_end_z ); hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_tube_along_z_segment_group_id, "./",
+	"inner_radius", &inner_radius ); hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_tube_along_z_segment_group_id, "./",
+	"outer_radius", &outer_radius ); hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_tube_along_z_segment_group_id, "./",
+	"start_angle_deg", &start_angle_deg ); hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_tube_along_z_segment_group_id, "./",
+	"end_angle_deg", &end_angle_deg ); hdf5_status_check( status );
+}
+
+
+
+bool Inner_region_tube_along_z_segment::check_if_point_inside(
+    double x, double y, double z )
+{
+    bool in_z = axis_start_z <= z && z <= axis_end_z;
+    if ( !in_z ){
+	return false;
+    }
+    //
+    double shift_x = x - axis_x;
+    double shift_y = y - axis_y;
+    double p_r = sqrt( shift_x * shift_x + shift_y * shift_y );
+    bool in_r = inner_radius <= p_r && p_r <= outer_radius;
+    if ( !in_r ){
+	return false;
+    }
+    //
+    double p_phi = atan2( shift_y, shift_x ) * 180.0 / M_PI;
+    if ( p_phi < 0 ) {
+	// [0:0; 90:pi/2; 180-e:pi; 180+e:-pi; 270:-pi/2]
+	p_phi = 360 + p_phi;
+    }
+    bool in_phi = start_angle_deg < p_phi && p_phi < end_angle_deg;
+    if ( !in_phi ){
+	return false;
+    }
+    bool in = true;
+    return in;
+}
+
+
+void Inner_region_tube_along_z_segment::write_hdf5_region_specific_parameters(
+    hid_t current_region_group_id )
+{
+    herr_t status;
+    int single_element = 1;
+    std::string current_region_groupname = "./";
+    
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "axis_x", &axis_x, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "axis_y", &axis_y, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "axis_start_z", &axis_start_z, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "axis_end_z", &axis_end_z, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "inner_radius", &inner_radius, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "outer_radius", &outer_radius, single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "start_angle_deg", &start_angle_deg,
+				       single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_region_group_id,
+				       current_region_groupname.c_str(),
+				       "end_angle_deg", &end_angle_deg,
+				       single_element );
+    hdf5_status_check( status );
+}
+

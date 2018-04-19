@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include <cmath>
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <petscksp.h>
 #include <mpi.h>
@@ -244,6 +245,52 @@ private:
 };
 
 
+class Inner_region_tube_along_z_segment : public Inner_region{
+public:
+    double axis_x;
+    double axis_y;
+    double axis_start_z;
+    double axis_end_z;
+    double inner_radius;
+    double outer_radius;
+    double start_angle_deg;
+    double end_angle_deg;
+public:
+    Inner_region_tube_along_z_segment(
+	Config &conf,
+	Inner_region_tube_along_z_segment_config_part &inner_region_conf,
+	Spatial_mesh &spat_mesh );
+    Inner_region_tube_along_z_segment( hid_t h5_inner_region_group_id,
+				       Spatial_mesh &spat_mesh );
+    virtual ~Inner_region_tube_along_z_segment() {};
+    void print() {
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "axis_x = " << axis_x << std::endl;
+	std::cout << "axis_y = " << axis_y << std::endl;
+	std::cout << "axis_start_z = " << axis_start_z << std::endl;
+	std::cout << "axis_end_z = " << axis_end_z << std::endl;
+	std::cout << "inner_radius = " << inner_radius << std::endl;
+	std::cout << "outer_radius = " << outer_radius << std::endl;
+	std::cout << "start_angle_deg = " << start_angle_deg << std::endl;
+	std::cout << "end_angle_deg = " << end_angle_deg << std::endl;
+    }
+    virtual bool check_if_point_inside( double x, double y, double z );
+private:
+    virtual void check_correctness_of_related_config_fields(
+	Config &conf,
+	Inner_region_tube_along_z_segment_config_part
+	&inner_region_tube_along_z_segment_conf );
+    virtual void get_values_from_config(
+	Inner_region_tube_along_z_segment_config_part
+	&inner_region_tube_along_z_segment_conf );
+    virtual void get_values_from_h5(
+        hid_t h5_inner_region_tube_along_z_segment_group_id );
+    virtual void write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id );
+};
+
+
 
 class Inner_regions_manager{
 public:
@@ -272,6 +319,14 @@ public:
 		regions.push_back( new Inner_region_tube( conf,
 							  *tube_conf,
 							  spat_mesh ) );
+	    } else if( Inner_region_tube_along_z_segment_config_part
+		       *tube_along_z_segment_conf =
+		       dynamic_cast<Inner_region_tube_along_z_segment_config_part*>(
+			   &inner_region_conf ) ){
+		regions.push_back( new Inner_region_tube_along_z_segment(
+				       conf,
+				       *tube_along_z_segment_conf,
+				       spat_mesh ) );
 	    } else {
 		std::cout << "In Inner_regions_manager constructor-from-conf: "
 			  << "Unknown inner_region type. Aborting"
@@ -335,6 +390,9 @@ public:
 	} else if ( obj_type == "tube" ) {
 	    regions.push_back( new Inner_region_tube( current_ir_grpid,
 						      spat_mesh ) );
+	} else if ( obj_type == "tube_along_z_segment" ) {
+	    regions.push_back( new Inner_region_tube_along_z_segment( current_ir_grpid,
+								      spat_mesh ) );
 	} else {
 	    std::cout << "In Inner_regions_manager constructor-from-h5: "
 		      << "Unknown inner_region type. Aborting"
