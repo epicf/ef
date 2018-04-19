@@ -326,6 +326,62 @@ public:
 };
 
 
+class Inner_region_tube_along_z_segment_config_part : public Inner_region_config_part{
+public:
+    double tube_along_z_segment_axis_x;
+    double tube_along_z_segment_axis_y;
+    double tube_along_z_segment_axis_start_z;
+    double tube_along_z_segment_axis_end_z;
+    double tube_along_z_segment_inner_radius;
+    double tube_along_z_segment_outer_radius;
+    double tube_along_z_segment_start_angle_deg;
+    double tube_along_z_segment_end_angle_deg;
+public:
+    Inner_region_tube_along_z_segment_config_part(){};
+    Inner_region_tube_along_z_segment_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	Inner_region_config_part( name, ptree ),
+	tube_along_z_segment_axis_x(
+	    ptree.get<double>("tube_along_z_segment_axis_x") ),
+	tube_along_z_segment_axis_y(
+	    ptree.get<double>("tube_along_z_segment_axis_y") ),
+	tube_along_z_segment_axis_start_z(
+	    ptree.get<double>("tube_along_z_segment_axis_start_z") ),
+	tube_along_z_segment_axis_end_z(
+	    ptree.get<double>("tube_along_z_segment_axis_end_z") ),
+	tube_along_z_segment_inner_radius(
+	    ptree.get<double>("tube_along_z_segment_inner_radius") ),
+	tube_along_z_segment_outer_radius(
+	    ptree.get<double>("tube_along_z_segment_outer_radius") ),
+	tube_along_z_segment_start_angle_deg(
+	    ptree.get<double>("tube_along_z_segment_start_angle_deg") ),
+	tube_along_z_segment_end_angle_deg(
+	    ptree.get<double>("tube_along_z_segment_end_angle_deg") )
+	{};
+    virtual ~Inner_region_tube_along_z_segment_config_part() {};
+    void print() { 
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "tube_along_z_segment_axis_x = "
+		  << tube_along_z_segment_axis_x << std::endl;
+	std::cout << "tube_along_z_segment_axis_y = "
+		  << tube_along_z_segment_axis_y << std::endl;
+	std::cout << "tube_along_z_segment_axis_start_z = "
+		  << tube_along_z_segment_axis_start_z << std::endl;
+	std::cout << "tube_along_z_segment_axis_end_z = "
+		  << tube_along_z_segment_axis_end_z << std::endl;
+	std::cout << "tube_along_z_segment_inner_radius = "
+		  << tube_along_z_segment_inner_radius << std::endl;
+	std::cout << "tube_along_z_segment_outer_radius = "
+		  << tube_along_z_segment_outer_radius << std::endl;
+	std::cout << "tube_along_z_segment_start_angle_deg = "
+		  << tube_along_z_segment_start_angle_deg << std::endl;
+	std::cout << "tube_along_z_segment_end_angle_deg = "
+		  << tube_along_z_segment_end_angle_deg << std::endl;
+    }
+};
+
+
 class Boundary_config_part {
 public:
     double boundary_phi_left;
