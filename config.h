@@ -167,6 +167,44 @@ public:
     }
 };
 
+class Particle_source_tube_config_part : public Particle_source_config_part {
+public:
+    double tube_axis_start_x;
+    double tube_axis_start_y;
+    double tube_axis_start_z;
+    double tube_axis_end_x;
+    double tube_axis_end_y;
+    double tube_axis_end_z;
+    double tube_inner_radius;
+    double tube_outer_radius;
+public:
+    Particle_source_tube_config_part(){};
+    Particle_source_tube_config_part( std::string name,
+				      boost::property_tree::ptree &ptree ) :
+	Particle_source_config_part( name, ptree ),
+	tube_axis_start_x( ptree.get<double>("tube_axis_start_x") ),
+	tube_axis_start_y( ptree.get<double>("tube_axis_start_y") ),
+	tube_axis_start_z( ptree.get<double>("tube_axis_start_z") ),
+	tube_axis_end_x( ptree.get<double>("tube_axis_end_x") ),
+	tube_axis_end_y( ptree.get<double>("tube_axis_end_y") ),
+	tube_axis_end_z( ptree.get<double>("tube_axis_end_z") ),
+	tube_inner_radius( ptree.get<double>("tube_inner_radius") ),
+	tube_outer_radius( ptree.get<double>("tube_outer_radius") )
+	{};
+    virtual ~Particle_source_tube_config_part() {};
+    virtual void print() {
+	Particle_source_config_part::print();
+	std::cout << "tube_axis_start_x = " << tube_axis_start_x << std::endl;
+	std::cout << "tube_axis_start_y = " << tube_axis_start_y << std::endl;
+	std::cout << "tube_axis_start_z = " << tube_axis_start_z << std::endl;
+	std::cout << "tube_axis_end_x = " << tube_axis_end_x << std::endl;
+	std::cout << "tube_axis_end_y = " << tube_axis_end_y << std::endl;
+	std::cout << "tube_axis_end_z = " << tube_axis_end_z << std::endl;
+	std::cout << "tube_inner_radius = " << tube_inner_radius << std::endl;
+	std::cout << "tube_outer_radius = " << tube_outer_radius << std::endl;
+    }
+};
+
 
 
 class Inner_region_config_part {
