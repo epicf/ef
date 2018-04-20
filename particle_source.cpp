@@ -1516,8 +1516,7 @@ Vec3d Particle_source_tube::uniform_position_in_tube(
     double cyl_axis_length = vec3d_length( cyl_axis );
     double x, y, z;
     double r, phi;
-    r = sqrt( random_in_range( inner_radius / outer_radius, 1.0, rnd_gen ) )
-	* outer_radius;
+    r = sqrt( random_in_range( inner_radius, outer_radius, rnd_gen ) );
     phi = random_in_range( 0.0, 2.0 * M_PI, rnd_gen );
     z = random_in_range( 0.0, cyl_axis_length, rnd_gen );
     //
