@@ -1221,235 +1221,175 @@ Vec3d Particle_source_cylinder::uniform_position_in_cylinder(
 
 
 
-// Tube source
+// Tube_Along_Z source
 
 
-Particle_source_tube::Particle_source_tube( 
+Particle_source_tube_along_z::Particle_source_tube_along_z( 
     Config &conf, 
-    Particle_source_tube_config_part &src_conf ) :
+    Particle_source_tube_along_z_config_part &src_conf ) :
     Particle_source( conf, src_conf )
 {
-    geometry_type = "tube";
+    geometry_type = "tube_along_z";
     check_correctness_of_related_config_fields( conf, src_conf );
     set_parameters_from_config( src_conf );
     generate_initial_particles();
 }
 
-Particle_source_tube::Particle_source_tube(
-    hid_t h5_particle_source_tube_group_id ) :
-    Particle_source( h5_particle_source_tube_group_id )
+
+Particle_source_tube_along_z::Particle_source_tube_along_z(
+    hid_t h5_particle_source_tube_along_z_group_id ) :
+    Particle_source( h5_particle_source_tube_along_z_group_id )
 {
-    geometry_type = "tube";
-    read_hdf5_source_parameters( h5_particle_source_tube_group_id );
+    geometry_type = "tube_along_z";
+    read_hdf5_source_parameters( h5_particle_source_tube_along_z_group_id );
 }
 
 
-
-void Particle_source_tube::check_correctness_of_related_config_fields( 
+void Particle_source_tube_along_z::check_correctness_of_related_config_fields( 
     Config &conf, 
-    Particle_source_tube_config_part &src_conf )
+    Particle_source_tube_along_z_config_part &src_conf )
 {
     // todo:
     inner_and_outer_radius_gt_zero( conf, src_conf );
     inner_radius_less_outer_radius( conf, src_conf );
-    axis_start_x_min_rad_ge_zero( conf, src_conf );
-    axis_start_x_plus_rad_le_grid_x_size( conf, src_conf );
-    axis_start_y_min_rad_ge_zero( conf, src_conf );
-    axis_start_y_plus_rad_le_grid_y_size( conf, src_conf );
-    axis_start_z_min_rad_ge_zero( conf, src_conf );
-    axis_start_z_plus_rad_le_grid_z_size( conf, src_conf );
-    axis_end_x_min_rad_ge_zero( conf, src_conf );
-    axis_end_x_plus_rad_le_grid_x_size( conf, src_conf );
-    axis_end_y_min_rad_ge_zero( conf, src_conf );
-    axis_end_y_plus_rad_le_grid_y_size( conf, src_conf );
-    axis_end_z_min_rad_ge_zero( conf, src_conf );
-    axis_end_z_plus_rad_le_grid_z_size( conf, src_conf );
+    axis_x_min_outer_rad_ge_zero( conf, src_conf );
+    axis_x_plus_outer_rad_le_grid_x_size( conf, src_conf );
+    axis_y_min_outer_rad_ge_zero( conf, src_conf );
+    axis_y_plus_outer_rad_le_grid_y_size( conf, src_conf );
+    axis_start_z_ge_zero( conf, src_conf );
+    axis_start_z_le_axis_end_z( conf, src_conf );
+    axis_end_z_le_grid_z_size( conf, src_conf );
 }
 
 
-void Particle_source_tube::set_parameters_from_config(
-    Particle_source_tube_config_part &src_conf )
+void Particle_source_tube_along_z::set_parameters_from_config(
+    Particle_source_tube_along_z_config_part &src_conf )
 {
-    axis_start_x = src_conf.tube_axis_start_x;
-    axis_start_y = src_conf.tube_axis_start_y;
-    axis_start_z = src_conf.tube_axis_start_z;
-    axis_end_x = src_conf.tube_axis_end_x;
-    axis_end_y = src_conf.tube_axis_end_y;
-    axis_end_z = src_conf.tube_axis_end_z;
-    inner_radius = src_conf.tube_inner_radius;
-    outer_radius = src_conf.tube_outer_radius;
+    axis_x = src_conf.tube_along_z_axis_x;
+    axis_y = src_conf.tube_along_z_axis_y;
+    axis_start_z = src_conf.tube_along_z_axis_start_z;
+    axis_end_z = src_conf.tube_along_z_axis_end_z;
+    inner_radius = src_conf.tube_along_z_inner_radius;
+    outer_radius = src_conf.tube_along_z_outer_radius;
 }
 
 
-void Particle_source_tube::read_hdf5_source_parameters(
-    hid_t h5_particle_source_tube_group_id )
+void Particle_source_tube_along_z::read_hdf5_source_parameters(
+    hid_t h5_particle_source_tube_along_z_group_id )
 {
     herr_t status;
     
-    status = H5LTget_attribute_double( h5_particle_source_tube_group_id, "./",
-				       "tube_axis_start_x", &axis_start_x );
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_axis_x", &axis_x );
     hdf5_status_check( status );
-    status = H5LTget_attribute_double( h5_particle_source_tube_group_id, "./",
-				       "tube_axis_start_y", &axis_start_y );
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_axis_y", &axis_y );
     hdf5_status_check( status );
-    status = H5LTget_attribute_double( h5_particle_source_tube_group_id, "./",
-				       "tube_axis_start_z", &axis_start_z );
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_axis_start_z", &axis_start_z );
     hdf5_status_check( status );
-    status = H5LTget_attribute_double( h5_particle_source_tube_group_id, "./",
-				       "tube_axis_end_x", &axis_end_x );
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_axis_end_z", &axis_end_z );
     hdf5_status_check( status );
-    status = H5LTget_attribute_double( h5_particle_source_tube_group_id, "./",
-				       "tube_axis_end_y", &axis_end_y );
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_inner_radius", &inner_radius );
     hdf5_status_check( status );
-    status = H5LTget_attribute_double( h5_particle_source_tube_group_id, "./",
-				       "tube_axis_end_z", &axis_end_z );
-    hdf5_status_check( status );
-    status = H5LTget_attribute_double( h5_particle_source_tube_group_id, "./",
-				       "tube_inner_radius", &inner_radius );
-    hdf5_status_check( status );
-    status = H5LTget_attribute_double( h5_particle_source_tube_group_id, "./",
-				       "tube_outer_radius", &outer_radius );
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_outer_radius", &outer_radius );
     hdf5_status_check( status );
 }
 
-void Particle_source_tube::inner_and_outer_radius_gt_zero( 
+void Particle_source_tube_along_z::inner_and_outer_radius_gt_zero( 
     Config &conf, 
-    Particle_source_tube_config_part &src_conf )
+    Particle_source_tube_along_z_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.tube_inner_radius >= 0,
+	src_conf.tube_along_z_inner_radius >= 0,
 	"inner_radius < 0" );
     check_and_exit_if_not( 
-	src_conf.tube_outer_radius >= 0,
+	src_conf.tube_along_z_outer_radius >= 0,
 	"outer_radius < 0" );
 }
 
-void Particle_source_tube::inner_radius_less_outer_radius( 
+void Particle_source_tube_along_z::inner_radius_less_outer_radius( 
     Config &conf, 
-    Particle_source_tube_config_part &src_conf )
+    Particle_source_tube_along_z_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.tube_inner_radius <= src_conf.tube_outer_radius,
+	src_conf.tube_along_z_inner_radius <= src_conf.tube_along_z_outer_radius,
 	"inner_radius > outer_radius" );
 }
 
 
-void Particle_source_tube::axis_start_x_min_rad_ge_zero( 
+void Particle_source_tube_along_z::axis_x_min_outer_rad_ge_zero( 
     Config &conf, 
-    Particle_source_tube_config_part &src_conf )
+    Particle_source_tube_along_z_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.tube_axis_start_x - src_conf.tube_outer_radius >= 0,
-	"tube_axis_start_x - tube_outer_radius < 0" );
+	src_conf.tube_along_z_axis_x - src_conf.tube_along_z_outer_radius >= 0,
+	"tube_along_z_axis_x - tube_along_z_outer_radius < 0" );
 }
 
-void Particle_source_tube::axis_start_x_plus_rad_le_grid_x_size( 
+void Particle_source_tube_along_z::axis_x_plus_outer_rad_le_grid_x_size( 
     Config &conf, 
-    Particle_source_tube_config_part &src_conf )
+    Particle_source_tube_along_z_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.tube_axis_start_x + src_conf.tube_outer_radius <=
+	src_conf.tube_along_z_axis_x + src_conf.tube_along_z_outer_radius <=
 	conf.mesh_config_part.grid_x_size,
-	"tube_axis_start_x + tube_outer_radius > grid_x_size" );
+	"tube_along_z_axis_x + tube_along_z_outer_radius > grid_x_size" );
 }
 
-void Particle_source_tube::axis_start_y_min_rad_ge_zero( 
+void Particle_source_tube_along_z::axis_y_min_outer_rad_ge_zero( 
     Config &conf, 
-    Particle_source_tube_config_part &src_conf )
+    Particle_source_tube_along_z_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.tube_axis_start_y - src_conf.tube_outer_radius >= 0,
-	"tube_axis_start_y - tube_outer_radius < 0" );
+	src_conf.tube_along_z_axis_y - src_conf.tube_along_z_outer_radius >= 0,
+	"tube_along_z_axis_y - tube_along_z_outer_radius < 0" );
 }
 
-void Particle_source_tube::axis_start_y_plus_rad_le_grid_y_size( 
+void Particle_source_tube_along_z::axis_y_plus_outer_rad_le_grid_y_size( 
     Config &conf, 
-    Particle_source_tube_config_part &src_conf )
+    Particle_source_tube_along_z_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.tube_axis_start_y + src_conf.tube_outer_radius <=
+	src_conf.tube_along_z_axis_y + src_conf.tube_along_z_outer_radius <=
 	conf.mesh_config_part.grid_y_size,
-	"tube_axis_start_y + tube_outer_radius > grid_y_size" );
+	"tube_along_z_axis_y + tube_along_z_outer_radius > grid_y_size" );
 }
 
-void Particle_source_tube::axis_start_z_min_rad_ge_zero( 
+void Particle_source_tube_along_z::axis_start_z_ge_zero( 
     Config &conf, 
-    Particle_source_tube_config_part &src_conf )
+    Particle_source_tube_along_z_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.tube_axis_start_z - src_conf.tube_outer_radius >= 0,
-	"tube_axis_start_z - tube_outer_radius < 0" );
+	src_conf.tube_along_z_axis_start_z >= 0,
+	"tube_along_z_axis_start_z < 0" );
 }
 
-void Particle_source_tube::axis_start_z_plus_rad_le_grid_z_size( 
+void Particle_source_tube_along_z::axis_start_z_le_axis_end_z( 
     Config &conf, 
-    Particle_source_tube_config_part &src_conf )
+    Particle_source_tube_along_z_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.tube_axis_start_z + src_conf.tube_outer_radius <=
+	src_conf.tube_along_z_axis_start_z <= src_conf.tube_along_z_axis_end_z,
+	"tube_along_z_axis_start_z > tube_along_z_axis_end_z" );
+}
+
+void Particle_source_tube_along_z::axis_end_z_le_grid_z_size( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    check_and_exit_if_not( 
+	src_conf.tube_along_z_axis_end_z <=
 	conf.mesh_config_part.grid_z_size,
-	"tube_axis_start_z + tube_outer_radius > grid_z_size" );
-}
-
-void Particle_source_tube::axis_end_x_min_rad_ge_zero( 
-    Config &conf, 
-    Particle_source_tube_config_part &src_conf )
-{
-    check_and_exit_if_not( 
-	src_conf.tube_axis_end_x - src_conf.tube_outer_radius >= 0,
-	"tube_axis_end_x - tube_outer_radius < 0" );
-}
-
-void Particle_source_tube::axis_end_x_plus_rad_le_grid_x_size( 
-    Config &conf, 
-    Particle_source_tube_config_part &src_conf )
-{
-    check_and_exit_if_not( 
-	src_conf.tube_axis_end_x + src_conf.tube_outer_radius <=
-	conf.mesh_config_part.grid_x_size,
-	"tube_axis_end_x + tube_outer_radius > grid_x_size" );
-}
-
-void Particle_source_tube::axis_end_y_min_rad_ge_zero( 
-    Config &conf, 
-    Particle_source_tube_config_part &src_conf )
-{
-    check_and_exit_if_not( 
-	src_conf.tube_axis_end_y - src_conf.tube_outer_radius >= 0,
-	"tube_axis_end_y - tube_outer_radius < 0" );
-}
-
-void Particle_source_tube::axis_end_y_plus_rad_le_grid_y_size( 
-    Config &conf, 
-    Particle_source_tube_config_part &src_conf )
-{
-    check_and_exit_if_not( 
-	src_conf.tube_axis_end_y + src_conf.tube_outer_radius <=
-	conf.mesh_config_part.grid_y_size,
-	"tube_axis_end_y + tube_outer_radius > grid_y_size" );
-}
-
-void Particle_source_tube::axis_end_z_min_rad_ge_zero( 
-    Config &conf, 
-    Particle_source_tube_config_part &src_conf )
-{
-    check_and_exit_if_not( 
-	src_conf.tube_axis_end_z - src_conf.tube_outer_radius >= 0,
-	"tube_axis_end_z - tube_outer_radius < 0" );
-}
-
-void Particle_source_tube::axis_end_z_plus_rad_le_grid_z_size( 
-    Config &conf, 
-    Particle_source_tube_config_part &src_conf )
-{
-    check_and_exit_if_not( 
-	src_conf.tube_axis_end_z + src_conf.tube_outer_radius <=
-	conf.mesh_config_part.grid_z_size,
-	"tube_axis_end_z + tube_outer_radius > grid_z_size" );
+	"tube_along_z_axis_end_z > grid_z_size" );
 }
 
 
-void Particle_source_tube::write_hdf5_source_parameters( hid_t current_source_group_id )
+void Particle_source_tube_along_z::write_hdf5_source_parameters(
+    hid_t current_source_group_id )
 {
     Particle_source::write_hdf5_source_parameters( current_source_group_id );
     
@@ -1459,110 +1399,57 @@ void Particle_source_tube::write_hdf5_source_parameters( hid_t current_source_gr
 
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "tube_axis_start_x", &axis_start_x,
+    				       "tube_along_z_axis_x", &axis_x,
 				       single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "tube_axis_start_y", &axis_start_y,
+    				       "tube_along_z_axis_y", &axis_y,
 				       single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "tube_axis_start_z", &axis_start_z,
+    				       "tube_along_z_axis_start_z", &axis_start_z,
 				       single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "tube_axis_end_x", &axis_end_x,
+    				       "tube_along_z_axis_end_z", &axis_end_z,
 				       single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "tube_axis_end_y", &axis_end_y,
+    				       "tube_along_z_outer_radius", &outer_radius,
 				       single_element );
     hdf5_status_check( status );
     status = H5LTset_attribute_double( current_source_group_id,
 				       current_group.c_str(),
-    				       "tube_axis_end_z", &axis_end_z,
-				       single_element );
-    hdf5_status_check( status );
-    status = H5LTset_attribute_double( current_source_group_id,
-				       current_group.c_str(),
-    				       "tube_outer_radius", &outer_radius,
-				       single_element );
-    hdf5_status_check( status );
-    status = H5LTset_attribute_double( current_source_group_id,
-				       current_group.c_str(),
-    				       "tube_inner_radius", &inner_radius,
+    				       "tube_along_z_inner_radius", &inner_radius,
 				       single_element );
     hdf5_status_check( status );
 }
 
 
-Vec3d Particle_source_tube::uniform_position_in_source(
+Vec3d Particle_source_tube_along_z::uniform_position_in_source(
     std::default_random_engine &rnd_gen )
 {
-    return uniform_position_in_tube( rnd_gen );
+    return uniform_position_in_tube_along_z( rnd_gen );
 }
 
-Vec3d Particle_source_tube::uniform_position_in_tube(
+Vec3d Particle_source_tube_along_z::uniform_position_in_tube_along_z(
     std::default_random_engine &rnd_gen )
 {
-    // random point in tube along z
-    Vec3d cyl_axis = vec3d_init( ( axis_end_x - axis_start_x ),
-				 ( axis_end_y - axis_start_y ),
-				 ( axis_end_z - axis_start_z ) );
-    double cyl_axis_length = vec3d_length( cyl_axis );
     double x, y, z;
     double r, phi;
-    r = sqrt( random_in_range( inner_radius, outer_radius, rnd_gen ) );
+    r = sqrt(random_in_range( inner_radius / outer_radius, 1.0, rnd_gen)) * outer_radius;
     phi = random_in_range( 0.0, 2.0 * M_PI, rnd_gen );
-    z = random_in_range( 0.0, cyl_axis_length, rnd_gen );
+    z = random_in_range( axis_start_z, axis_end_z, rnd_gen );
     //
     x = r * cos( phi );
     y = r * sin( phi );
-    z = z;
-    Vec3d random_pnt_in_cyl_along_z = vec3d_init( x, y, z );
-    // rotate:
-    // see https://en.wikipedia.org/wiki/Rodrigues'_rotation_formula
-    // todo: Too complicated. Try rejection sampling.
-    Vec3d random_pnt_in_rotated_cyl;
-    Vec3d unit_cyl_axis = vec3d_normalized( cyl_axis );
-    Vec3d unit_along_z = vec3d_init( 0, 0, 1.0 );
-    Vec3d rotation_axis = vec3d_cross_product( unit_along_z, unit_cyl_axis );
-    double rotation_axis_length = vec3d_length( rotation_axis );
-    if ( rotation_axis_length == 0 ) {
-	if ( copysign( 1.0, vec3d_z( unit_cyl_axis ) ) >= 0 ){
-	    random_pnt_in_rotated_cyl = random_pnt_in_cyl_along_z;
-	} else {
-	    random_pnt_in_rotated_cyl = vec3d_negate( random_pnt_in_cyl_along_z );
-	}
-    } else {
-	Vec3d unit_rotation_axis = vec3d_normalized( rotation_axis );
-	double rot_cos = vec3d_dot_product( unit_cyl_axis, unit_along_z );
-	double rot_sin = rotation_axis_length;
-	
-	random_pnt_in_rotated_cyl =
-	    vec3d_add(
-		vec3d_times_scalar( random_pnt_in_cyl_along_z, rot_cos ),
-		vec3d_add(
-		    vec3d_times_scalar(
-			vec3d_cross_product( unit_rotation_axis,
-					     random_pnt_in_cyl_along_z ),
-			rot_sin ),
-		    vec3d_times_scalar(
-			unit_rotation_axis,
-			( 1 - rot_cos ) * vec3d_dot_product(
-			    unit_rotation_axis,
-			    random_pnt_in_cyl_along_z ) ) ) );
-    }
-    // shift:
-    Vec3d shifted = vec3d_add( random_pnt_in_rotated_cyl,
-			       vec3d_init( axis_start_x, axis_start_y, axis_start_z ) );
-    return shifted;
+    z = z;     
+    return vec3d_init( x + axis_x, y + axis_y, z );
 }
-
 
 
 

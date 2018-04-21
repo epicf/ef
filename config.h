@@ -167,41 +167,41 @@ public:
     }
 };
 
-class Particle_source_tube_config_part : public Particle_source_config_part {
+class Particle_source_tube_along_z_config_part : public Particle_source_config_part {
 public:
-    double tube_axis_start_x;
-    double tube_axis_start_y;
-    double tube_axis_start_z;
-    double tube_axis_end_x;
-    double tube_axis_end_y;
-    double tube_axis_end_z;
-    double tube_inner_radius;
-    double tube_outer_radius;
+    double tube_along_z_axis_x;
+    double tube_along_z_axis_y;
+    double tube_along_z_axis_start_z;
+    double tube_along_z_axis_end_z;
+    double tube_along_z_inner_radius;
+    double tube_along_z_outer_radius;
 public:
-    Particle_source_tube_config_part(){};
-    Particle_source_tube_config_part( std::string name,
+    Particle_source_tube_along_z_config_part(){};
+    Particle_source_tube_along_z_config_part( std::string name,
 				      boost::property_tree::ptree &ptree ) :
 	Particle_source_config_part( name, ptree ),
-	tube_axis_start_x( ptree.get<double>("tube_axis_start_x") ),
-	tube_axis_start_y( ptree.get<double>("tube_axis_start_y") ),
-	tube_axis_start_z( ptree.get<double>("tube_axis_start_z") ),
-	tube_axis_end_x( ptree.get<double>("tube_axis_end_x") ),
-	tube_axis_end_y( ptree.get<double>("tube_axis_end_y") ),
-	tube_axis_end_z( ptree.get<double>("tube_axis_end_z") ),
-	tube_inner_radius( ptree.get<double>("tube_inner_radius") ),
-	tube_outer_radius( ptree.get<double>("tube_outer_radius") )
+	tube_along_z_axis_x( ptree.get<double>("tube_along_z_axis_x") ),
+	tube_along_z_axis_y( ptree.get<double>("tube_along_z_axis_y") ),
+	tube_along_z_axis_start_z( ptree.get<double>("tube_along_z_axis_start_z") ),
+	tube_along_z_axis_end_z( ptree.get<double>("tube_along_z_axis_end_z") ),
+	tube_along_z_inner_radius( ptree.get<double>("tube_along_z_inner_radius") ),
+	tube_along_z_outer_radius( ptree.get<double>("tube_along_z_outer_radius") )
 	{};
-    virtual ~Particle_source_tube_config_part() {};
+    virtual ~Particle_source_tube_along_z_config_part() {};
     virtual void print() {
 	Particle_source_config_part::print();
-	std::cout << "tube_axis_start_x = " << tube_axis_start_x << std::endl;
-	std::cout << "tube_axis_start_y = " << tube_axis_start_y << std::endl;
-	std::cout << "tube_axis_start_z = " << tube_axis_start_z << std::endl;
-	std::cout << "tube_axis_end_x = " << tube_axis_end_x << std::endl;
-	std::cout << "tube_axis_end_y = " << tube_axis_end_y << std::endl;
-	std::cout << "tube_axis_end_z = " << tube_axis_end_z << std::endl;
-	std::cout << "tube_inner_radius = " << tube_inner_radius << std::endl;
-	std::cout << "tube_outer_radius = " << tube_outer_radius << std::endl;
+	std::cout << "tube_along_z_axis_x = "
+		  << tube_along_z_axis_x << std::endl;
+	std::cout << "tube_along_z_axis_y = "
+		  << tube_along_z_axis_y << std::endl;
+	std::cout << "tube_along_z_axis_start_z = "
+		  << tube_along_z_axis_start_z << std::endl;
+	std::cout << "tube_along_z_axis_end_z = "
+		  << tube_along_z_axis_end_z << std::endl;
+	std::cout << "tube_along_z_inner_radius = "
+		  << tube_along_z_inner_radius << std::endl;
+	std::cout << "tube_along_z_outer_radius = "
+		  << tube_along_z_outer_radius << std::endl;
     }
 };
 
