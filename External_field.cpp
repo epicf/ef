@@ -587,3 +587,235 @@ void External_electric_field_tinyexpr::hdf5_status_check( herr_t status )
 	exit( EXIT_FAILURE );
     }
 }
+
+
+
+
+
+// Electric on_regular_grid
+
+External_electric_field_on_regular_grid::External_electric_field_on_regular_grid(
+    External_electric_field_on_regular_grid_config_part &field_conf ) :
+    External_field( field_conf )
+{
+    field_type = "electric_on_regular_grid";
+    check_correctness_and_get_values_from_config( field_conf );
+    load_field_from_grid();
+}
+
+void External_electric_field_on_regular_grid::check_correctness_and_get_values_from_config(
+    External_electric_field_on_regular_grid_config_part &field_conf )
+{
+    h5filename = field_conf.h5filename;
+}
+
+External_electric_field_on_regular_grid::External_electric_field_on_regular_grid(
+    hid_t h5_external_electric_field_on_regular_grid_group ) :
+    External_field( h5_external_electric_field_on_regular_grid_group )
+{
+    char h5_str_read_buffer[1000]; // todo
+    field_type = "electric_on_regular_grid";
+
+    herr_t status;
+    status = H5LTget_attribute_string( h5_external_electric_field_on_regular_grid_group,
+				       "./",
+				       "h5filename",
+				       h5_str_read_buffer );
+    hdf5_status_check( status );
+    h5filename = std::string( h5_str_read_buffer );
+    if ( h5filename.length() >= 900 ) {
+	printf( "Implement support for longer strings! Aborting.\n" );
+	exit( EXIT_FAILURE );
+    }
+
+    load_field_from_grid();
+}
+
+
+void External_electric_field_on_regular_grid::load_field_from_grid()
+{
+    hid_t h5file_id = H5Fopen( h5filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT );
+    if( h5file_id < 0 ){
+	std::cout << "Can't open file: " << h5filename << std::endl;
+	exit( EXIT_FAILURE );
+    }
+    // todo: read group from config
+    hid_t h5_spat_mesh_group = H5Gopen( h5file_id, "/Spatial_mesh", H5P_DEFAULT );
+    if( h5_spat_mesh_group < 0 ){
+	std::cout << "Something went wrong while opening Spatial_mesh group. Aborting."
+		  << std::endl;
+	exit( EXIT_FAILURE );
+    }
+    //    
+    herr_t status;
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+				       "x_volume_size", &x_volume_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+				       "y_volume_size", &y_volume_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+				       "z_volume_size", &z_volume_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+				       "x_cell_size", &x_cell_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+				       "y_cell_size", &y_cell_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_spat_mesh_group, "./",
+				       "z_cell_size", &z_cell_size );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_spat_mesh_group, "./",
+				    "x_n_nodes", &x_n_nodes );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_spat_mesh_group, "./",
+				    "y_n_nodes", &y_n_nodes );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_int( h5_spat_mesh_group, "./",
+				    "z_n_nodes", &z_n_nodes );
+    hdf5_status_check( status );
+    //    
+    int nx = x_n_nodes;
+    int ny = y_n_nodes;
+    int nz = z_n_nodes;
+    electric_field.resize( boost::extents[nx][ny][nz] );
+    //
+    int dim = electric_field.num_elements();
+    double *h5_tmp_buf_1 = new double[ dim ];
+    double *h5_tmp_buf_2 = new double[ dim ];
+    double *h5_tmp_buf_3 = new double[ dim ];
+    //
+    H5LTread_dataset_double( h5_spat_mesh_group, "./electric_field_x", h5_tmp_buf_1);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./electric_field_y", h5_tmp_buf_2);
+    H5LTread_dataset_double( h5_spat_mesh_group, "./electric_field_z", h5_tmp_buf_3);
+    for ( int i = 0; i < dim; i++ ) {
+    	( electric_field.data() )[i] = vec3d_init( h5_tmp_buf_1[i],
+						   h5_tmp_buf_2[i],
+						   h5_tmp_buf_3[i] );
+    }
+    //
+    delete[] h5_tmp_buf_1;
+    delete[] h5_tmp_buf_2;
+    delete[] h5_tmp_buf_3;
+    //
+    status = H5Gclose( h5_spat_mesh_group ); hdf5_status_check( status );
+    status = H5Fclose( h5file_id ); hdf5_status_check( status );
+    //
+    return;
+}
+
+
+Vec3d External_electric_field_on_regular_grid::field_at_particle_position(
+    const Particle &p, const double &t )
+{
+    // copied from particle_to_mesh_map
+    double dx = x_cell_size;
+    double dy = y_cell_size;
+    double dz = z_cell_size;
+    int tlf_i, tlf_j, tlf_k; // 'tlf' = 'top_left_far'
+    double tlf_x_weight, tlf_y_weight, tlf_z_weight;  
+    Vec3d field_from_node, total_field;
+    //
+    next_node_num_and_weight( vec3d_x( p.position ), dx, &tlf_i, &tlf_x_weight );
+    next_node_num_and_weight( vec3d_y( p.position ), dy, &tlf_j, &tlf_y_weight );
+    next_node_num_and_weight( vec3d_z( p.position ), dz, &tlf_k, &tlf_z_weight );
+    // tlf
+    total_field = vec3d_zero();
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i][tlf_j][tlf_k],
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // trf
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i-1][tlf_j][tlf_k],
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // blf
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i][tlf_j - 1][tlf_k],	
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // brf
+    field_from_node = vec3d_times_scalar(			
+	electric_field[tlf_i-1][tlf_j-1][tlf_k],	
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // tln
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i][tlf_j][tlf_k-1],
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // trn
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i-1][tlf_j][tlf_k-1],
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // bln
+    field_from_node = vec3d_times_scalar(
+	electric_field[tlf_i][tlf_j - 1][tlf_k-1],	
+	tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );
+    // brn
+    field_from_node = vec3d_times_scalar(			
+	electric_field[tlf_i-1][tlf_j-1][tlf_k-1],	
+	1.0 - tlf_x_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_y_weight );
+    field_from_node = vec3d_times_scalar( field_from_node, 1.0 - tlf_z_weight );
+    total_field = vec3d_add( total_field, field_from_node );    
+    //
+    return total_field;
+}
+
+void External_electric_field_on_regular_grid::next_node_num_and_weight( 
+    const double x, const double grid_step, 
+    int *next_node, double *weight )
+{
+    double x_in_grid_units = x / grid_step;
+    *next_node = ceil( x_in_grid_units );
+    *weight = 1.0 - ( *next_node - x_in_grid_units );
+    return;
+}
+
+
+void External_electric_field_on_regular_grid::write_hdf5_field_parameters(
+    hid_t current_field_group_id )
+{
+    herr_t status;
+    std::string current_group = "./";
+
+    status = H5LTset_attribute_string( current_field_group_id, current_group.c_str(),
+				       "field_type",
+				       field_type.c_str() );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_string( current_field_group_id, current_group.c_str(),
+				       "h5filename",
+				       h5filename.c_str() );
+    hdf5_status_check( status );
+    
+    return;
+}
+
+void External_electric_field_on_regular_grid::hdf5_status_check( herr_t status )
+{
+    if( status < 0 ){
+	std::cout << "Something went wrong while reading or writing "
+		  << "External_electric_field_on_regular_grid group. "
+		  << "Aborting." << std::endl;
+	exit( EXIT_FAILURE );
+    }
+}

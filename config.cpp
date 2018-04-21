@@ -16,7 +16,7 @@ Config::Config( const std::string &filename )
 		mesh_config_part = Mesh_config_part( sections.second );
 	    } else if (
 		section_name.find( "Particle_source_box." ) != std::string::npos ) {
-		std::string source_name = section_name.substr( section_name.find(".") + 1 );
+		std::string source_name = section_name.substr(section_name.find(".") + 1);
 		sources_config_part.push_back(
 		    new Particle_source_box_config_part( source_name, sections.second ) );
 	    } else if (
@@ -93,6 +93,16 @@ Config::Config( const std::string &filename )
 		fields_config_part.push_back(
 		    new External_electric_field_tinyexpr_config_part(
 			field_name, sections.second ) );
+	    } else if ( section_name.find( "External_electric_field_on_regular_grid" ) !=
+			std::string::npos
+			||
+			section_name.find("ExternalFieldElectricOnRegularGridFromH5File" )
+			!= std::string::npos ) {		
+		std::string field_name =
+		    section_name.substr( section_name.find(".") + 1 );
+		fields_config_part.push_back(
+		    new External_electric_field_on_regular_grid_config_part(
+			field_name, sections.second ) );		
 	    } else if (
 		section_name.find( "Particle interaction model" ) != std::string::npos ) {
 		particle_interaction_model_config_part =

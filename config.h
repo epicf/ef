@@ -562,6 +562,28 @@ public:
 };
 
 
+class External_electric_field_on_regular_grid_config_part :
+    public External_field_config_part{
+public:
+    std::string h5filename;
+public:
+    External_electric_field_on_regular_grid_config_part(){};
+    External_electric_field_on_regular_grid_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	External_field_config_part( name, ptree ),
+	h5filename( ptree.get<std::string>("filename") )
+	{} ;
+    virtual ~External_electric_field_on_regular_grid_config_part() {};
+    void print() { 
+	std::cout << "External electric field on_regular_grid: name = "
+		  << name << std::endl;
+	std::cout << "h5filename = " << h5filename << std::endl;
+    }
+};
+
+
+
+
 class Particle_interaction_model_config_part {
 public:
     std::string particle_interaction_model;
