@@ -861,8 +861,7 @@ bool Inner_region_tube_along_z_segment::check_if_point_inside(
     if ( !in_phi ){
 	return false;
     }
-    bool in = true;
-    return in;
+    return true;
 }
 
 

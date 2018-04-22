@@ -709,6 +709,17 @@ void External_electric_field_on_regular_grid::load_field_from_grid()
 Vec3d External_electric_field_on_regular_grid::field_at_particle_position(
     const Particle &p, const double &t )
 {
+    // copied from domain
+    double x = vec3d_x( p.position );
+    double y = vec3d_y( p.position );
+    double z = vec3d_z( p.position );
+    bool out = 
+	( x >= x_volume_size ) || ( x <= 0 ) ||
+	( y >= y_volume_size ) || ( y <= 0 ) ||
+	( z >= z_volume_size ) || ( z <= 0 ) ;
+    if ( out ) {
+	return vec3d_zero();
+    }
     // copied from particle_to_mesh_map
     double dx = x_cell_size;
     double dy = y_cell_size;
