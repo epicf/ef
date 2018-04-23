@@ -857,7 +857,7 @@ bool Inner_region_tube_along_z_segment::check_if_point_inside(
 	// [0:0; 90:pi/2; 180-e:pi; 180+e:-pi; 270:-pi/2]
 	p_phi = 360 + p_phi;
     }
-    bool in_phi = start_angle_deg < p_phi && p_phi < end_angle_deg;
+    bool in_phi = start_angle_deg <= p_phi && p_phi <= end_angle_deg;
     if ( !in_phi ){
 	return false;
     }
