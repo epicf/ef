@@ -10,7 +10,7 @@
 class Particle_interaction_model {
   public:
     std::string particle_interaction_model;
-    bool noninteracting, pic;
+    bool noninteracting, binary, pic;
   public:
     Particle_interaction_model( Config &conf );
     Particle_interaction_model( hid_t h5_particle_interaction_model_group );
