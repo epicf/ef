@@ -91,6 +91,6 @@ Vec3d vec3d_normalized( Vec3d v )
 
 void vec3d_print( Vec3d v )
 {
-    printf("(%e, %e, %e)",
+    printf("(%e, %e, %e) \n",
 	   vec3d_x(v), vec3d_y(v), vec3d_z(v) );
 }

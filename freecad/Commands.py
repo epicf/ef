@@ -1,8 +1,11 @@
 import os
 import FreeCAD, FreeCADGui
 import Part
+from math import *
 from pivy import coin
 from PySide import QtGui, QtCore
+
+import subprocess
 
 class CreateEfConfig():
     """Create objects for new ef config"""
@@ -42,6 +45,10 @@ class CreateEfConfig():
             "App::FeaturePython", "Magnetic field" )
         MagneticFieldConfigPart( magn_field_conf )
 
+        run_ef = ef_conf_group.newObject(
+            "App::FeaturePython", "Run_Ef" )
+        RunEfConfig( run_ef )
+        
         FreeCAD.ActiveDocument.recompute()
         return
  
@@ -85,6 +92,44 @@ class AddSourceRegion():
                         active = True            
         return active
 
+
+
+class AddCylindricalSource():
+    """Add cylindrical-shaped source of particles"""
+ 
+    def GetResources(self):
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/ef"
+        return {'Pixmap'  : moddir + '/icons/add_cylindrical_source.ico',
+                'Accel' : "Shift+C", # a default shortcut (optional)
+                'MenuText': "Add cylindrical-shaped source of particles",
+                'ToolTip' : "Add cylindrical-shaped source of particles"}
+ 
+    def Activated(self):
+        for ef_conf_group in self.selected_ef_conf_groups:
+            source_conf = ef_conf_group.newObject(
+                "App::FeaturePython", "Cylindrical Source" )
+            ParticleCylindricalSourceConfigPart( source_conf )
+        FreeCAD.ActiveDocument.recompute()                        
+        return
+ 
+    def IsActive(self):
+        # Add source only if ef-group is selected
+        # todo: check if selected object is ef-conf group
+        # or directly belongs to ef-conf group
+        sel = FreeCADGui.Selection.getSelection()
+        self.selected_ef_conf_groups = []
+        active = False
+        for obj in sel:
+            if "ef" in obj.Name:
+                self.selected_ef_conf_groups.append( obj )
+                active = True
+            else:
+                for parent_obj in obj.InList:
+                    if "ef" in parent_obj.Name:
+                        self.selected_ef_conf_groups.append( parent_obj )
+                        active = True            
+        return active
+    
 
 class AddInnerRegionBox():
     """Add box inner region"""
@@ -182,6 +227,58 @@ class GenerateConfFile():
             with open( conf_filename, 'w') as f:
                 f.writelines( config_text )
         return conf_filename        
+
+
+
+class RunEf():
+    """Run Ef"""
+ 
+    def GetResources(self):
+        moddir = os.path.expanduser("~") + "/.FreeCAD/Mod/ef"
+        return {'Pixmap'  : moddir + '/icons/run_ef.svg',
+                'Accel' : "Shift+S", # a default shortcut (optional)
+                'MenuText': "Run Ef",
+                'ToolTip' : "Run Ef"}
+ 
+    def Activated(self):        
+        for ef_conf_group in self.selected_ef_conf_groups:
+            # todo: generate config to temp file in temp directory, run ef on this config
+            # Rename 'command' to 'ef_command' 
+            run_ef = ef_conf_group.getObject("Run_Ef")
+            freecad_workdir = os.getcwd()
+            os.chdir( run_ef.change_workdir_to )
+            stdout = subprocess.Popen( run_ef.command, shell = True,
+                                       stdout = subprocess.PIPE ).stdout.read()
+            FreeCAD.Console.PrintMessage( stdout )
+            # https://stackoverflow.com/questions/803265/getting-realtime-output-using-subprocess
+            # realtime output for subprocess
+            os.chdir( freecad_workdir )
+        FreeCAD.ActiveDocument.recompute()
+        return
+ 
+    def IsActive(self):
+        # Add source only if ef-group is selected
+        # todo: check if selected object is ef-conf group
+        # or directly belongs to ef-conf group
+        sel = FreeCADGui.Selection.getSelection()
+        self.selected_ef_conf_groups = []
+        active = False
+        for obj in sel:
+            if "ef" in obj.Name:
+                self.selected_ef_conf_groups.append( obj )
+                active = True
+            else:
+                for parent_obj in obj.InList:
+                    if "ef" in parent_obj.Name:
+                        self.selected_ef_conf_groups.append( parent_obj )
+                        active = True            
+        return active
+
+
+    
+
+###
+
 
     
 class TimeGridConfigPart:
@@ -625,9 +722,16 @@ class ParticleSourceConfigPart():
     def __init__( self, obj ):
         obj.addProperty(
             "App::PropertyEnumeration",
-            "set_of_parameters",
+            "individual_charge_or_total_current",
             "Base",
-            "Specify particles' charge or total source current").set_of_parameters = ["Particles' charge", "Source current"]
+            "Specify particles' charge or total source current")
+        obj.individual_charge_or_total_current = ["Particles' charge", "Source current"]
+        obj.addProperty(
+            "App::PropertyEnumeration",
+            "mass_or_charge_to_mass",
+            "Base",
+            "Specify particles' mass or charge-to-mass ratio")
+        obj.mass_or_charge_to_mass = [ "Mass", "Charge-to-mass" ]
         obj.addProperty(
             "App::PropertyString",
             "initial_number_of_particles",
@@ -721,22 +825,33 @@ class ParticleSourceConfigPart():
         '''Executed when document is recomputated. This method is mandatory'''
         dt = self.get_time_step( obj )
         N = int( obj.particles_to_generate_each_step )
-        parameters_set = obj.getPropertyByName("set_of_parameters")
+        individual_charge_or_total_current = obj.getPropertyByName(
+            "individual_charge_or_total_current")
+        mass_or_charge_to_mass = obj.getPropertyByName(
+            "mass_or_charge_to_mass")
         
-        if parameters_set == "Particles' charge":
+        if individual_charge_or_total_current == "Particles' charge":
             # todo: make certain fields read-only
             # e.g., obj.setEditorMode( "current", readonly )
             q = float( obj.charge )
             I = q * N / dt
             obj.current = str( I )
-        elif parameters_set == "Source current":
+        elif individual_charge_or_total_current == "Source current":
             I = float( obj.current )
             q = I * dt / N        
             obj.charge = str( q )
-            
-        q_to_m = float( obj.charge_to_mass_ratio )
-        m = abs( 1 / q_to_m * q )
-        obj.mass = str( m )
+
+        if mass_or_charge_to_mass == "Mass":
+            # todo: make certain fields read-only
+            # e.g., obj.setEditorMode( "current", readonly )
+            m = float( obj.mass )
+            q_to_m = q / m
+            obj.charge_to_mass_ratio = str( q_to_m )
+        elif mass_or_charge_to_mass == "Charge-to-mass":
+            q_to_m = float( obj.charge_to_mass_ratio )
+            m = abs( 1 / q_to_m * q )
+            obj.mass = str( m )            
+
         return
 
     def attach(self, obj):
@@ -840,7 +955,8 @@ class ParticleSourceConfigPart():
             conf_part.append(
                 "{0} = {1}\n".format( x, self.doc_object.getPropertyByName( x ) ) )
 
-        comments = [ "set_of_parameters",
+        comments = [ "individual_charge_or_total_current",
+                     "mass_or_charge_to_mass",
                      "charge_to_mass_ratio",
                      "current" ]
         for x in comments:
@@ -850,6 +966,331 @@ class ParticleSourceConfigPart():
         conf_part.append("\n")
         return conf_part
 
+
+
+
+
+class ParticleCylindricalSourceConfigPart():
+    """Particle cylindrical source region"""
+
+    def __init__( self, obj ):
+        obj.addProperty(
+            "App::PropertyEnumeration",
+            "individual_charge_or_total_current",
+            "Base",
+            "Specify particles' charge or total source current")
+        obj.individual_charge_or_total_current = ["Particles' charge", "Source current"]
+        obj.addProperty(
+            "App::PropertyEnumeration",
+            "mass_or_charge_to_mass",
+            "Base",
+            "Specify particles' mass or charge-to-mass ratio")
+        obj.mass_or_charge_to_mass = [ "Mass", "Charge-to-mass" ]
+        obj.addProperty(
+            "App::PropertyString",
+            "initial_number_of_particles",
+            "Number of particles",
+            "Initial number of particles" ).initial_number_of_particles = "1000"
+        obj.addProperty(
+            "App::PropertyString",
+            "particles_to_generate_each_step",
+            "Number of particles",
+            "Number of particles to add at each time step" ).particles_to_generate_each_step = "1000"
+        obj.addProperty(
+            "App::PropertyString",
+            "current",
+            "Number of particles",
+            "I = q * N / dt" ).current = "10" # default value is unimportant;
+        # it will be recalculated.
+        ### Size
+        obj.addProperty(
+            "App::PropertyEnumeration",
+            "cylinder_axis_direction",
+            "Size",
+            "Cylinder along axis").cylinder_axis_direction = ["X", "Y", "Z"]
+        obj.addProperty(
+            "App::PropertyString",
+            "cylinder_length",
+            "Size",
+            "Cylinder axis length").cylinder_length = "0.5"
+        obj.addProperty(
+            "App::PropertyString",
+            "cylinder_radius",
+            "Size",
+            "Cylinder radius" ).cylinder_radius = "0.05"
+        ###
+        obj.addProperty(
+            "App::PropertyString",
+            "cylinder_axis_start_x",
+            "Size",
+            "Position of the left side of the source" ).cylinder_axis_start_x = "0.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "cylinder_axis_start_y",
+            "Size",
+            "Position of the right side of the source" ).cylinder_axis_start_y = "0.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "cylinder_axis_start_z",
+            "Size",
+            "Position of the bottom side of the source" ).cylinder_axis_start_z = "0.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "cylinder_axis_end_x",
+            "Size",
+            "Position of the top side of the source" ).cylinder_axis_end_x = "0.2"
+        obj.addProperty(
+            "App::PropertyString",
+            "cylinder_axis_end_y",
+            "Size",
+            "Position of the near side of the source" ).cylinder_axis_end_y = "0.2"
+        obj.addProperty(
+            "App::PropertyString",
+            "cylinder_axis_end_z",
+            "Size",
+            "Position of the far side of the source" ).cylinder_axis_end_z = "0.3"
+        ###
+        obj.addProperty(
+            "App::PropertyString",
+            "mean_momentum_x",
+            "Momentum",
+            "Mean momentum in X direction" ).mean_momentum_x = "1.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "mean_momentum_y",
+            "Momentum",
+            "Mean momentum in Y direction" ).mean_momentum_y = "1.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "mean_momentum_z",
+            "Momentum",
+            "Mean momentum in Z direction" ).mean_momentum_z = "1.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "temperature",
+            "Momentum",
+            "Temperature" ).temperature = "1.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "charge",
+            "Particle properties",
+            "Particles' charge" ).charge = "1.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "mass",
+            "Particle properties",
+            "Particles' mass (calculated automatically from q and q/m)" ).mass = "1.0"
+        obj.addProperty(
+            "App::PropertyString",
+            "charge_to_mass_ratio",
+            "Particle properties",
+            "Particles' charge to mass ratio" ).charge_to_mass_ratio = "1.0"
+        obj.ViewObject.addProperty(
+            "App::PropertyColor", "Color",
+            "Spatial mesh", "Volume box color").Color=(0.0, 0.0, 1.0)
+
+        # hide axis-end
+        obj.setEditorMode( "cylinder_axis_end_x", 1 )
+        obj.setEditorMode( "cylinder_axis_end_y", 1 )
+        obj.setEditorMode( "cylinder_axis_end_z", 1 )
+        
+        obj.Proxy = self
+        obj.ViewObject.Proxy = self
+        self.doc_object = obj
+        self.view_object = obj.ViewObject
+
+    def execute( self, obj ):
+        '''Executed when document is recomputated. This method is mandatory'''
+        dt = self.get_time_step( obj )
+        N = int( obj.particles_to_generate_each_step )
+        individual_charge_or_total_current = obj.getPropertyByName(
+            "individual_charge_or_total_current")
+        mass_or_charge_to_mass = obj.getPropertyByName(
+            "mass_or_charge_to_mass")
+
+        
+        if individual_charge_or_total_current == "Particles' charge":
+            # todo: make certain fields read-only
+            # e.g., obj.setEditorMode( "current", readonly )
+            q = float( obj.charge )
+            I = q * N / dt
+            obj.current = str( I )
+        elif individual_charge_or_total_current == "Source current":
+            I = float( obj.current )
+            q = I * dt / N        
+            obj.charge = str( q )
+
+        if mass_or_charge_to_mass == "Mass":
+            # todo: make certain fields read-only
+            # e.g., obj.setEditorMode( "current", readonly )
+            m = float( obj.mass )
+            q_to_m = q / m
+            obj.charge_to_mass_ratio = str( q_to_m )
+        elif mass_or_charge_to_mass == "Charge-to-mass":
+            q_to_m = float( obj.charge_to_mass_ratio )
+            m = abs( 1 / q_to_m * q )
+            obj.mass = str( m )            
+
+        cylinder_axis_direction = obj.cylinder_axis_direction
+        cylinder_length = float( obj.cylinder_length )
+        cylinder_axis_start_x = float( obj.cylinder_axis_start_x )
+        cylinder_axis_start_y = float( obj.cylinder_axis_start_y )
+        cylinder_axis_start_z = float( obj.cylinder_axis_start_z )
+        if cylinder_axis_direction == 'X':
+            obj.cylinder_axis_end_x = str( cylinder_axis_start_x + cylinder_length )
+            obj.cylinder_axis_end_y = str( cylinder_axis_start_y )
+            obj.cylinder_axis_end_z = str( cylinder_axis_start_z )
+        elif cylinder_axis_direction == 'Y':
+            obj.cylinder_axis_end_x = str( cylinder_axis_start_x )
+            obj.cylinder_axis_end_y = str( cylinder_axis_start_y + cylinder_length )
+            obj.cylinder_axis_end_z = str( cylinder_axis_start_z )
+        elif cylinder_axis_direction == 'Z':
+            obj.cylinder_axis_end_x = str( cylinder_axis_start_x )
+            obj.cylinder_axis_end_y = str( cylinder_axis_start_y )
+            obj.cylinder_axis_end_z = str( cylinder_axis_start_z + cylinder_length )
+
+        return
+
+    def attach(self, obj):    
+        self.trans = coin.SoTranslation()
+        self.rot_xyz = coin.SoRotationXYZ()
+        self.color = coin.SoBaseColor()
+        self.cyl = coin.SoCylinder()
+
+        self.shaded = coin.SoGroup()
+        self.shaded.addChild( self.color )
+        self.shaded.addChild( self.trans )
+        self.shaded.addChild( self.rot_xyz )
+        self.shaded.addChild( self.cyl )
+        obj.addDisplayMode( self.shaded, "Shaded" )
+        
+        style = coin.SoDrawStyle()
+        style.style = coin.SoDrawStyle.LINES
+        self.wireframe = coin.SoGroup()
+        self.wireframe.addChild( style )
+        self.wireframe.addChild( self.color )                
+        self.wireframe.addChild( self.trans )
+        self.wireframe.addChild( self.rot_xyz )
+        self.wireframe.addChild( self.cyl )
+        obj.addDisplayMode( self.wireframe, "Wireframe" )
+        
+        self.onChanged( obj, "Color" )
+        return
+
+    def updateData( self, obj, prop ):
+        "Executed when propery in field 'data' is changed"        
+        cylinder_axis_direction = obj.getPropertyByName("cylinder_axis_direction")
+        cylinder_length = float( obj.getPropertyByName("cylinder_length") )
+        cylinder_radius = float( obj.getPropertyByName("cylinder_radius") )
+        cylinder_axis_start_x = float( obj.getPropertyByName("cylinder_axis_start_x") )
+        cylinder_axis_start_y = float( obj.getPropertyByName("cylinder_axis_start_y") )
+        cylinder_axis_start_z = float( obj.getPropertyByName("cylinder_axis_start_z") )
+        
+        if cylinder_axis_direction == 'X':
+            self.rot_xyz.axis.setValue( 2 )
+            self.rot_xyz.angle.setValue( pi / 2 )
+            self.trans.translation.setValue(
+                [ cylinder_axis_start_x + cylinder_length / 2,
+                  cylinder_axis_start_y,
+                  cylinder_axis_start_z ] )            
+        elif cylinder_axis_direction == 'Y':
+            self.rot_xyz.axis.setValue( 1 )
+            self.rot_xyz.angle.setValue( 0 )
+            self.trans.translation.setValue(
+                [ cylinder_axis_start_x,
+                  cylinder_axis_start_y + cylinder_length / 2,
+                  cylinder_axis_start_z ] )
+        elif cylinder_axis_direction == 'Z':
+            self.rot_xyz.axis.setValue( 0 )
+            self.rot_xyz.angle.setValue( pi / 2 )
+            self.trans.translation.setValue(
+                [ cylinder_axis_start_x,
+                  cylinder_axis_start_y,
+                  cylinder_axis_start_z + cylinder_length / 2 ] )
+            
+        self.cyl.radius.setValue( cylinder_radius )
+        self.cyl.height.setValue( cylinder_length )
+        return
+
+    def getDisplayModes(self,obj):
+        "Return a list of display modes."
+        modes=[]
+        modes.append("Shaded")
+        modes.append("Wireframe")
+        return modes
+ 
+    def getDefaultDisplayMode(self):
+        '''Return the name of the default display mode. 
+        It must be defined in getDisplayModes.'''
+        return "Wireframe"
+
+    def setDisplayMode(self,mode):
+        return mode
+
+    def onChanged(self, vp, prop):
+        "Executed if any property is changed"
+        if prop == "Color":
+            c = vp.getPropertyByName("Color")
+            self.color.rgb.setValue( c[0], c[1], c[2] )
+
+    def __getstate__(self):
+        doc_object_name = self.doc_object.Name
+        return { "doc_object_name": doc_object_name }
+ 
+    def __setstate__(self, state):
+        doc_object_name = state[ "doc_object_name" ]
+        self.doc_object = FreeCAD.ActiveDocument.getObject( doc_object_name )
+        self.view_object = self.doc_object.ViewObject
+        return None
+
+    def get_time_step( self, obj ):
+        # todo: to get dt, get object named "Time_grid" from the first
+        # group which the source belongs to.
+        # Instead, pass reference to "Time_grid" object in the source-constructor.
+        # todo: source properties are not recomputed when dt is changed.
+        #       do something about it.
+        dt = float(
+            obj.InList[0].getObject("Time_grid").getPropertyByName("time_step_size") )
+        return dt
+    
+    def generate_config_part( self ):
+        conf_part = []
+        source_name = self.doc_object.getPropertyByName( "Label" )
+        conf_part.append( "[Particle_source_cylinder.{0}]\n".format( source_name ) )
+        export_property_names = [ "initial_number_of_particles",
+                                  "particles_to_generate_each_step",
+                                  "cylinder_axis_start_x",
+                                  "cylinder_axis_start_y",
+                                  "cylinder_axis_start_z",
+                                  "cylinder_axis_end_x",
+                                  "cylinder_axis_end_y",
+                                  "cylinder_axis_end_z",
+                                  "cylinder_radius",
+                                  "mean_momentum_x",
+                                  "mean_momentum_y",
+                                  "mean_momentum_z",
+                                  "temperature",
+                                  "charge",
+                                  "mass" ]
+        for x in export_property_names:
+            conf_part.append(
+                "{0} = {1}\n".format( x, self.doc_object.getPropertyByName( x ) ) )
+
+        comments = [ "individual_charge_or_total_current",
+                     "mass_or_charge_to_mass",
+                     "charge_to_mass_ratio",
+                     "current",
+                     "cylinder_axis_direction",
+                     "cylinder_length" ]
+        for x in comments:
+            conf_part.append(
+                ";{0} = {1}\n".format( x, self.doc_object.getPropertyByName( x ) ) )
+
+        conf_part.append("\n")
+        return conf_part
+
+
+    
 
 
 class InnerRegionBoxConfigPart():
@@ -989,8 +1430,66 @@ class InnerRegionBoxConfigPart():
         return conf_part
 
 
+
+class RunEfConfig:
+    """Parameters to run computation"""
+
+    def __init__( self, obj ):
+        obj.addProperty(
+            "App::PropertyString", "current_workdir",
+            "Run Parameters", "Path to working directory" ).current_workdir = os.getcwd()
+        obj.setEditorMode( "current_workdir", 1 )
+        obj.addProperty(
+            "App::PropertyString", "change_workdir_to",
+            "Run Parameters", "Path to working directory" ).change_workdir_to = "/tmp/"
+        obj.addProperty(
+            "App::PropertyString", "command",
+            "Run Parameters", "Command to execute" ).command = "./ef.out test.conf"
+        obj.Proxy = self
+        obj.ViewObject.Proxy = self
+        self.doc_object = obj
+        self.view_object = obj.ViewObject
+        
+    def execute(self, fp):
+        '''Executed when document is recomputated. This method is mandatory'''
+        return
+
+    def updateData(self, fp, prop):
+        '''If a property of the handled feature has changed 
+        we have the chance to handle this here'''
+        return
+
+    def attach(self, obj):
+        ''' Setup the scene sub-graph of the view provider, this method is mandatory '''
+        return
+    
+    def __getstate__(self):
+        '''When saving the document this object gets stored using Python's json module.
+        Since we have some un-serializable parts 
+        here -- the Coin stuff -- we must define this method
+        to return a tuple of all serializable objects or None.'''
+        doc_object_name = self.doc_object.Name
+        return { "doc_object_name": doc_object_name }
+ 
+    def __setstate__(self, state):
+        '''When restoring the serialized object from document 
+        we have the chance to set some internals here.
+        Since no data were serialized nothing needs to be done here.'''
+        doc_object_name = state[ "doc_object_name" ]
+        self.doc_object = FreeCAD.ActiveDocument.getObject( doc_object_name )
+        self.view_object = self.doc_object.ViewObject
+        return None
+
+    def generate_config_part( self ):
+        # no need to add something to config; return empty list
+        # todo: avoid calling this method for this class
+        return []
+
+    
         
 FreeCADGui.addCommand( 'CreateEfConfig', CreateEfConfig() )
 FreeCADGui.addCommand( 'AddSourceRegion', AddSourceRegion() )
+FreeCADGui.addCommand( 'AddCylindricalSource', AddCylindricalSource() )
 FreeCADGui.addCommand( 'AddInnerRegionBox', AddInnerRegionBox() )
 FreeCADGui.addCommand( 'GenerateConfFile', GenerateConfFile() )
+FreeCADGui.addCommand( 'RunEf', RunEf() )

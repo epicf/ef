@@ -167,6 +167,44 @@ public:
     }
 };
 
+class Particle_source_tube_along_z_config_part : public Particle_source_config_part {
+public:
+    double tube_along_z_axis_x;
+    double tube_along_z_axis_y;
+    double tube_along_z_axis_start_z;
+    double tube_along_z_axis_end_z;
+    double tube_along_z_inner_radius;
+    double tube_along_z_outer_radius;
+public:
+    Particle_source_tube_along_z_config_part(){};
+    Particle_source_tube_along_z_config_part( std::string name,
+				      boost::property_tree::ptree &ptree ) :
+	Particle_source_config_part( name, ptree ),
+	tube_along_z_axis_x( ptree.get<double>("tube_along_z_axis_x") ),
+	tube_along_z_axis_y( ptree.get<double>("tube_along_z_axis_y") ),
+	tube_along_z_axis_start_z( ptree.get<double>("tube_along_z_axis_start_z") ),
+	tube_along_z_axis_end_z( ptree.get<double>("tube_along_z_axis_end_z") ),
+	tube_along_z_inner_radius( ptree.get<double>("tube_along_z_inner_radius") ),
+	tube_along_z_outer_radius( ptree.get<double>("tube_along_z_outer_radius") )
+	{};
+    virtual ~Particle_source_tube_along_z_config_part() {};
+    virtual void print() {
+	Particle_source_config_part::print();
+	std::cout << "tube_along_z_axis_x = "
+		  << tube_along_z_axis_x << std::endl;
+	std::cout << "tube_along_z_axis_y = "
+		  << tube_along_z_axis_y << std::endl;
+	std::cout << "tube_along_z_axis_start_z = "
+		  << tube_along_z_axis_start_z << std::endl;
+	std::cout << "tube_along_z_axis_end_z = "
+		  << tube_along_z_axis_end_z << std::endl;
+	std::cout << "tube_along_z_inner_radius = "
+		  << tube_along_z_inner_radius << std::endl;
+	std::cout << "tube_along_z_outer_radius = "
+		  << tube_along_z_outer_radius << std::endl;
+    }
+};
+
 
 
 class Inner_region_config_part {
@@ -326,6 +364,62 @@ public:
 };
 
 
+class Inner_region_tube_along_z_segment_config_part : public Inner_region_config_part{
+public:
+    double tube_along_z_segment_axis_x;
+    double tube_along_z_segment_axis_y;
+    double tube_along_z_segment_axis_start_z;
+    double tube_along_z_segment_axis_end_z;
+    double tube_along_z_segment_inner_radius;
+    double tube_along_z_segment_outer_radius;
+    double tube_along_z_segment_start_angle_deg;
+    double tube_along_z_segment_end_angle_deg;
+public:
+    Inner_region_tube_along_z_segment_config_part(){};
+    Inner_region_tube_along_z_segment_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	Inner_region_config_part( name, ptree ),
+	tube_along_z_segment_axis_x(
+	    ptree.get<double>("tube_along_z_segment_axis_x") ),
+	tube_along_z_segment_axis_y(
+	    ptree.get<double>("tube_along_z_segment_axis_y") ),
+	tube_along_z_segment_axis_start_z(
+	    ptree.get<double>("tube_along_z_segment_axis_start_z") ),
+	tube_along_z_segment_axis_end_z(
+	    ptree.get<double>("tube_along_z_segment_axis_end_z") ),
+	tube_along_z_segment_inner_radius(
+	    ptree.get<double>("tube_along_z_segment_inner_radius") ),
+	tube_along_z_segment_outer_radius(
+	    ptree.get<double>("tube_along_z_segment_outer_radius") ),
+	tube_along_z_segment_start_angle_deg(
+	    ptree.get<double>("tube_along_z_segment_start_angle_deg") ),
+	tube_along_z_segment_end_angle_deg(
+	    ptree.get<double>("tube_along_z_segment_end_angle_deg") )
+	{};
+    virtual ~Inner_region_tube_along_z_segment_config_part() {};
+    void print() { 
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "tube_along_z_segment_axis_x = "
+		  << tube_along_z_segment_axis_x << std::endl;
+	std::cout << "tube_along_z_segment_axis_y = "
+		  << tube_along_z_segment_axis_y << std::endl;
+	std::cout << "tube_along_z_segment_axis_start_z = "
+		  << tube_along_z_segment_axis_start_z << std::endl;
+	std::cout << "tube_along_z_segment_axis_end_z = "
+		  << tube_along_z_segment_axis_end_z << std::endl;
+	std::cout << "tube_along_z_segment_inner_radius = "
+		  << tube_along_z_segment_inner_radius << std::endl;
+	std::cout << "tube_along_z_segment_outer_radius = "
+		  << tube_along_z_segment_outer_radius << std::endl;
+	std::cout << "tube_along_z_segment_start_angle_deg = "
+		  << tube_along_z_segment_start_angle_deg << std::endl;
+	std::cout << "tube_along_z_segment_end_angle_deg = "
+		  << tube_along_z_segment_end_angle_deg << std::endl;
+    }
+};
+
+
 class Boundary_config_part {
 public:
     double boundary_phi_left;
@@ -466,6 +560,28 @@ public:
 	std::cout << "electric_field_z = " << electric_field_z << std::endl;
     }
 };
+
+
+class External_electric_field_on_regular_grid_config_part :
+    public External_field_config_part{
+public:
+    std::string h5filename;
+public:
+    External_electric_field_on_regular_grid_config_part(){};
+    External_electric_field_on_regular_grid_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	External_field_config_part( name, ptree ),
+	h5filename( ptree.get<std::string>("filename") )
+	{} ;
+    virtual ~External_electric_field_on_regular_grid_config_part() {};
+    void print() { 
+	std::cout << "External electric field on_regular_grid: name = "
+		  << name << std::endl;
+	std::cout << "h5filename = " << h5filename << std::endl;
+    }
+};
+
+
 
 
 class Particle_interaction_model_config_part {

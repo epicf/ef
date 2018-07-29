@@ -552,9 +552,9 @@ void Particle_source_box::check_correctness_of_related_config_fields(
     Config &conf, 
     Particle_source_box_config_part &src_conf )
 {
-    x_left_ge_zero( conf, src_conf );
-    x_left_le_particle_source_x_right( conf, src_conf );
-    x_right_le_grid_x_size( conf, src_conf );    
+    x_right_ge_zero( conf, src_conf );
+    x_right_le_particle_source_x_left( conf, src_conf );
+    x_left_le_grid_x_size( conf, src_conf );    
     y_bottom_ge_zero( conf, src_conf );
     y_bottom_le_particle_source_y_top( conf, src_conf );
     y_top_le_grid_y_size( conf, src_conf );
@@ -600,31 +600,31 @@ void Particle_source_box::read_hdf5_source_parameters( hid_t h5_particle_source_
     hdf5_status_check( status );
 }
 
-void Particle_source_box::x_left_ge_zero( 
+void Particle_source_box::x_right_ge_zero( 
     Config &conf, 
     Particle_source_box_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.box_x_left >= 0,
-	"box_x_left < 0" );
+	src_conf.box_x_right >= 0,
+	"box_x_right < 0" );
 }
 
-void Particle_source_box::x_left_le_particle_source_x_right( 
+void Particle_source_box::x_right_le_particle_source_x_left( 
     Config &conf, 
     Particle_source_box_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.box_x_left <= src_conf.box_x_right,
-	"box_x_left > box_x_right" );
+	src_conf.box_x_right <= src_conf.box_x_left,
+	"box_x_right > box_x_left" );
 }
 
-void Particle_source_box::x_right_le_grid_x_size( 
+void Particle_source_box::x_left_le_grid_x_size( 
     Config &conf, 
     Particle_source_box_config_part &src_conf )
 {
     check_and_exit_if_not( 
-	src_conf.box_x_right <= conf.mesh_config_part.grid_x_size,
-	"box_x_right > grid_x_size" );
+	src_conf.box_x_left <= conf.mesh_config_part.grid_x_size,
+	"box_x_left > grid_x_size" );
 }
 
 void Particle_source_box::y_bottom_ge_zero( 
@@ -721,17 +721,17 @@ void Particle_source_box::write_hdf5_source_parameters( hid_t current_source_gro
 Vec3d Particle_source_box::uniform_position_in_source(
     std::default_random_engine &rnd_gen )
 {
-    return uniform_position_in_cube( xleft, ytop, zfar,
-				     xright, ybottom, znear,
+    return uniform_position_in_cube( xright, ytop, zfar,
+				     xleft, ybottom, znear,
 				     rnd_gen );
 }
 
 Vec3d Particle_source_box::uniform_position_in_cube( 
-    const double xleft,  const double ytop, const double zfar,
-    const double xright, const double ybottom, const double znear,
+    const double xright,  const double ytop, const double zfar,
+    const double xleft, const double ybottom, const double znear,
     std::default_random_engine &rnd_gen )
 {
-    return vec3d_init( random_in_range( xleft, xright, rnd_gen ), 
+    return vec3d_init( random_in_range( xright, xleft, rnd_gen ), 
 		       random_in_range( ybottom, ytop, rnd_gen ),
 		       random_in_range( znear, zfar, rnd_gen ) );
 }
@@ -1053,6 +1053,238 @@ Vec3d Particle_source_cylinder::uniform_position_in_cylinder(
     return shifted;
 }
 
+
+
+
+// Tube_Along_Z source
+
+
+Particle_source_tube_along_z::Particle_source_tube_along_z( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf ) :
+    Particle_source( conf, src_conf )
+{
+    geometry_type = "tube_along_z";
+    check_correctness_of_related_config_fields( conf, src_conf );
+    set_parameters_from_config( src_conf );
+    generate_initial_particles();
+}
+
+
+Particle_source_tube_along_z::Particle_source_tube_along_z(
+    hid_t h5_particle_source_tube_along_z_group_id ) :
+    Particle_source( h5_particle_source_tube_along_z_group_id )
+{
+    geometry_type = "tube_along_z";
+    read_hdf5_source_parameters( h5_particle_source_tube_along_z_group_id );
+}
+
+
+void Particle_source_tube_along_z::check_correctness_of_related_config_fields( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    // todo:
+    inner_and_outer_radius_gt_zero( conf, src_conf );
+    inner_radius_less_outer_radius( conf, src_conf );
+    axis_x_min_outer_rad_ge_zero( conf, src_conf );
+    axis_x_plus_outer_rad_le_grid_x_size( conf, src_conf );
+    axis_y_min_outer_rad_ge_zero( conf, src_conf );
+    axis_y_plus_outer_rad_le_grid_y_size( conf, src_conf );
+    axis_start_z_ge_zero( conf, src_conf );
+    axis_start_z_le_axis_end_z( conf, src_conf );
+    axis_end_z_le_grid_z_size( conf, src_conf );
+}
+
+
+void Particle_source_tube_along_z::set_parameters_from_config(
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    axis_x = src_conf.tube_along_z_axis_x;
+    axis_y = src_conf.tube_along_z_axis_y;
+    axis_start_z = src_conf.tube_along_z_axis_start_z;
+    axis_end_z = src_conf.tube_along_z_axis_end_z;
+    inner_radius = src_conf.tube_along_z_inner_radius;
+    outer_radius = src_conf.tube_along_z_outer_radius;
+}
+
+
+void Particle_source_tube_along_z::read_hdf5_source_parameters(
+    hid_t h5_particle_source_tube_along_z_group_id )
+{
+    herr_t status;
+    
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_axis_x", &axis_x );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_axis_y", &axis_y );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_axis_start_z", &axis_start_z );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_axis_end_z", &axis_end_z );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_inner_radius", &inner_radius );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double( h5_particle_source_tube_along_z_group_id, "./",
+				       "tube_along_z_outer_radius", &outer_radius );
+    hdf5_status_check( status );
+}
+
+void Particle_source_tube_along_z::inner_and_outer_radius_gt_zero( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    check_and_exit_if_not( 
+	src_conf.tube_along_z_inner_radius >= 0,
+	"inner_radius < 0" );
+    check_and_exit_if_not( 
+	src_conf.tube_along_z_outer_radius >= 0,
+	"outer_radius < 0" );
+}
+
+void Particle_source_tube_along_z::inner_radius_less_outer_radius( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    check_and_exit_if_not( 
+	src_conf.tube_along_z_inner_radius <= src_conf.tube_along_z_outer_radius,
+	"inner_radius > outer_radius" );
+}
+
+
+void Particle_source_tube_along_z::axis_x_min_outer_rad_ge_zero( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    check_and_exit_if_not( 
+	src_conf.tube_along_z_axis_x - src_conf.tube_along_z_outer_radius >= 0,
+	"tube_along_z_axis_x - tube_along_z_outer_radius < 0" );
+}
+
+void Particle_source_tube_along_z::axis_x_plus_outer_rad_le_grid_x_size( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    check_and_exit_if_not( 
+	src_conf.tube_along_z_axis_x + src_conf.tube_along_z_outer_radius <=
+	conf.mesh_config_part.grid_x_size,
+	"tube_along_z_axis_x + tube_along_z_outer_radius > grid_x_size" );
+}
+
+void Particle_source_tube_along_z::axis_y_min_outer_rad_ge_zero( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    check_and_exit_if_not( 
+	src_conf.tube_along_z_axis_y - src_conf.tube_along_z_outer_radius >= 0,
+	"tube_along_z_axis_y - tube_along_z_outer_radius < 0" );
+}
+
+void Particle_source_tube_along_z::axis_y_plus_outer_rad_le_grid_y_size( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    check_and_exit_if_not( 
+	src_conf.tube_along_z_axis_y + src_conf.tube_along_z_outer_radius <=
+	conf.mesh_config_part.grid_y_size,
+	"tube_along_z_axis_y + tube_along_z_outer_radius > grid_y_size" );
+}
+
+void Particle_source_tube_along_z::axis_start_z_ge_zero( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    check_and_exit_if_not( 
+	src_conf.tube_along_z_axis_start_z >= 0,
+	"tube_along_z_axis_start_z < 0" );
+}
+
+void Particle_source_tube_along_z::axis_start_z_le_axis_end_z( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    check_and_exit_if_not( 
+	src_conf.tube_along_z_axis_start_z <= src_conf.tube_along_z_axis_end_z,
+	"tube_along_z_axis_start_z > tube_along_z_axis_end_z" );
+}
+
+void Particle_source_tube_along_z::axis_end_z_le_grid_z_size( 
+    Config &conf, 
+    Particle_source_tube_along_z_config_part &src_conf )
+{
+    check_and_exit_if_not( 
+	src_conf.tube_along_z_axis_end_z <=
+	conf.mesh_config_part.grid_z_size,
+	"tube_along_z_axis_end_z > grid_z_size" );
+}
+
+
+void Particle_source_tube_along_z::write_hdf5_source_parameters(
+    hid_t current_source_group_id )
+{
+    Particle_source::write_hdf5_source_parameters( current_source_group_id );
+    
+    herr_t status;
+    int single_element = 1;
+    std::string current_group = "./";    
+
+    status = H5LTset_attribute_double( current_source_group_id,
+				       current_group.c_str(),
+    				       "tube_along_z_axis_x", &axis_x,
+				       single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_source_group_id,
+				       current_group.c_str(),
+    				       "tube_along_z_axis_y", &axis_y,
+				       single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_source_group_id,
+				       current_group.c_str(),
+    				       "tube_along_z_axis_start_z", &axis_start_z,
+				       single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_source_group_id,
+				       current_group.c_str(),
+    				       "tube_along_z_axis_end_z", &axis_end_z,
+				       single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_source_group_id,
+				       current_group.c_str(),
+    				       "tube_along_z_outer_radius", &outer_radius,
+				       single_element );
+    hdf5_status_check( status );
+    status = H5LTset_attribute_double( current_source_group_id,
+				       current_group.c_str(),
+    				       "tube_along_z_inner_radius", &inner_radius,
+				       single_element );
+    hdf5_status_check( status );
+}
+
+
+Vec3d Particle_source_tube_along_z::uniform_position_in_source(
+    std::default_random_engine &rnd_gen )
+{
+    return uniform_position_in_tube_along_z( rnd_gen );
+}
+
+Vec3d Particle_source_tube_along_z::uniform_position_in_tube_along_z(
+    std::default_random_engine &rnd_gen )
+{
+    double x, y, z;
+    double r, phi;
+    r = sqrt(random_in_range( inner_radius / outer_radius, 1.0, rnd_gen)) * outer_radius;
+    phi = random_in_range( 0.0, 2.0 * M_PI, rnd_gen );
+    z = random_in_range( axis_start_z, axis_end_z, rnd_gen );
+    //
+    x = r * cos( phi );
+    y = r * sin( phi );
+    z = z;     
+    return vec3d_init( x + axis_x, y + axis_y, z );
+}
 
 
 

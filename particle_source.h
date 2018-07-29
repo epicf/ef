@@ -104,11 +104,11 @@ private:
     // Check config
     virtual void check_correctness_of_related_config_fields( 
 	Config &conf, Particle_source_box_config_part &src_conf );
-    void x_left_ge_zero( 
+    void x_right_ge_zero( 
 	Config &conf, Particle_source_box_config_part &src_conf );
-    void x_left_le_particle_source_x_right( 
+    void x_right_le_particle_source_x_left( 
 	Config &conf, Particle_source_box_config_part &src_conf );
-    void x_right_le_grid_x_size( 
+    void x_left_le_grid_x_size( 
 	Config &conf, Particle_source_box_config_part &src_conf );
     void y_bottom_ge_zero( 
 	Config &conf, Particle_source_box_config_part &src_conf );
@@ -183,6 +183,54 @@ private:
 };
 
 
+class Particle_source_tube_along_z : public Particle_source {
+private:
+    // Source position
+    double axis_x;
+    double axis_y;
+    double axis_start_z;
+    double axis_end_z;
+    double inner_radius;
+    double outer_radius;
+public:
+    Particle_source_tube_along_z( Config &conf,
+				  Particle_source_tube_along_z_config_part &src_conf );
+    Particle_source_tube_along_z( hid_t h5_particle_source_tube_along_z_group_id );
+    virtual ~Particle_source_tube_along_z() {};
+private:
+    // Particle generation
+    virtual void set_parameters_from_config(
+	Particle_source_tube_along_z_config_part &src_conf );
+    virtual void read_hdf5_source_parameters(
+	hid_t h5_particle_source_tube_along_z_group_id );
+    virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen );
+    Vec3d uniform_position_in_tube_along_z( std::default_random_engine &rnd_gen );
+    // Check config
+    virtual void check_correctness_of_related_config_fields( 
+	Config &conf, Particle_source_tube_along_z_config_part &src_conf );
+    void inner_and_outer_radius_gt_zero( 
+	Config &conf, Particle_source_tube_along_z_config_part &src_conf );
+    void inner_radius_less_outer_radius( 
+	Config &conf, Particle_source_tube_along_z_config_part &src_conf );
+    void axis_x_min_outer_rad_ge_zero( 
+	Config &conf, Particle_source_tube_along_z_config_part &src_conf );
+    void axis_x_plus_outer_rad_le_grid_x_size( 
+	Config &conf, Particle_source_tube_along_z_config_part &src_conf );
+    void axis_y_min_outer_rad_ge_zero( 
+	Config &conf, Particle_source_tube_along_z_config_part &src_conf );
+    void axis_y_plus_outer_rad_le_grid_y_size( 
+	Config &conf, Particle_source_tube_along_z_config_part &src_conf );
+    void axis_start_z_ge_zero( 
+	Config &conf, Particle_source_tube_along_z_config_part &src_conf );
+    void axis_start_z_le_axis_end_z( 
+	Config &conf, Particle_source_tube_along_z_config_part &src_conf );
+    void axis_end_z_le_grid_z_size( 
+	Config &conf, Particle_source_tube_along_z_config_part &src_conf );
+    // Write to file
+    virtual void write_hdf5_source_parameters( hid_t current_source_group_id );
+};
+
+
 
 class Particle_sources_manager{
 public:
@@ -199,6 +247,10 @@ public:
 	    	       dynamic_cast<Particle_source_cylinder_config_part*>( &src_conf ) ){
 	    	sources.push_back( new Particle_source_cylinder( conf,
 	    							 *cyl_conf ) );
+	    } else if( Particle_source_tube_along_z_config_part *tube_along_z_conf =
+	    	       dynamic_cast<Particle_source_tube_along_z_config_part*>(&src_conf)){
+	    	sources.push_back( new Particle_source_tube_along_z( conf,
+								     *tube_along_z_conf));
 	    } else {
 		std::cout << "In sources_manager constructor: " 
 			  << "Unknown config type. Aborting" << std::endl; 
@@ -245,6 +297,8 @@ public:
 	    sources.push_back( new Particle_source_box( current_src_grpid ) );
 	} else if ( geometry_type == "cylinder" ) {
 	    sources.push_back( new Particle_source_cylinder( current_src_grpid ) );
+	} else if ( geometry_type == "tube_along_z" ) {
+	    sources.push_back( new Particle_source_tube_along_z( current_src_grpid ) );
 	} else {
 	    std::cout << "In Particle_source_manager constructor-from-h5: "
 		      << "Unknown particle_source type. Aborting"

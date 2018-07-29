@@ -14,6 +14,7 @@
 #include "vec3d.h"
 #include "physical_constants.h"
 #include "lib/tinyexpr/tinyexpr.h"
+#include <boost/multi_array.hpp> // for fields on regular grid
 
 class External_field{
 public:
@@ -127,6 +128,35 @@ private:
 };
 
 
+
+class External_electric_field_on_regular_grid : public External_field
+{
+private:
+    std::string h5filename;
+    double x_volume_size, y_volume_size, z_volume_size;
+    double x_cell_size, y_cell_size, z_cell_size;
+    int x_n_nodes, y_n_nodes, z_n_nodes;
+    boost::multi_array<Vec3d, 3> electric_field;
+public:    
+    External_electric_field_on_regular_grid(
+	External_electric_field_on_regular_grid_config_part &field_conf );
+    External_electric_field_on_regular_grid(
+	hid_t h5_external_electric_field_on_regular_grid_group );
+    Vec3d field_at_particle_position( const Particle &p, const double &t );
+    //Vec3d force_on_particle( const Particle &p, const double &t );
+    virtual ~External_electric_field_on_regular_grid() {};
+private:
+    void check_correctness_and_get_values_from_config(
+	External_electric_field_on_regular_grid_config_part &field_conf );
+    void load_field_from_grid();
+    void next_node_num_and_weight( const double x, const double grid_step, 
+				   int *next_node, double *weight );
+    void write_hdf5_field_parameters( hid_t current_field_group_id );
+    void hdf5_status_check( herr_t status );    
+};
+
+
+
 class External_fields_manager{
 public:
     boost::ptr_vector<External_field> electric;
@@ -136,22 +166,29 @@ public:
     {
 	for( auto &field_conf : conf.fields_config_part ){
 	    if( External_magnetic_field_uniform_config_part *uni_mgn_conf =
-		dynamic_cast<External_magnetic_field_uniform_config_part*>( &field_conf )){
-		magnetic.push_back( new External_magnetic_field_uniform( *uni_mgn_conf ) );
+		dynamic_cast<External_magnetic_field_uniform_config_part*>(&field_conf )){
+		magnetic.push_back( new External_magnetic_field_uniform(*uni_mgn_conf ) );
 	    } else if (
 		External_electric_field_uniform_config_part *uni_el_conf =
-		dynamic_cast<External_electric_field_uniform_config_part*>(&field_conf)){
+		dynamic_cast<External_electric_field_uniform_config_part*>(&field_conf )){
 		electric.push_back( new External_electric_field_uniform( *uni_el_conf ) );
 	    } else if (
 		External_magnetic_field_tinyexpr_config_part *tinyexpr_mgn_conf =
-		dynamic_cast<External_magnetic_field_tinyexpr_config_part*>(&field_conf)){
+		dynamic_cast<External_magnetic_field_tinyexpr_config_part*>(&field_conf )){
 		magnetic.push_back(
 		    new External_magnetic_field_tinyexpr( *tinyexpr_mgn_conf ) );
 	    } else if (
 		External_electric_field_tinyexpr_config_part *tinyexpr_el_conf =
-		dynamic_cast<External_electric_field_tinyexpr_config_part*>(&field_conf)){
+		dynamic_cast<External_electric_field_tinyexpr_config_part*>(
+		    &field_conf )){
 		electric.push_back(
 		    new External_electric_field_tinyexpr( *tinyexpr_el_conf ) );
+	    } else if (
+		External_electric_field_on_regular_grid_config_part *onreggrid_el_conf =
+		dynamic_cast<External_electric_field_on_regular_grid_config_part*>(
+		    &field_conf )){
+		electric.push_back(
+		    new External_electric_field_on_regular_grid( *onreggrid_el_conf ) );
 	    } else {
 		std::cout << "In fields_manager constructor: " 
 			  << "Unknown config type. Aborting" << std::endl; 
@@ -209,6 +246,9 @@ public:
 	} else if( field_type == "electric_tinyexpr" ){
 	    electric.push_back(
 		new External_electric_field_tinyexpr( current_field_grpid ));
+	} else if( field_type == "electric_on_regular_grid" ){
+	    electric.push_back(
+		new External_electric_field_on_regular_grid( current_field_grpid ));
 	} else {
 	    std::cout << "In External_field_manager constructor-from-h5: "
 		      << "Unknown external_field type. Aborting"

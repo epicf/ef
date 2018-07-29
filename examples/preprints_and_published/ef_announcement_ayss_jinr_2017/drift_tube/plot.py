@@ -54,15 +54,28 @@ phi_empty = -2*k_const*radius_beam**2*np.log(R_empty/radius_tube)
 
 pot = pot[np.where(pot[:, 0] == beam_center_x)]
 pot = pot[np.where(pot[:, 2] == beam_middle_z)]
-plt.xlabel("X coordinate, [cm]")
-plt.ylabel("Potential, [V]")
-plt.plot(pot[:, 1], pot[:, 3]*sgse_to_volts, '.', color = "blue", label = "num")
-plt.plot(R_beam+beam_center_x,phi_beam, color = 'r', label = "theory_beam")
-plt.plot(-1*R_beam+beam_center_x,phi_beam, color = 'r')
-plt.plot(R_empty+beam_center_x,phi_empty, color = 'g', label = "theory_empty_space")
-plt.plot(-1*R_empty+beam_center_x,phi_empty, color = 'g')
-plt.legend(loc='lower right')
-plt.savefig("pot.png")
+plt.tick_params(axis='both', which='major', labelsize=18)
+plt.xlabel("X coordinate, mm", fontsize=18 )
+plt.ylabel("Potential, V", fontsize=18 )
+plt.xlim( 0, 4.5 )
+cm_to_mm = 10
+plt.plot( (R_beam + beam_center_x) * cm_to_mm, phi_beam,
+          color = 'r', lw = 4,
+          label = "Theory, $r \leq r_{beam}$" )
+plt.plot( (-1 * R_beam + beam_center_x) * cm_to_mm, phi_beam,
+          color = 'r', lw = 4,
+          label='_nolegend_' )
+plt.plot( (R_empty + beam_center_x) * cm_to_mm, phi_empty,
+          color = 'g', lw = 4, ls = '--', dashes=(7, 3),
+          label = "Theory, $r > r_{beam}$" )
+plt.plot( (-1 * R_empty + beam_center_x) * cm_to_mm, phi_empty,
+          color = 'g', lw = 4, ls = '--', dashes=(7, 3),
+          label='_nolegend_' )
+plt.plot( pot[10:-10, 1] * cm_to_mm, pot[10:-10, 3] * sgse_to_volts,
+          '.', color = "blue", label = "Simulation",
+          mew = 4, ms = 4 )
+plt.legend( loc='lower right', borderaxespad=0., fontsize=18 )
+plt.savefig( "pot.png" )
 h5file.close()
 
 
