@@ -217,6 +217,20 @@ void Spatial_mesh::set_boundary_conditions( const double phi_left, const double 
     return;
 }
 
+bool Spatial_mesh::is_potential_equal_on_boundaries()
+{
+    bool equal = ( potential[0][2][2] == potential[x_n_nodes-1][2][2] ==
+    		   potential[2][0][2] == potential[2][y_n_nodes-1][2] ==
+    		   potential[2][2][0] == potential[2][2][z_n_nodes-1] );
+    // possible to rewrite to avoid warnings from compiler:
+    // bool equal = ( potential[0][2][2] == potential[x_n_nodes-1][2][2] );
+    // equal = equal and ( potential[x_n_nodes-1][2][2] == potential[2][0][2] );
+    // equal = equal and ( potential[2][0][2] == potential[2][y_n_nodes-1][2] );
+    // equal = equal and ( potential[2][y_n_nodes-1][2] == potential[2][2][0] );
+    // equal = equal and ( potential[2][2][0] == potential[2][2][z_n_nodes-1] );
+    return equal;
+}
+
 void Spatial_mesh::print()
 {
     print_grid();
