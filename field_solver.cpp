@@ -28,7 +28,7 @@ void Field_solver::eval_potential( Spatial_mesh &spat_mesh,
 void Field_solver::solve_poisson_eqn_Jacobi( Spatial_mesh &spat_mesh,
 					     Inner_regions_manager &inner_regions )
 {
-    max_Jacobi_iterations = 100;
+    max_Jacobi_iterations = 150;
     int iter;
 
     init_current_phi_from_spat_mesh_phi( spat_mesh );
