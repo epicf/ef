@@ -19,10 +19,8 @@ Particle_source::Particle_source( hid_t h5_particle_source_group_id )
     // Random number generator
     // Instead of saving/loading it's state to file just
     // reinit with different seed. 
-    int mpi_process_rank;
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );
     long int t = static_cast<long int>( std::time( NULL ) );
-    unsigned seed = t + 1000000 * mpi_process_rank;
+    unsigned seed = t;
     rnd_gen = std::default_random_engine( seed );
 }
 
@@ -48,13 +46,8 @@ void Particle_source::set_parameters_from_config( Particle_source_config_part &s
     temperature = src_conf.temperature;
     charge = src_conf.charge;
     mass = src_conf.mass;    
-    // Random number generator
-    // Simple approach: use different seed for each proccess.
-    // Other way would be to synchronize the state of the rnd_gen
-    //    between each processes after each call to it.    
-    int mpi_process_rank;
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-    unsigned seed = 0 + 1000000 * mpi_process_rank;
+    long int t = static_cast<long int>( std::time( NULL ) );
+    unsigned seed = t;
     rnd_gen = std::default_random_engine( seed );
     // Initial id
     max_id = 0;
@@ -111,20 +104,12 @@ void Particle_source::read_hdf5_source_parameters( hid_t h5_particle_source_grou
 
 
 void Particle_source::read_hdf5_particles( hid_t h5_particle_source_group_id )
-{
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );
-    
+{    
     herr_t status;
     hid_t filespace, memspace, dset;
     hid_t plist_id;
     const int ndims = 1;
-    hsize_t dims[ndims], subset_dims[ndims], subset_offset[ndims];
-
-    // plist_id = H5Pcreate( H5P_DATASET_XFER ); hdf5_status_check( H5P_DEFAULT );
-    // status = H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE );
-    // hdf5_status_check( status );
+    hsize_t dims[ndims];
     
     dset = H5Dopen( h5_particle_source_group_id, "./particle_id", H5P_DEFAULT );
     hdf5_status_check( dset );
@@ -137,48 +122,16 @@ void Particle_source::read_hdf5_particles( hid_t h5_particle_source_group_id )
     status = H5Dclose( dset ); hdf5_status_check( status );
 
     unsigned int total_num_of_particles = dims[0];
-    unsigned int num_of_particles_for_this_proc = total_num_of_particles / mpi_n_of_proc;
-    int rest = total_num_of_particles % mpi_n_of_proc;
-    int offset = num_of_particles_for_this_proc * mpi_process_rank;
-    if( mpi_process_rank < rest ){
-	num_of_particles_for_this_proc++;
-	offset = offset + mpi_process_rank;
-    } else {
-	offset = offset + rest;
-    }        
     
-    int *id_buf = new int[ num_of_particles_for_this_proc ];
-    double *x_buf = new double[ num_of_particles_for_this_proc ];
-    double *y_buf = new double[ num_of_particles_for_this_proc ];
-    double *z_buf = new double[ num_of_particles_for_this_proc ];
-    double *px_buf = new double[ num_of_particles_for_this_proc ];
-    double *py_buf = new double[ num_of_particles_for_this_proc ];
-    double *pz_buf = new double[ num_of_particles_for_this_proc ];
-
-    dims[0] = total_num_of_particles;
-    subset_dims[0] = num_of_particles_for_this_proc;
-    subset_offset[0] = offset;
-
-    // check is necessary for old hdf5 versions
-    if ( subset_dims[0] != 0 ){
-    	memspace = H5Screate_simple( ndims, subset_dims, NULL );
-    	hdf5_status_check( memspace );
-    	filespace = H5Screate_simple( ndims, dims, NULL );
-    	hdf5_status_check( filespace );
-    } else {
-    	hsize_t max_dims[ndims];
-    	max_dims[0] = H5S_UNLIMITED;
-    	memspace = H5Screate_simple( ndims, subset_dims, max_dims );
-    	hdf5_status_check( memspace );
-    	filespace = H5Screate_simple( ndims, dims, NULL );
-    	hdf5_status_check( filespace );
-    }
+    int *id_buf = new int[ total_num_of_particles ];
+    double *x_buf = new double[ total_num_of_particles ];
+    double *y_buf = new double[ total_num_of_particles ];
+    double *z_buf = new double[ total_num_of_particles ];
+    double *px_buf = new double[ total_num_of_particles ];
+    double *py_buf = new double[ total_num_of_particles ];
+    double *pz_buf = new double[ total_num_of_particles ];
     
-    status = H5Sselect_hyperslab( filespace, H5S_SELECT_SET,
-    				  subset_offset, NULL, subset_dims, NULL );
-    hdf5_status_check( status );
-
-    //memspace = filespace = H5S_ALL;
+    memspace = filespace = H5S_ALL;
     plist_id = H5P_DEFAULT;	
     
     dset = H5Dopen( h5_particle_source_group_id, "./particle_id", plist_id );
@@ -231,12 +184,12 @@ void Particle_source::read_hdf5_particles( hid_t h5_particle_source_group_id )
     hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
         
-    status = H5Sclose( filespace ); hdf5_status_check( status );
-    status = H5Sclose( memspace ); hdf5_status_check( status );
+    // status = H5Sclose( filespace ); hdf5_status_check( status );
+    // status = H5Sclose( memspace ); hdf5_status_check( status );
     // status = H5Pclose( plist_id ); hdf5_status_check( status );
 
-    particles.reserve( num_of_particles_for_this_proc );
-    for( unsigned int i = 0; i < num_of_particles_for_this_proc; i++ ){
+    particles.reserve( total_num_of_particles );
+    for( unsigned int i = 0; i < total_num_of_particles; i++ ){
 	Vec3d pos = vec3d_init( x_buf[i], y_buf[i], z_buf[i] );
 	Vec3d mom = vec3d_init( px_buf[i], py_buf[i], pz_buf[i] );
 	particles.emplace_back( id_buf[i], charge, mass, pos, mom );
@@ -268,64 +221,23 @@ void Particle_source::generate_num_of_particles( int num_of_particles )
 {
     Vec3d pos, mom;
     std::vector<int> vec_of_ids;
-    int num_of_particles_for_this_proc;
 
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-
-    num_of_particles_for_this_proc = num_of_particles_for_each_process( num_of_particles );
-    populate_vec_of_ids( vec_of_ids, num_of_particles_for_this_proc ); 
-    for ( int i = 0; i < num_of_particles_for_this_proc; i++ ) {
+    populate_vec_of_ids( vec_of_ids, num_of_particles ); 
+    for ( int i = 0; i < num_of_particles; i++ ) {
 	pos = uniform_position_in_source( rnd_gen );
 	mom = maxwell_momentum_distr( mean_momentum, temperature, mass, rnd_gen );
 	particles.emplace_back( vec_of_ids[i], charge, mass, pos, mom );
     }
 }
 
-int Particle_source::num_of_particles_for_each_process( int total_num_of_particles )
-{
-    int rest;
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-    
-    int num_of_particles_for_this_proc = total_num_of_particles / mpi_n_of_proc;
-    rest = total_num_of_particles % mpi_n_of_proc;
-
-    // distribute 'rest' randomly between processes
-    // such distribution is useful in bizarre case of
-    // 'total_num_of_particles' < 'mpi_n_of_proc'
-    std::vector<int> proc_numbers( mpi_n_of_proc );
-    std::iota( proc_numbers.begin(), proc_numbers.end(), 0 );
-    static auto engine = std::default_random_engine{};
-    std::shuffle( proc_numbers.begin(), proc_numbers.end(), engine );
-
-    for ( int i = 0; i < rest; i++ ) {
-	if( mpi_process_rank == proc_numbers[i] ){
-	    num_of_particles_for_this_proc++;
-	}
-    }
-
-    return num_of_particles_for_this_proc;
-}
 
 void Particle_source::populate_vec_of_ids(
-    std::vector<int> &vec_of_ids, int num_of_particles_for_this_proc )
+    std::vector<int> &vec_of_ids, int num_of_particles )
 {
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-
-    vec_of_ids.reserve( num_of_particles_for_this_proc );
+    vec_of_ids.reserve( num_of_particles );
     
-    for( int proc = 0; proc < mpi_n_of_proc; proc++ ){
-	if( mpi_process_rank == proc ){
-	    for( int i = 0; i < num_of_particles_for_this_proc; i++ ){
-		vec_of_ids.push_back( max_id++ );
-	    }	    
-	}
-	MPI_Bcast( &max_id, 1, MPI_INT, proc, MPI_COMM_WORLD );
+    for( int i = 0; i < num_of_particles; i++ ){
+	vec_of_ids.push_back( max_id++ );
     }
 }
 
@@ -400,18 +312,18 @@ void Particle_source::write_to_file( hid_t group_id )
 }
 
 void Particle_source::write_hdf5_particles( hid_t current_source_group_id )
-{
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );
-    
+{    
     herr_t status;
     hid_t filespace, memspace, dset;
     hid_t plist_id;
     int rank = 1;
-    hsize_t dims[rank], subset_dims[rank], subset_offset[rank];
-    dims[0] = total_particles_across_all_processes();
-
+    hsize_t dims[rank];
+    dims[0] = particles.size();
+    
+    filespace = H5Screate_simple( rank, dims, NULL );
+    memspace = H5S_ALL;
+    plist_id = H5P_DEFAULT;
+    
     // todo: is it possible to get rid of this copying?
     int *id_buf = new int[ particles.size() ];
     double *x_buf = new double[ particles.size() ];
@@ -420,7 +332,6 @@ void Particle_source::write_hdf5_particles( hid_t current_source_group_id )
     double *px_buf = new double[ particles.size() ];
     double *py_buf = new double[ particles.size() ];
     double *pz_buf = new double[ particles.size() ];
-    int *mpi_proc_buf = new int[ particles.size() ];
     
     for( unsigned int i = 0; i < particles.size(); i++ ){
 	id_buf[i] = particles[i].id;
@@ -430,35 +341,7 @@ void Particle_source::write_hdf5_particles( hid_t current_source_group_id )
 	px_buf[i] = vec3d_x( particles[i].momentum );
 	py_buf[i] = vec3d_y( particles[i].momentum );
 	pz_buf[i] = vec3d_z( particles[i].momentum );
-	mpi_proc_buf[i] = mpi_process_rank;
     }     
-
-    plist_id = H5Pcreate( H5P_DATASET_XFER ); hdf5_status_check( plist_id );
-    status = H5Pset_dxpl_mpio( plist_id, H5FD_MPIO_COLLECTIVE );
-    hdf5_status_check( status );
-
-    subset_dims[0] = particles.size();
-    subset_offset[0] = data_offset_for_each_process_for_1d_dataset();
-
-    // check is necessary for old hdf5 versions
-    if ( subset_dims[0] != 0 ){	
-	memspace = H5Screate_simple( rank, subset_dims, NULL );
-	hdf5_status_check( memspace );
-	filespace = H5Screate_simple( rank, dims, NULL );
-	hdf5_status_check( filespace );
-    } else {
-	hsize_t max_dims[rank];
-	max_dims[0] = H5S_UNLIMITED;
-	memspace = H5Screate_simple( rank, subset_dims, max_dims );
-	hdf5_status_check( memspace );
-	filespace = H5Screate_simple( rank, dims, NULL );
-	hdf5_status_check( filespace );
-    }
-    
-    status = H5Sselect_hyperslab( filespace, H5S_SELECT_SET,
-				  subset_offset, NULL, subset_dims, NULL );
-    hdf5_status_check( status );
-
     
     dset = H5Dcreate( current_source_group_id, "./particle_id",
 		      H5T_STD_I32BE, filespace,
@@ -523,21 +406,10 @@ void Particle_source::write_hdf5_particles( hid_t current_source_group_id )
 		       memspace, filespace, plist_id, pz_buf );
     hdf5_status_check( status );
     status = H5Dclose( dset ); hdf5_status_check( status );
-
-
-    dset = H5Dcreate( current_source_group_id, "./particle_mpi_proc",
-		      H5T_STD_I32BE, filespace,
-		      H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT );
-    hdf5_status_check( dset );
-    status = H5Dwrite( dset, H5T_NATIVE_INT,
-		       memspace, filespace, plist_id, mpi_proc_buf );
-    hdf5_status_check( status );
-    status = H5Dclose( dset ); hdf5_status_check( status );
-
         
     status = H5Sclose( filespace ); hdf5_status_check( status );
-    status = H5Sclose( memspace ); hdf5_status_check( status );
-    status = H5Pclose( plist_id ); hdf5_status_check( status );
+    // status = H5Sclose( memspace ); hdf5_status_check( status );
+    // status = H5Pclose( plist_id ); hdf5_status_check( status );
 
     delete[] id_buf;
     delete[] x_buf;
@@ -546,43 +418,6 @@ void Particle_source::write_hdf5_particles( hid_t current_source_group_id )
     delete[] px_buf;
     delete[] py_buf;
     delete[] pz_buf;
-    delete[] mpi_proc_buf;    
-}
-
-int Particle_source::total_particles_across_all_processes()
-{
-    int n_of_particles = particles.size();
-    int total_n_of_particles;
-    int single_element = 1;
-
-    MPI_Allreduce( &n_of_particles, &total_n_of_particles, single_element,
-		   MPI_INT, MPI_SUM, MPI_COMM_WORLD );
-
-    return total_n_of_particles;
-}
-
-int Particle_source::data_offset_for_each_process_for_1d_dataset()
-{    
-    int mpi_n_of_proc, mpi_process_rank;
-    MPI_Comm_size( MPI_COMM_WORLD, &mpi_n_of_proc );
-    MPI_Comm_rank( MPI_COMM_WORLD, &mpi_process_rank );    
-
-    int offset = 0;
-    int n_of_particles = particles.size();
-    int single_element = 1;
-    int *n_of_particles_at_each_proc = new int[ mpi_n_of_proc ];
-
-    MPI_Allgather( &n_of_particles, single_element, MPI_INT,
-		   n_of_particles_at_each_proc, single_element, MPI_INT,
-		   MPI_COMM_WORLD );
-    
-    for( int i = 1; i <= mpi_process_rank; i++ ){
-	offset = offset + n_of_particles_at_each_proc[i - 1];
-    }
-
-    delete[] n_of_particles_at_each_proc;
-    
-    return offset;
 }
 
 

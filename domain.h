@@ -7,7 +7,6 @@
 #include <vector>
 #include <algorithm>
 #include <functional>
-#include <mpi.h>
 #include <hdf5.h>
 #include "config.h"
 #include "time_grid.h"

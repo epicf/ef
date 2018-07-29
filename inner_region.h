@@ -6,8 +6,6 @@
 #include <algorithm>
 #include <cmath>
 #include <boost/ptr_container/ptr_vector.hpp>
-#include <petscksp.h>
-#include <mpi.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 
@@ -24,29 +22,22 @@ public:
     double potential;
     int total_absorbed_particles;
     double total_absorbed_charge;
-    int absorbed_particles_current_timestep_current_proc;
-    double absorbed_charge_current_timestep_current_proc;
+    //int absorbed_particles_current_timestep_current_proc;
+    //double absorbed_charge_current_timestep_current_proc;
 public:
     std::vector<Node_reference> inner_nodes;
+    // todo: delete
     std::vector<Node_reference> inner_nodes_not_at_domain_edge;
     std::vector<Node_reference> near_boundary_nodes;
     std::vector<Node_reference> near_boundary_nodes_not_at_domain_edge;
-    // possible todo: add_boundary_nodes
-    // Approx solution and RHS inside region;
-    // Should be used in MatZeroRows call, but it seems, it has no effect
-    Vec phi_inside_region, rhs_inside_region;
 public:
-    Inner_region(
-	Config &conf,
-	Inner_region_config_part &inner_region_conf );
-    Inner_region(
-	hid_t h5_inner_region_group_id );
+    Inner_region( Config &conf,	Inner_region_config_part &inner_region_conf );
+    Inner_region( hid_t h5_inner_region_group_id );
     virtual ~Inner_region() {};
     virtual void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
 	std::cout << "potential = " << potential << std::endl;
     }
-    void sync_absorbed_charge_and_particles_across_proc();
     virtual bool check_if_point_inside( double x, double y, double z ) = 0;
     bool check_if_particle_inside( Particle &p );
     bool check_if_particle_inside_and_count_charge( Particle &p );
@@ -419,12 +410,6 @@ public:
 		return true;
 	}
 	return false;
-    }
-
-    void sync_absorbed_charge_and_particles_across_proc()
-    {
-	for( auto &region : regions )
-	    region.sync_absorbed_charge_and_particles_across_proc();
     }
     
     void print( )

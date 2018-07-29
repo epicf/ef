@@ -4,7 +4,6 @@
 #include <cmath>
 #include <iostream>
 #include <string>
-#include <mpi.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "config.h"

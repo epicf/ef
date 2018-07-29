@@ -7,8 +7,6 @@ Inner_region::Inner_region( Config &conf,
     get_values_from_config( inner_region_conf );
     total_absorbed_particles = 0;
     total_absorbed_charge = 0;
-    absorbed_particles_current_timestep_current_proc = 0;
-    absorbed_charge_current_timestep_current_proc = 0;
 }
 
 void Inner_region::check_correctness_of_related_config_fields(
@@ -29,8 +27,6 @@ Inner_region::Inner_region( hid_t h5_inner_region_group_id )
 {
     // Read from h5
     get_values_from_h5( h5_inner_region_group_id );
-    absorbed_particles_current_timestep_current_proc = 0;
-    absorbed_charge_current_timestep_current_proc = 0;
 }
 
 void Inner_region::get_values_from_h5( hid_t h5_inner_region_group_id )
@@ -72,8 +68,8 @@ bool Inner_region::check_if_particle_inside_and_count_charge( Particle &p )
     bool in_or_out;
     in_or_out = check_if_particle_inside( p );
     if( in_or_out ){
-	absorbed_particles_current_timestep_current_proc++;
-	absorbed_charge_current_timestep_current_proc += p.charge;
+	total_absorbed_particles++;
+	total_absorbed_charge += p.charge;
     }
     return in_or_out;
 }
@@ -158,22 +154,6 @@ void Inner_region::select_near_boundary_nodes_not_at_domain_edge( Spatial_mesh &
 	    near_boundary_nodes_not_at_domain_edge.push_back( node );
 	}
     }    
-}
-
-void Inner_region::sync_absorbed_charge_and_particles_across_proc()
-{
-    int single = 1;
-
-    MPI_Allreduce( MPI_IN_PLACE, &absorbed_particles_current_timestep_current_proc, single,
-		   MPI_INT, MPI_SUM, MPI_COMM_WORLD );
-    MPI_Allreduce( MPI_IN_PLACE, &absorbed_charge_current_timestep_current_proc, single,
-		   MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD );
-    
-    total_absorbed_charge += absorbed_charge_current_timestep_current_proc;
-    total_absorbed_particles += absorbed_particles_current_timestep_current_proc;   
-
-    absorbed_particles_current_timestep_current_proc = 0;
-    absorbed_charge_current_timestep_current_proc = 0;
 }
 
 void Inner_region::write_to_file( hid_t regions_group_id )
