@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <cmath>
 #include <boost/ptr_container/ptr_vector.hpp>
-#include <petscksp.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 
@@ -27,19 +26,13 @@ public:
     //double absorbed_charge_current_timestep_current_proc;
 public:
     std::vector<Node_reference> inner_nodes;
+    // todo: delete
     std::vector<Node_reference> inner_nodes_not_at_domain_edge;
     std::vector<Node_reference> near_boundary_nodes;
     std::vector<Node_reference> near_boundary_nodes_not_at_domain_edge;
-    // possible todo: add_boundary_nodes
-    // Approx solution and RHS inside region;
-    // Should be used in MatZeroRows call, but it seems, it has no effect
-    Vec phi_inside_region, rhs_inside_region;
 public:
-    Inner_region(
-	Config &conf,
-	Inner_region_config_part &inner_region_conf );
-    Inner_region(
-	hid_t h5_inner_region_group_id );
+    Inner_region( Config &conf,	Inner_region_config_part &inner_region_conf );
+    Inner_region( hid_t h5_inner_region_group_id );
     virtual ~Inner_region() {};
     virtual void print() {
 	std::cout << "Inner region: name = " << name << std::endl;

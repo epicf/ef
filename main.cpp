@@ -16,13 +16,6 @@ void extract_filename_prefix_and_suffix_from_h5filename( std::string h5_file,
 
 int main( int argc, char *argv[] )
 {
-    PetscMPIInt mpi_comm_size;
-    PetscErrorCode ierr;
-    PetscInitialize( &argc, &argv, (char*)0, NULL );
-    ierr = MPI_Comm_size( PETSC_COMM_WORLD, &mpi_comm_size); CHKERRXX(ierr);
-    if (mpi_comm_size != 1)
-        SETERRQ( PETSC_COMM_WORLD, 1, "This is a uniprocessor example only!" );
-
     std::string config_or_h5_file;
     parse_cmd_line( argc, argv, config_or_h5_file );
 
@@ -38,7 +31,6 @@ int main( int argc, char *argv[] )
     
     // finalize_whatever_left
     delete dom;
-    ierr = PetscFinalize(); CHKERRXX(ierr);
     return 0;
 }
 
