@@ -26,6 +26,7 @@ class Spatial_mesh {
     Spatial_mesh( hid_t h5_spat_mesh_group );
     void clear_old_density_values();
     void set_boundary_conditions( Config &conf );
+    bool is_potential_equal_on_boundaries();
     void print();
     void write_to_file( hid_t hdf5_file_id );
     virtual ~Spatial_mesh();

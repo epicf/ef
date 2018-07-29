@@ -1,8 +1,8 @@
 #ifndef _PARTICLE_H_
 #define _PARTICLE_H_
 
-#include "iostream"
-#include "iomanip"
+#include <iostream>
+#include <iomanip>
 #include "vec3d.h"
 
 class Particle {
@@ -18,6 +18,7 @@ class Particle {
     void print();
     void print_short();
     void update_position( double dt );
+    Vec3d field_at_point( Vec3d &point );
     virtual ~Particle() {};
 };
 

@@ -58,9 +58,18 @@ class Domain {
     void update_time_grid();
     // Push particles
     void boris_integration();
-    void shift_velocities_half_time_step_back();
+    void shift_new_particles_velocities_half_time_step_back();
     void update_momentum( double dt );
-    void update_position( double dt );
+    Vec3d compute_electric_field_at_particle_position(
+	Particle &particle, unsigned int particle_idx, unsigned int source_idx );
+    Vec3d binary_field_at_particle_position(
+	Particle &particle, unsigned int particle_idx, unsigned int source_idx );
+    Vec3d compute_magnetic_field_at_particle_position( Particle &particle );
+    void boris_update_particle_momentum_no_mgn_field(
+	Particle &p, double dt, Vec3d total_el_field );
+    void boris_update_particle_momentum( Particle &p, double dt,
+					 Vec3d total_el_field, Vec3d total_mgn_field );
+    void update_position( double dt );    
     // Boundaries and generation
     void apply_domain_boundary_conditions();
     bool out_of_bound( const Particle &p );
