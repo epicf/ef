@@ -81,29 +81,22 @@ void Domain::run_pic()
 
 void Domain::prepare_boris_integration()
 {
-    if ( particle_interaction_model.noninteracting ){
-	shift_velocities_half_time_step_back();
-    } else if ( particle_interaction_model.pic ){
+    if ( particle_interaction_model.pic ){
 	eval_charge_density();
 	eval_potential_and_fields();
-	shift_velocities_half_time_step_back();
     }
-    return;
+    shift_new_particles_velocities_half_time_step_back();
 }
 
 void Domain::advance_one_time_step()
 {    
-    if ( particle_interaction_model.noninteracting ){
-	push_particles();
-	apply_domain_constrains();
-	update_time_grid();
-    } else if ( particle_interaction_model.pic ){
-	push_particles();
-	apply_domain_constrains();
+    push_particles();
+    apply_domain_constrains();
+    if ( particle_interaction_model.pic ){
 	eval_charge_density();
 	eval_potential_and_fields();
-	update_time_grid();
     }
+    update_time_grid();
     return;
 }
 
@@ -134,7 +127,6 @@ void Domain::apply_domain_constrains()
     // First generate then remove.
     // This allows for overlap of source and inner region.
     generate_new_particles();
-
     apply_domain_boundary_conditions();
     remove_particles_inside_inner_regions();    
     return;
@@ -146,63 +138,36 @@ void Domain::apply_domain_constrains()
 
 void Domain::boris_integration()
 {  
-    double dt = time_grid.time_step_size;
-
-    update_momentum( dt );
-    update_position( dt );
+    update_momentum( time_grid.time_step_size );
+    update_position( time_grid.time_step_size );
     return;
 }
 
-void Domain::shift_velocities_half_time_step_back()
+void Domain::shift_new_particles_velocities_half_time_step_back()
 {
-    double minus_half_dt = -time_grid.time_step_size / 2;
-    Vec3d el_field, mgn_field, pic_el_field;
+    double minus_half_dt = -time_grid.time_step_size / 2.0;
     Vec3d total_el_field, total_mgn_field;    
-    Vec3d h, s, u, u_quote, v_current, half_el_force;
-    Vec3d dp;
-    double q_quote;
+    unsigned int source_idx, particle_idx;
 
-    for( auto &src : particle_sources.sources ) {
-	for( auto &p : src.particles ) {
+    for( source_idx = 0;
+	 source_idx < particle_sources.sources.size();
+	 source_idx++ ){
+	auto &src = particle_sources.sources[ source_idx ];
+	for( particle_idx = 0;
+	     particle_idx < src.particles.size();
+	     particle_idx++ ){
+	    auto &p = src.particles[ particle_idx ];
 	    if ( !p.momentum_is_half_time_step_shifted ){
-		total_el_field = vec3d_zero();
-		for( auto &f : external_fields.electric ) {
-		    el_field = f.field_at_particle_position( p, time_grid.current_time );
-		    total_el_field = vec3d_add( total_el_field, el_field );
-		}
-		pic_el_field = particle_to_mesh_map.field_at_particle_position(
-		    spat_mesh, p );
-		total_el_field = vec3d_add( total_el_field, pic_el_field );
-
-		total_mgn_field = vec3d_zero();
-		for( auto &f : external_fields.magnetic ) {		
-		    mgn_field = f.field_at_particle_position( p, time_grid.current_time );
-		    total_mgn_field = vec3d_add( total_mgn_field, mgn_field );
-		}
-	    
-		if ( external_fields.magnetic.empty() ){
-		    dp = vec3d_times_scalar( total_el_field,
-					     p.charge * minus_half_dt );
-		    p.momentum = vec3d_add( p.momentum, dp );
-		} else {			    
-		    q_quote = minus_half_dt * p.charge / p.mass / 2.0;
-		    half_el_force = vec3d_times_scalar( total_el_field, q_quote );
-		    v_current = vec3d_times_scalar( p.momentum, 1.0 / p.mass );
-		    u = vec3d_add( v_current, half_el_force );		
-		    h = vec3d_times_scalar(
-			total_mgn_field,
-			q_quote / physconst_speed_of_light );
-		    s = vec3d_times_scalar(
-			h,
-			2.0 / ( 1.0 + vec3d_dot_product( h, h ) ) );
-		    u_quote = vec3d_add(
-			u,
-			vec3d_cross_product(
-			    vec3d_add( u, vec3d_cross_product( u, h ) ),
-			    s ) );
-		    p.momentum = vec3d_times_scalar(
-			vec3d_add( u_quote, half_el_force ),
-			p.mass );
+		total_el_field = compute_electric_field_at_particle_position(
+		    p, particle_idx, source_idx );
+		total_mgn_field = compute_magnetic_field_at_particle_position( p );
+		//
+		if( external_fields.magnetic.empty() ){
+		    boris_update_particle_momentum_no_mgn_field(
+			p, minus_half_dt, total_el_field );
+		} else {
+		    boris_update_particle_momentum(
+			p, minus_half_dt, total_el_field, total_mgn_field );
 		}
 		p.momentum_is_half_time_step_shifted = true;
 	    }
@@ -213,55 +178,141 @@ void Domain::shift_velocities_half_time_step_back()
 
 void Domain::update_momentum( double dt )
 {
-    Vec3d el_field, mgn_field, pic_el_field;
     Vec3d total_el_field, total_mgn_field;
-    Vec3d h, s, u, u_quote, v_current, half_el_force;
-    Vec3d dp;
-    double q_quote;
+    unsigned int source_idx, particle_idx;
 
-    for( auto &src : particle_sources.sources ) {
-	for( auto &p : src.particles ) {
-	    total_el_field = vec3d_zero();
-	    for( auto &f : external_fields.electric ) {
-		el_field = f.field_at_particle_position( p, time_grid.current_time );
-		total_el_field = vec3d_add( total_el_field, el_field );
-	    }
-	    pic_el_field = particle_to_mesh_map.field_at_particle_position( spat_mesh, p );
-	    total_el_field = vec3d_add( total_el_field, pic_el_field );
-
-	    total_mgn_field = vec3d_zero();
-	    for( auto &f : external_fields.magnetic ) {		
-		mgn_field = f.field_at_particle_position( p, time_grid.current_time );
-		total_mgn_field = vec3d_add( total_mgn_field, mgn_field );
-	    }
-	    
+    for( source_idx = 0;
+	 source_idx < particle_sources.sources.size();
+	 source_idx++ ){
+	auto &src = particle_sources.sources[ source_idx ];
+	for( particle_idx = 0;
+	     particle_idx < src.particles.size();
+	     particle_idx++ ){
+	    auto &p = src.particles[ particle_idx ];
+	    total_el_field = compute_electric_field_at_particle_position(
+		p, particle_idx, source_idx );
+	    total_mgn_field = compute_magnetic_field_at_particle_position( p );
+	    //
 	    if ( external_fields.magnetic.empty() ){
-		dp = vec3d_times_scalar( total_el_field,
-					 p.charge * time_grid.time_step_size );
-		p.momentum = vec3d_add( p.momentum, dp );
-	    } else {			    
-		q_quote = time_grid.time_step_size * p.charge / p.mass / 2.0;
-		half_el_force = vec3d_times_scalar( total_el_field, q_quote );
-		v_current = vec3d_times_scalar( p.momentum, 1.0 / p.mass );
-		u = vec3d_add( v_current, half_el_force );		
-		h = vec3d_times_scalar(
-		    total_mgn_field,
-		    q_quote / physconst_speed_of_light );
-		s = vec3d_times_scalar(
-		    h,
-		    2.0 / ( 1.0 + vec3d_dot_product( h, h ) ) );
-		u_quote = vec3d_add(
-		    u,
-		    vec3d_cross_product(
-			vec3d_add( u, vec3d_cross_product( u, h ) ),
-			s ) );
-		p.momentum = vec3d_times_scalar(
-		    vec3d_add( u_quote, half_el_force ),
-		    p.mass );
+		boris_update_particle_momentum_no_mgn_field( p, dt, total_el_field );
+	    } else {
+		boris_update_particle_momentum( p, dt, total_el_field, total_mgn_field );
 	    }
 	}
     }
     return;
+}
+
+
+Vec3d Domain::compute_electric_field_at_particle_position(
+    Particle &particle, unsigned int particle_idx, unsigned int source_idx )
+{
+    Vec3d ext_el_field, bin_el_field, mesh_el_field, mesh_and_pic_el_field;
+    Vec3d total_el_field;
+    
+    bool inner_regs = ! inner_regions.regions.empty();
+    bool gradient = ! spat_mesh.is_potential_equal_on_boundaries();
+
+    total_el_field = vec3d_zero();
+    for( auto &f : external_fields.electric ) {
+	ext_el_field = f.field_at_particle_position( particle, time_grid.current_time );
+	total_el_field = vec3d_add( total_el_field, ext_el_field );
+    }    
+    if ( particle_interaction_model.noninteracting ){
+	if ( inner_regs or gradient ){
+	    mesh_el_field = particle_to_mesh_map.field_at_particle_position(
+		spat_mesh, particle);
+	    total_el_field = vec3d_add( total_el_field, mesh_el_field );
+	}
+    } else if ( particle_interaction_model.binary ){
+	bin_el_field = binary_field_at_particle_position(
+	    particle, particle_idx, source_idx);
+	total_el_field = vec3d_add( total_el_field, bin_el_field );
+	if ( inner_regs or gradient ){
+	    mesh_el_field = particle_to_mesh_map.field_at_particle_position(
+		spat_mesh, particle);
+	    total_el_field = vec3d_add( total_el_field, mesh_el_field );
+	}
+    } else if ( particle_interaction_model.pic ){
+	mesh_and_pic_el_field = particle_to_mesh_map.field_at_particle_position(
+	    spat_mesh, particle );
+	total_el_field = vec3d_add( total_el_field, mesh_and_pic_el_field );
+    }
+    return total_el_field;
+}
+
+Vec3d Domain::compute_magnetic_field_at_particle_position( Particle &particle )
+{
+    Vec3d ext_mgn_field;
+    Vec3d total_mgn_field;
+    
+    total_mgn_field = vec3d_zero();
+    for( auto &f : external_fields.magnetic ) {		
+	ext_mgn_field = f.field_at_particle_position( particle, time_grid.current_time );
+	total_mgn_field = vec3d_add( total_mgn_field, ext_mgn_field );
+    }
+    return total_mgn_field;
+}
+
+
+Vec3d Domain::binary_field_at_particle_position(
+    Particle &particle, unsigned int particle_idx, unsigned int source_idx )
+{
+    Vec3d bin_force = vec3d_zero();
+    unsigned int src_iter, part_iter;
+    //Particle tmp;
+    
+    for( src_iter = 0; src_iter < particle_sources.sources.size(); src_iter++ ){
+	auto &src = particle_sources.sources[ src_iter ];
+	if ( source_idx != src_iter ){
+	    for( auto &p : src.particles ) {
+		bin_force = vec3d_add( bin_force, p.field_at_point( particle.position ));
+	    }
+	} else {
+	    std::swap( src.particles[0], src.particles[particle_idx] );
+	    for( part_iter = 1;
+		 part_iter < src.particles.size();
+		 part_iter++){
+		auto &p = src.particles[part_iter];
+		bin_force = vec3d_add( bin_force,
+				       p.field_at_point( src.particles[0].position ));
+	    }
+	}
+    }
+    return bin_force;
+}
+
+void Domain::boris_update_particle_momentum_no_mgn_field(
+    Particle &p, double dt, Vec3d total_el_field )
+{
+    Vec3d dp;
+
+    dp = vec3d_times_scalar( total_el_field, p.charge * dt );
+    p.momentum = vec3d_add( p.momentum, dp );
+}
+
+
+void Domain::boris_update_particle_momentum(
+    Particle &p, double dt,
+    Vec3d total_el_field, Vec3d total_mgn_field )
+{   
+    Vec3d h, s, u, u_quote, v_current, half_el_force;
+    double q_quote;
+    
+    q_quote = dt * p.charge / p.mass / 2.0;
+    half_el_force = vec3d_times_scalar( total_el_field, q_quote );
+    v_current = vec3d_times_scalar( p.momentum, 1.0 / p.mass );
+    u = vec3d_add( v_current, half_el_force );		
+    h = vec3d_times_scalar( total_mgn_field, q_quote / physconst_speed_of_light );
+    s = vec3d_times_scalar( h,
+			    2.0 / ( 1.0 + vec3d_dot_product( h, h ) ) );
+    u_quote = vec3d_add(
+	u,
+	vec3d_cross_product(
+	    vec3d_add( u, vec3d_cross_product( u, h ) ),
+	    s ) );
+    p.momentum = vec3d_times_scalar( vec3d_add( u_quote, half_el_force ),
+				     p.mass );
 }
 
 void Domain::update_position( double dt )
@@ -324,7 +375,7 @@ bool Domain::out_of_bound( const Particle &p )
 void Domain::generate_new_particles()
 {
     particle_sources.generate_each_step();
-    shift_velocities_half_time_step_back();
+    shift_new_particles_velocities_half_time_step_back();
     return;
 }
 
