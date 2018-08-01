@@ -265,10 +265,10 @@ Vec3d Domain::binary_field_at_particle_position(
     for( src_iter = 0; src_iter < particle_sources.sources.size(); src_iter++ ){
 	auto &src = particle_sources.sources[ src_iter ];
 	if ( source_idx != src_iter ){
-	    for( auto &p : src.particles ) {
+	    for( auto &p : src.particles ){
 		bin_force = vec3d_add( bin_force, p.field_at_point( particle.position ));
 	    }
-	} else {
+	} else if ( src.particles.size() > 1 ){
 	    std::swap( src.particles[0], src.particles[particle_idx] );
 	    for( part_iter = 1;
 		 part_iter < src.particles.size();
@@ -277,6 +277,9 @@ Vec3d Domain::binary_field_at_particle_position(
 		bin_force = vec3d_add( bin_force,
 				       p.field_at_point( src.particles[0].position ));
 	    }
+	    // swap particles back so that loop in 'prepare_boris/update_momentum'
+	    // is not disturbed
+	    std::swap( src.particles[0], src.particles[particle_idx] );
 	}
     }
     return bin_force;
