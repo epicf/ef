@@ -32,7 +32,8 @@ protected:
     double charge;
     double mass;
     // Random number generator
-    std::default_random_engine rnd_gen;
+    //std::default_random_engine rnd_gen;
+    std::mt19937 rnd_gen;
 public:
     Particle_source( Config &conf, Particle_source_config_part &src_conf );
     Particle_source( hid_t h5_particle_source_group_id );
@@ -49,16 +50,15 @@ protected:
     // Particles generation 
     void generate_initial_particles();
     void generate_num_of_particles( int num_of_particles );
-    // Todo: replace 'std::default_random_engine' type with something more general.
-    virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen ) = 0;
+    // Todo: replace 'std::mt19937' type with something more general.
+    virtual Vec3d uniform_position_in_source( std::mt19937 &rnd_gen ) = 0;
     Vec3d maxwell_momentum_distr( const Vec3d mean_momentum,
 				  const double temperature, const double mass,
-				  std::default_random_engine &rnd_gen );
+				  std::mt19937 &rnd_gen );
     int num_of_particles_for_each_process( int num_of_particles );
     void populate_vec_of_ids( std::vector<int> &vec_of_ids,
 			      int num_of_particles_for_this_proc );
-    double random_in_range( const double low, const double up,
-			    std::default_random_engine &rnd_gen );
+    double random_in_range( const double low, const double up, std::mt19937 &rnd_gen );
     // Check config
     virtual void check_correctness_of_related_config_fields( 
 	Config &conf, Particle_source_config_part &src_conf );
@@ -96,11 +96,11 @@ private:
     // Particle generation
     virtual void set_parameters_from_config( Particle_source_box_config_part &src_conf );
     virtual void read_hdf5_source_parameters( hid_t h5_particle_source_box_group_id );
-    virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen );
+    virtual Vec3d uniform_position_in_source( std::mt19937 &rnd_gen );
     Vec3d uniform_position_in_cube( const double xleft, const double ytop,
 				    const double zfar, const double xright,
 				    const double ybottom, const double znear,
-				    std::default_random_engine &rnd_gen );
+				    std::mt19937 &rnd_gen );
     // Check config
     virtual void check_correctness_of_related_config_fields( 
 	Config &conf, Particle_source_box_config_part &src_conf );
@@ -147,8 +147,8 @@ private:
     virtual void set_parameters_from_config(
 	Particle_source_cylinder_config_part &src_conf );
     virtual void read_hdf5_source_parameters( hid_t h5_particle_source_cylinder_group_id );
-    virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen );
-    Vec3d uniform_position_in_cylinder( std::default_random_engine &rnd_gen );
+    virtual Vec3d uniform_position_in_source( std::mt19937 &rnd_gen );
+    Vec3d uniform_position_in_cylinder( std::mt19937 &rnd_gen );
     // Check config
     virtual void check_correctness_of_related_config_fields( 
 	Config &conf, Particle_source_cylinder_config_part &src_conf );
@@ -203,8 +203,8 @@ private:
 	Particle_source_tube_along_z_config_part &src_conf );
     virtual void read_hdf5_source_parameters(
 	hid_t h5_particle_source_tube_along_z_group_id );
-    virtual Vec3d uniform_position_in_source( std::default_random_engine &rnd_gen );
-    Vec3d uniform_position_in_tube_along_z( std::default_random_engine &rnd_gen );
+    virtual Vec3d uniform_position_in_source( std::mt19937 &rnd_gen );
+    Vec3d uniform_position_in_tube_along_z( std::mt19937 &rnd_gen );
     // Check config
     virtual void check_correctness_of_related_config_fields( 
 	Config &conf, Particle_source_tube_along_z_config_part &src_conf );

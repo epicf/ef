@@ -18,10 +18,12 @@ Particle_source::Particle_source( hid_t h5_particle_source_group_id )
     read_hdf5_particles( h5_particle_source_group_id );
     // Random number generator
     // Instead of saving/loading it's state to file just
-    // reinit with different seed. 
-    long int t = static_cast<long int>( std::time( NULL ) );
-    unsigned seed = t;
-    rnd_gen = std::default_random_engine( seed );
+    // reinit with different seed.
+    //
+    // https://stackoverflow.com/questions/19665818/generate-random-numbers-using-c11-random-library
+    //
+    std::random_device rd;
+    rnd_gen = std::mt19937( rd() );
 }
 
 void Particle_source::check_correctness_of_related_config_fields( 
@@ -46,9 +48,8 @@ void Particle_source::set_parameters_from_config( Particle_source_config_part &s
     temperature = src_conf.temperature;
     charge = src_conf.charge;
     mass = src_conf.mass;    
-    long int t = static_cast<long int>( std::time( NULL ) );
-    unsigned seed = t;
-    rnd_gen = std::default_random_engine( seed );
+    std::random_device rd;
+    rnd_gen = std::mt19937( rd() );
     // Initial id
     max_id = 0;
 }
@@ -242,8 +243,7 @@ void Particle_source::populate_vec_of_ids(
 }
 
 double Particle_source::random_in_range( 
-    const double low, const double up, 
-    std::default_random_engine &rnd_gen )
+    const double low, const double up, std::mt19937 &rnd_gen )
 {
     std::uniform_real_distribution<double> uniform_distr( low, up );
     return uniform_distr( rnd_gen );
@@ -251,7 +251,7 @@ double Particle_source::random_in_range(
 
 Vec3d Particle_source::maxwell_momentum_distr(
     const Vec3d mean_momentum, const double temperature, const double mass, 
-    std::default_random_engine &rnd_gen )
+    std::mt19937 &rnd_gen )
 {    
     double maxwell_gauss_std_mean_x = vec3d_x( mean_momentum );
     double maxwell_gauss_std_mean_y = vec3d_y( mean_momentum );
@@ -718,8 +718,7 @@ void Particle_source_box::write_hdf5_source_parameters( hid_t current_source_gro
 }
 
 
-Vec3d Particle_source_box::uniform_position_in_source(
-    std::default_random_engine &rnd_gen )
+Vec3d Particle_source_box::uniform_position_in_source( std::mt19937 &rnd_gen )
 {
     return uniform_position_in_cube( xright, ytop, zfar,
 				     xleft, ybottom, znear,
@@ -729,7 +728,7 @@ Vec3d Particle_source_box::uniform_position_in_source(
 Vec3d Particle_source_box::uniform_position_in_cube( 
     const double xright,  const double ytop, const double zfar,
     const double xleft, const double ybottom, const double znear,
-    std::default_random_engine &rnd_gen )
+    std::mt19937 &rnd_gen )
 {
     return vec3d_init( random_in_range( xright, xleft, rnd_gen ), 
 		       random_in_range( ybottom, ytop, rnd_gen ),
@@ -990,14 +989,12 @@ void Particle_source_cylinder::write_hdf5_source_parameters( hid_t current_sourc
 }
 
 
-Vec3d Particle_source_cylinder::uniform_position_in_source(
-    std::default_random_engine &rnd_gen )
+Vec3d Particle_source_cylinder::uniform_position_in_source( std::mt19937 &rnd_gen )
 {
     return uniform_position_in_cylinder( rnd_gen );
 }
 
-Vec3d Particle_source_cylinder::uniform_position_in_cylinder(
-    std::default_random_engine &rnd_gen )
+Vec3d Particle_source_cylinder::uniform_position_in_cylinder( std::mt19937 &rnd_gen )
 {
     // random point in cylinder along z
     Vec3d cyl_axis = vec3d_init( ( axis_end_x - axis_start_x ),
@@ -1265,14 +1262,13 @@ void Particle_source_tube_along_z::write_hdf5_source_parameters(
 }
 
 
-Vec3d Particle_source_tube_along_z::uniform_position_in_source(
-    std::default_random_engine &rnd_gen )
+Vec3d Particle_source_tube_along_z::uniform_position_in_source( std::mt19937 &rnd_gen )
 {
     return uniform_position_in_tube_along_z( rnd_gen );
 }
 
 Vec3d Particle_source_tube_along_z::uniform_position_in_tube_along_z(
-    std::default_random_engine &rnd_gen )
+    std::mt19937 &rnd_gen )
 {
     double x, y, z;
     double r, phi;
