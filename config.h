@@ -419,6 +419,44 @@ public:
     }
 };
 
+class Inner_region_cone_along_z_config_part : public Inner_region_config_part{
+public:
+    double cone_axis_x;
+    double cone_axis_y;
+    double cone_axis_start_z;
+    double cone_axis_end_z;
+    double cone_start_inner_radius;
+    double cone_start_outer_radius;
+    double cone_end_inner_radius;
+    double cone_end_outer_radius;
+public:
+    Inner_region_cone_along_z_config_part(){};
+    Inner_region_cone_along_z_config_part(
+	std::string name, boost::property_tree::ptree &ptree ) :
+	Inner_region_config_part( name, ptree ),
+	cone_axis_x( ptree.get<double>("cone_axis_x") ),
+	cone_axis_y( ptree.get<double>("cone_axis_y") ),
+	cone_axis_start_z( ptree.get<double>("cone_axis_start_z") ),
+	cone_axis_end_z( ptree.get<double>("cone_axis_end_z") ),
+	cone_start_inner_radius( ptree.get<double>("cone_start_inner_radius") ),
+	cone_start_outer_radius( ptree.get<double>("cone_start_outer_radius") ),
+	cone_end_inner_radius( ptree.get<double>("cone_end_inner_radius") ),
+	cone_end_outer_radius( ptree.get<double>("cone_end_outer_radius") )
+    {};
+    virtual ~Inner_region_cone_along_z_config_part() {};
+    void print() { 
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "cone_axis_x = " << cone_axis_x << std::endl;
+	std::cout << "cone_axis_y = " << cone_axis_y << std::endl;
+	std::cout << "cone_axis_start_z = " << cone_axis_start_z << std::endl;
+	std::cout << "cone_axis_end_z = " << cone_axis_end_z << std::endl;
+	std::cout << "cone_start_inner_radius = " << cone_start_inner_radius << std::endl;
+	std::cout << "cone_start_outer_radius = " << cone_start_outer_radius << std::endl;
+	std::cout << "cone_end_inner_radius = " << cone_end_inner_radius << std::endl;
+	std::cout << "cone_end_outer_radius = " << cone_end_outer_radius << std::endl;       
+    }
+};
 
 class Boundary_config_part {
 public:
@@ -448,7 +486,6 @@ public:
 	std::cout << "boundary_phi_far = " << boundary_phi_far << std::endl;
     }
 };
-
 
 class External_field_config_part {
 public:

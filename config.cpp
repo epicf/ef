@@ -63,6 +63,13 @@ Config::Config( const std::string &filename )
 		inner_regions_config_part.push_back(
 		    new Inner_region_tube_along_z_segment_config_part(
 			inner_region_name, sections.second ) );
+	    } else if ( section_name.find( "Inner_region_cone_along_z." )
+			!= std::string::npos ) {
+		std::string inner_region_name =
+		    section_name.substr( section_name.find(".") + 1 );
+		inner_regions_config_part.push_back(
+		    new Inner_region_cone_along_z_config_part(
+			inner_region_name, sections.second ) );
 	    } else if ( section_name.find( "Boundary conditions" ) != std::string::npos ) {
 		boundary_config_part = Boundary_config_part( sections.second );
 	    } else if ( section_name.find(
