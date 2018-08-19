@@ -10,11 +10,12 @@ CFLAGS = ${HDF5FLAGS} -O2 -std=c++11 ${WARNINGS}
 LDFLAGS = 
 
 ### Libraries
-COMMONLIBS=-lm -fsanitize=address
-SANITIZER=-lasan
+COMMONLIBS=-lm
 BOOSTLIBS=-lboost_program_options
 HDF5LIBS=-L/usr/lib/x86_64-linux-gnu/hdf5/serial -lhdf5_hl -lhdf5 -Wl,-z,relro -lpthread -lz -ldl -lm -Wl,-rpath -Wl,/usr/lib/x86_64-linux-gnu/hdf5/serial
+SANITIZER=-lasan
 LIBS=${COMMONLIBS} ${BOOSTLIBS} ${HDF5LIBS} ${SANITIZER}
+
 
 ### Sources and executable
 CPPSOURCES=$(wildcard *.cpp)
