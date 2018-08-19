@@ -905,6 +905,22 @@ Inner_region_cone_along_z::Inner_region_cone_along_z(
     select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
 }
 
+Inner_region_cone_along_z::Inner_region_cone_along_z(
+    hid_t h5_inner_region_cone_along_z_group_id,
+    Spatial_mesh &spat_mesh ) :
+    Inner_region( h5_inner_region_cone_along_z_group_id )
+{
+    object_type = "cone_along_z";
+    // check_correctness_of_related_config_fields( conf,
+    // inner_region_cone_along_z_conf );
+    get_values_from_h5( h5_inner_region_cone_along_z_group_id );
+    mark_inner_nodes( spat_mesh );
+    select_inner_nodes_not_at_domain_edge( spat_mesh );
+    mark_near_boundary_nodes( spat_mesh );
+    select_near_boundary_nodes_not_at_domain_edge( spat_mesh );
+}
+
+
 void Inner_region_cone_along_z::check_correctness_of_related_config_fields(
     Config &conf,
     Inner_region_cone_along_z_config_part &inner_region_cone_along_z_conf )
@@ -925,9 +941,48 @@ void Inner_region_cone_along_z::get_values_from_config(
     end_outer_radius = inner_region_cone_along_z_conf.cone_end_outer_radius;
 }
 
-bool Inner_region_cone_along_z::point_inside_cone( double axis_x, double axis_y, double axis_start_z, 
-                                    double axis_end_z, double r_start, double r_end, 
-                                    double x, double y, double z )
+
+void Inner_region_cone_along_z::get_values_from_h5(
+    hid_t h5_inner_region_cone_along_z_group_id )
+{
+    herr_t status;
+    status = H5LTget_attribute_double(
+	h5_inner_region_cone_along_z_group_id, "./",
+	"axis_x", &axis_x ); hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_cone_along_z_group_id, "./",
+	"axis_y", &axis_y ); hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_cone_along_z_group_id, "./",
+	"axis_start_z", &axis_start_z ); hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_cone_along_z_group_id, "./",
+	"axis_end_z", &axis_end_z ); hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_cone_along_z_group_id, "./",
+	"start_inner_radius", &start_inner_radius );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_cone_along_z_group_id, "./",
+	"start_outer_radius", &start_outer_radius );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_cone_along_z_group_id, "./",
+	"end_inner_radius", &end_inner_radius );
+    hdf5_status_check( status );
+    status = H5LTget_attribute_double(
+	h5_inner_region_cone_along_z_group_id, "./",
+	"end_outer_radius", &end_outer_radius );
+    hdf5_status_check( status );
+}
+
+
+
+bool Inner_region_cone_along_z::point_inside_cone(
+    double axis_x, double axis_y,
+    double axis_start_z, double axis_end_z,
+    double r_start, double r_end, 
+    double x, double y, double z )
 {
     double z_len = abs(axis_end_z-axis_start_z);
     double x_dist = x - axis_x;
@@ -957,16 +1012,19 @@ bool Inner_region_cone_along_z::point_inside_cone( double axis_x, double axis_y,
     return in;
 }
 
-bool Inner_region_cone_along_z::check_if_point_inside( double x, double y, double z )
+bool Inner_region_cone_along_z::check_if_point_inside(
+    double x, double y, double z )
 {
     bool in = true;
-    bool in_outer = point_inside_cone(axis_x, axis_y, axis_start_z, axis_end_z,
-                                        start_outer_radius, end_outer_radius, x, y, z);
+    bool in_outer = point_inside_cone(
+	axis_x, axis_y,	axis_start_z, axis_end_z,
+	start_outer_radius, end_outer_radius, x, y, z);
     if (!in_outer){
         in = false;
     }
-    bool in_inner = point_inside_cone(axis_x, axis_y, axis_start_z, axis_end_z,
-                                        start_inner_radius, end_inner_radius, x, y, z);
+    bool in_inner = point_inside_cone(
+	axis_x, axis_y,	axis_start_z, axis_end_z,
+	start_inner_radius, end_inner_radius, x, y, z);
     if (in_inner){
         in = false;
     }
