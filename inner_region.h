@@ -433,7 +433,7 @@ public:
 	hid_t group_id;
 	herr_t status;
 	int single_element = 1;
-	std::string hdf5_groupname = "/Inner_regions";
+	std::string hdf5_groupname = "/InnerRegions";
 	int n_of_regions = regions.size();
 	group_id = H5Gcreate2(
 	    hdf5_file_id, hdf5_groupname.c_str(),

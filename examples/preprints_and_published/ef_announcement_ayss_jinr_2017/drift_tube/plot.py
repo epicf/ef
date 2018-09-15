@@ -3,25 +3,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def get_source_parameters(h5file):
-    radius_beam = h5file["/Particle_sources/cathode_emitter"].attrs["cylinder_radius"][0]
-    charge = h5file["/Particle_sources/cathode_emitter"].attrs["charge"][0]
-    mass = h5file["/Particle_sources/cathode_emitter"].attrs["mass"][0]
-    momentum_z = h5file["/Particle_sources/cathode_emitter"].attrs["mean_momentum_z"][0]
-    particle_per_step = h5file["/Particle_sources/cathode_emitter"].attrs["particles_to_generate_each_step"][0]
-    time_step = h5file["/Time_grid"].attrs["time_step_size"][0]
-    radius_tube = h5file["/Inner_regions/tube"].attrs["inner_radius"][0]
+    radius_beam = h5file["/ParticleSources/cathode_emitter"].attrs["cylinder_radius"][0]
+    charge = h5file["/ParticleSources/cathode_emitter"].attrs["charge"][0]
+    mass = h5file["/ParticleSources/cathode_emitter"].attrs["mass"][0]
+    momentum_z = h5file["/ParticleSources/cathode_emitter"].attrs["mean_momentum_z"][0]
+    particle_per_step = h5file["/ParticleSources/cathode_emitter"].attrs["particles_to_generate_each_step"][0]
+    time_step = h5file["/TimeGrid"].attrs["time_step_size"][0]
+    radius_tube = h5file["/InnerRegions/tube"].attrs["inner_radius"][0]
     return radius_beam,charge,mass,momentum_z,particle_per_step,time_step,radius_tube
 
 def get_mesh_parameters(h5file):
-    x_coord = h5file["/Spatial_mesh/node_coordinates_x"][:]
-    y_coord = h5file["/Spatial_mesh/node_coordinates_y"][:]
-    z_coord = h5file["/Spatial_mesh/node_coordinates_z"][:]
-    pot=h5file["/Spatial_mesh/potential"][:]
+    x_coord = h5file["/SpatialMesh/node_coordinates_x"][:]
+    y_coord = h5file["/SpatialMesh/node_coordinates_y"][:]
+    z_coord = h5file["/SpatialMesh/node_coordinates_z"][:]
+    pot=h5file["/SpatialMesh/potential"][:]
     return [x_coord, y_coord, z_coord, pot]
 
 def get_beam_parameters(h5file):
-    beam_center_x = h5file["/Particle_sources/cathode_emitter"].attrs["cylinder_axis_end_x"][0]
-    beam_middle_z = h5file["/Spatial_mesh/node_coordinates_z"][np.size(h5file["/Spatial_mesh/node_coordinates_z"][:]) / 2]
+    beam_center_x = h5file["/ParticleSources/cathode_emitter"].attrs["cylinder_axis_end_x"][0]
+    beam_middle_z = h5file["/SpatialMesh/node_coordinates_z"][np.size(h5file["/Spatial_mesh/node_coordinates_z"][:]) / 2]
     return beam_center_x,beam_middle_z
 
 def evaluate_velocity_current_square(radius_beam,charge,mass,momentum_z,particle_per_step,time_step):

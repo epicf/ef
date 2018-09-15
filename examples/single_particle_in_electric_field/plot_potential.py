@@ -17,10 +17,10 @@ def extract_boundary_box_properties_from_out_file( outfile_name ):
 
 def extract_full_nodecoords_and_potential_from_out_file( outfile_name ):
     outfile = h5py.File( outfile_name, driver="core", mode="r" )
-    node_coords_x_hdf5 = outfile['/Spatial_mesh/node_coordinates_x']
-    node_coords_y_hdf5 = outfile['/Spatial_mesh/node_coordinates_y']
-    node_coords_z_hdf5 = outfile['/Spatial_mesh/node_coordinates_z']
-    num_potential_hdf5 = outfile['/Spatial_mesh/potential']
+    node_coords_x_hdf5 = outfile['/SpatialMesh/node_coordinates_x']
+    node_coords_y_hdf5 = outfile['/SpatialMesh/node_coordinates_y']
+    node_coords_z_hdf5 = outfile['/SpatialMesh/node_coordinates_z']
+    num_potential_hdf5 = outfile['/SpatialMesh/potential']
     node_coords_x = np.empty_like( node_coords_x_hdf5 )
     node_coords_y = np.empty_like( node_coords_y_hdf5 )
     node_coords_z = np.empty_like( node_coords_z_hdf5 )

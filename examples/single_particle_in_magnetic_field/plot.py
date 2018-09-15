@@ -37,16 +37,16 @@ def find_necessary_out_files():
 
 def extract_time_pos_mom( h5file ):
     h5 = h5py.File( h5file, mode="r")
-    t = h5["/Time_grid"].attrs["current_time"][0]
+    t = h5["/TimeGrid"].attrs["current_time"][0]
     t_pos_mom = ()
-    if ( len(h5["/Particle_sources/emit_single_particle"]) > 0 and
-         len(h5["/Particle_sources/emit_single_particle/position_x"]) > 0 ):
-        x = h5["/Particle_sources/emit_single_particle/position_x"][0]
-        y = h5["/Particle_sources/emit_single_particle/position_y"][0]
-        z = h5["/Particle_sources/emit_single_particle/position_z"][0]
-        px = h5["/Particle_sources/emit_single_particle/momentum_x"][0]
-        py = h5["/Particle_sources/emit_single_particle/momentum_y"][0]
-        pz = h5["/Particle_sources/emit_single_particle/momentum_z"][0]
+    if ( len(h5["/ParticleSources/emit_single_particle"]) > 0 and
+         len(h5["/ParticleSources/emit_single_particle/position_x"]) > 0 ):
+        x = h5["/ParticleSources/emit_single_particle/position_x"][0]
+        y = h5["/ParticleSources/emit_single_particle/position_y"][0]
+        z = h5["/ParticleSources/emit_single_particle/position_z"][0]
+        px = h5["/ParticleSources/emit_single_particle/momentum_x"][0]
+        py = h5["/ParticleSources/emit_single_particle/momentum_y"][0]
+        pz = h5["/ParticleSources/emit_single_particle/momentum_z"][0]
         t_pos_mom = (t, x, y, z, px, py, pz)
     h5.close()
     return( t_pos_mom )
@@ -81,21 +81,21 @@ def eval_an_trajectory_at_num_time_points( num_trajectory ):
     return( an_trajectory )
     
 def extract_magn_field( h5 ):
-    B0 = h5["/External_fields/mgn_uni"].attrs["magnetic_uniform_field_z"][0]
+    B0 = h5["/ExternalFields/mgn_uni"].attrs["magnetic_uniform_field_z"][0]
     return B0
 
 def extract_particle_charge_and_mass( h5 ):
-    q = h5["/Particle_sources/emit_single_particle"].attrs["charge"][0]
-    m = h5["/Particle_sources/emit_single_particle"].attrs["mass"][0]
+    q = h5["/ParticleSources/emit_single_particle"].attrs["charge"][0]
+    m = h5["/ParticleSources/emit_single_particle"].attrs["mass"][0]
     return (q, m)
 
 def extract_initial_pos_and_mom( h5 ):
-    x0 = h5["/Particle_sources/emit_single_particle/position_x"][0]
-    y0 = h5["/Particle_sources/emit_single_particle/position_y"][0]
-    z0 = h5["/Particle_sources/emit_single_particle/position_z"][0]
-    px0 = h5["/Particle_sources/emit_single_particle/momentum_x"][0]
-    py0 = h5["/Particle_sources/emit_single_particle/momentum_y"][0]
-    pz0 = h5["/Particle_sources/emit_single_particle/momentum_z"][0]
+    x0 = h5["/ParticleSources/emit_single_particle/position_x"][0]
+    y0 = h5["/ParticleSources/emit_single_particle/position_y"][0]
+    z0 = h5["/ParticleSources/emit_single_particle/position_z"][0]
+    px0 = h5["/ParticleSources/emit_single_particle/momentum_x"][0]
+    py0 = h5["/ParticleSources/emit_single_particle/momentum_y"][0]
+    pz0 = h5["/ParticleSources/emit_single_particle/momentum_z"][0]
     return( x0, y0, z0, px0, py0, pz0 )
 
 def velocities(t):
