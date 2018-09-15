@@ -25,15 +25,15 @@ Domain::Domain( Config &conf ) :
 }
 
 Domain::Domain( hid_t h5file_id ) :
-    time_grid( H5Gopen( h5file_id, "/Time_grid", H5P_DEFAULT ) ),
-    spat_mesh( H5Gopen( h5file_id, "/Spatial_mesh", H5P_DEFAULT ) ),
-    inner_regions( H5Gopen( h5file_id, "/Inner_regions", H5P_DEFAULT ), spat_mesh ),
+    time_grid( H5Gopen( h5file_id, "/TimeGrid", H5P_DEFAULT ) ),
+    spat_mesh( H5Gopen( h5file_id, "/SpatialMesh", H5P_DEFAULT ) ),
+    inner_regions( H5Gopen( h5file_id, "/InnerRegions", H5P_DEFAULT ), spat_mesh ),
     particle_to_mesh_map(),
     field_solver( spat_mesh, inner_regions ),
-    particle_sources( H5Gopen( h5file_id, "/Particle_sources", H5P_DEFAULT ) ),
-    external_fields( H5Gopen( h5file_id, "/External_fields", H5P_DEFAULT ) ),
+    particle_sources( H5Gopen( h5file_id, "/ParticleSources", H5P_DEFAULT ) ),
+    external_fields( H5Gopen( h5file_id, "/ExternalFields", H5P_DEFAULT ) ),
     particle_interaction_model(
-        H5Gopen( h5file_id, "/Particle_interaction_model", H5P_DEFAULT ) )
+        H5Gopen( h5file_id, "/ParticleInteractionModel", H5P_DEFAULT ) )
 {
     return;
 }
@@ -430,7 +430,7 @@ void Domain::write()
         exit( EXIT_FAILURE );
     }
 
-    std::cout << "Writing step " << time_grid.current_node 
+    std::cout << "Writing step " << time_grid.current_node
               << " to file " << file_name_to_write << std::endl;
 
     time_grid.write_to_file( output_file );
