@@ -314,7 +314,7 @@ public:
 	hid_t group_id;
 	herr_t status;
 	int single_element = 1;
-	std::string hdf5_groupname = "/Particle_sources";
+	std::string hdf5_groupname = "/ParticleSources";
 	int n_of_sources = sources.size();
 	group_id = H5Gcreate2( hdf5_file_id, hdf5_groupname.c_str(),
 			       H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);

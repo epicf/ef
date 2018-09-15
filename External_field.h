@@ -264,7 +264,7 @@ public:
 	hid_t group_id;
 	herr_t status;
 	int single_element = 1;
-	std::string hdf5_groupname = "/External_fields";
+	std::string hdf5_groupname = "/ExternalFields";
 	int n_of_electric_fields = electric.size();
 	int n_of_magnetic_fields = magnetic.size();
 	group_id = H5Gcreate2( hdf5_file_id, hdf5_groupname.c_str(),
