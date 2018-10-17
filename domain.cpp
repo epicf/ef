@@ -70,10 +70,10 @@ void Domain::run_pic()
     current_node = time_grid.current_node;
 
     for ( int i = current_node; i < total_time_iterations; i++ ){
-	std::cout << "Time step from " << i << " to " << i+1
-		  << " of " << total_time_iterations << std::endl;
-    	advance_one_time_step();
-    	write_step_to_save();
+        std::cout << "Time step from " << i << " to " << i+1
+                  << " of " << total_time_iterations << std::endl;
+        advance_one_time_step();
+        write_step_to_save();
     }
 
     return;
@@ -82,19 +82,19 @@ void Domain::run_pic()
 void Domain::prepare_boris_integration()
 {
     if ( particle_interaction_model.pic ){
-	eval_charge_density();
-	eval_potential_and_fields();
+        eval_charge_density();
+        eval_potential_and_fields();
     }
     shift_new_particles_velocities_half_time_step_back();
 }
 
 void Domain::advance_one_time_step()
-{    
+{
     push_particles();
     apply_domain_constrains();
     if ( particle_interaction_model.pic ){
-	eval_charge_density();
-	eval_potential_and_fields();
+        eval_charge_density();
+        eval_potential_and_fields();
     }
     update_time_grid();
     return;
@@ -102,9 +102,9 @@ void Domain::advance_one_time_step()
 
 void Domain::eval_charge_density()
 {
-    spat_mesh.clear_old_density_values();    
+    spat_mesh.clear_old_density_values();
     particle_to_mesh_map.weight_particles_charge_to_mesh( spat_mesh, particle_sources );
-    
+
     return;
 }
 
