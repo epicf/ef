@@ -1006,7 +1006,7 @@ bool Inner_region_cone_along_z::point_inside_cone(
         z_dist = abs( z - axis_end_z );
         r = z_dist * tg_a + r_end;
     }
-    if ( r * r > x_dist * x_dist + y_dist * y_dist ){
+    if ( r * r < x_dist * x_dist + y_dist * y_dist ){
         in = false;
     }
     return in;

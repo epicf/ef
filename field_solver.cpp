@@ -117,7 +117,7 @@ void Field_solver::set_phi_next_at_inner_regions( Inner_regions_manager &inner_r
 {
     for( auto &reg : inner_regions.regions ){
 	for( auto &node : reg.inner_nodes ){
-	    phi_next[node.x][node.y][node.y] = reg.potential;
+	    phi_next[node.x][node.y][node.z] = reg.potential;
 	}	
     }
 }
