@@ -8,7 +8,6 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 #include <hdf5.h>
 #include <hdf5_hl.h>
-
 #include "config.h"
 #include "spatial_mesh.h"
 #include "node_reference.h"
@@ -281,6 +280,56 @@ private:
 	hid_t current_region_group_id );
 };
 
+class Inner_region_cone_along_z : public Inner_region{
+public:
+    double axis_x;
+    double axis_y;
+    double axis_start_z;
+    double axis_end_z;
+    double start_inner_radius;
+    double start_outer_radius;
+    double end_inner_radius;
+    double end_outer_radius;
+public:
+    Inner_region_cone_along_z(
+	Config &conf,
+	Inner_region_cone_along_z_config_part &inner_region_conf,
+	Spatial_mesh &spat_mesh );
+    Inner_region_cone_along_z( hid_t h5_inner_region_group_id,
+			       Spatial_mesh &spat_mesh );
+    virtual ~Inner_region_cone_along_z() {};
+    void print() {
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "axis_x = " << axis_x << std::endl;
+	std::cout << "axis_y = " << axis_y << std::endl;
+	std::cout << "axis_start_z = " << axis_start_z << std::endl;
+	std::cout << "axis_end_z = " << axis_end_z << std::endl;
+	std::cout << "start_inner_radius = "
+		  << start_inner_radius << std::endl;
+	std::cout << "start_outer_radius = "
+		  << start_outer_radius << std::endl;
+	std::cout << "end_inner_radius = "
+		  << end_inner_radius << std::endl;
+	std::cout << "end_outer_radius = "
+		  << end_outer_radius << std::endl;
+    }
+    virtual bool check_if_point_inside( double x, double y, double z );
+    bool point_inside_cone( double axis_x, double axis_y,
+			    double axis_start_z, double axis_end_z,
+			    double r_start, double r_end, 
+			    double x, double y, double z );
+private:
+    virtual void check_correctness_of_related_config_fields(
+	Config &conf,
+	Inner_region_cone_along_z_config_part &inner_region_cone_along_z_conf );
+    virtual void get_values_from_config(
+	Inner_region_cone_along_z_config_part &inner_region_cone_along_z_conf );
+    virtual void get_values_from_h5(
+        hid_t h5_inner_region_cone_along_z_group_id );
+    virtual void write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id );
+};
 
 
 class Inner_regions_manager{
@@ -312,11 +361,17 @@ public:
 							  spat_mesh ) );
 	    } else if( Inner_region_tube_along_z_segment_config_part
 		       *tube_along_z_segment_conf =
-		       dynamic_cast<Inner_region_tube_along_z_segment_config_part*>(
-			   &inner_region_conf ) ){
+		       dynamic_cast<Inner_region_tube_along_z_segment_config_part*>( &inner_region_conf ) ){
 		regions.push_back( new Inner_region_tube_along_z_segment(
 				       conf,
 				       *tube_along_z_segment_conf,
+				       spat_mesh ) );
+	    } else if( Inner_region_cone_along_z_config_part
+		       *cone_along_z_conf =
+		       dynamic_cast<Inner_region_cone_along_z_config_part*>( &inner_region_conf ) ){
+		regions.push_back( new Inner_region_cone_along_z(
+				       conf,
+				       *cone_along_z_conf,
 				       spat_mesh ) );
 	    } else {
 		std::cout << "In Inner_regions_manager constructor-from-conf: "
@@ -327,7 +382,8 @@ public:
 	}
     }
 
-    Inner_regions_manager( hid_t h5_inner_region_group, Spatial_mesh &spat_mesh )
+    Inner_regions_manager( hid_t h5_inner_region_group,
+			   Spatial_mesh &spat_mesh )
     {	
 	hsize_t nobj;
 	ssize_t len;
@@ -347,7 +403,8 @@ public:
 		current_ir_grpid = H5Gopen( h5_inner_region_group,
 					    memb_name_cstr, H5P_DEFAULT );
 		parse_hdf5_inner_reg( current_ir_grpid, spat_mesh );
-		err = H5Gclose( current_ir_grpid ); hdf5_status_check( err );
+		err = H5Gclose( current_ir_grpid );
+		hdf5_status_check( err );
 	    }		
 	}
 	
@@ -360,12 +417,13 @@ public:
 	// Therefore, iteration is manual.
     }
     
-    void parse_hdf5_inner_reg( hid_t current_ir_grpid, Spatial_mesh &spat_mesh )
+    void parse_hdf5_inner_reg( hid_t current_ir_grpid,
+			       Spatial_mesh &spat_mesh )
     {
 	herr_t status;
 	char object_type_cstr[50];
-	status = H5LTget_attribute_string( current_ir_grpid, "./",
-					   "object_type", object_type_cstr );
+	status = H5LTget_attribute_string(
+	    current_ir_grpid, "./", "object_type", object_type_cstr );
 	hdf5_status_check( status );
 
 	std::string obj_type( object_type_cstr );
@@ -382,8 +440,11 @@ public:
 	    regions.push_back( new Inner_region_tube( current_ir_grpid,
 						      spat_mesh ) );
 	} else if ( obj_type == "tube_along_z_segment" ) {
-	    regions.push_back( new Inner_region_tube_along_z_segment( current_ir_grpid,
-								      spat_mesh ) );
+	    regions.push_back( new Inner_region_tube_along_z_segment(
+				   current_ir_grpid, spat_mesh ) );
+	} else if ( obj_type == "cone_along_z" ) {
+	    regions.push_back( new Inner_region_cone_along_z(
+				   current_ir_grpid, spat_mesh ) );
 	} else {
 	    std::cout << "In Inner_regions_manager constructor-from-h5: "
 		      << "Unknown inner_region type. Aborting"
