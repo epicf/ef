@@ -123,12 +123,12 @@ def read_spat_mesh_data_as_table( h5file_name ):
 def spat_mesh_table_to_struct_grid( spat_mesh ):
     spat_mesh_struct_grid = TableToStructuredGrid( spat_mesh )
     # VTK_structured_grid expects a table with node points.
-    # Nodes should be arranged in such way, that first come points
-    # with varying coord at dimenstion [0] and
-    # fixed coordinates at dimensions [1] and [2].
+    # Nodes should be arranged in such a way, that points
+    # with varying coord at dimenstion [0] come first and
+    # fixed coordinates at dimensions [1] and [2] follow.
     # However in h5-file, nodes arranged in a way, that
-    # first come nodes with varying coord at dim [2]
-    # and fixed coords at [1] and [0].
+    # nodes with varying coord at dim [2] come first 
+    # and fixed coords at [1] and [0] follow.
     # Therefore spat_mesh_struct_grid.XColumn is set to Z
     # impossible to explain clearly. 
     spat_mesh_struct_grid.XColumn = 'Z'

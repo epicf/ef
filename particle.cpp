@@ -17,6 +17,21 @@ void Particle::update_position( double dt )
     position = vec3d_add( position, pos_shift );
 }
 
+
+Vec3d Particle::field_at_point( Vec3d &point )
+{
+    Vec3d dist = vec3d_sub( point, position );
+    double dist_len = vec3d_length( dist );
+    if ( dist_len == 0 ){
+	std::cout << "0 distance while computing Particle::field_at_point. Aborting."
+		  << std::endl;
+	exit( EXIT_FAILURE );
+    }
+    double dist_len_cube = dist_len * dist_len * dist_len;
+    return vec3d_times_scalar( dist, charge / dist_len_cube );
+}
+
+
 void Particle::print()
 {
     std::cout.setf( std::ios::scientific );

@@ -4,12 +4,10 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include <cmath>
 #include <boost/ptr_container/ptr_vector.hpp>
-#include <petscksp.h>
-#include <mpi.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
-
 #include "config.h"
 #include "spatial_mesh.h"
 #include "node_reference.h"
@@ -23,27 +21,22 @@ public:
     double potential;
     int total_absorbed_particles;
     double total_absorbed_charge;
-    int absorbed_particles_current_timestep_current_proc;
-    double absorbed_charge_current_timestep_current_proc;
+    //int absorbed_particles_current_timestep_current_proc;
+    //double absorbed_charge_current_timestep_current_proc;
 public:
     std::vector<Node_reference> inner_nodes;
+    // todo: delete
     std::vector<Node_reference> inner_nodes_not_at_domain_edge;
     std::vector<Node_reference> near_boundary_nodes;
     std::vector<Node_reference> near_boundary_nodes_not_at_domain_edge;
-    // possible todo: add_boundary_nodes
-    // Approx solution and RHS inside region;
-    // Should be used in MatZeroRows call, but it seems, it has no effect
-    Vec phi_inside_region, rhs_inside_region;
 public:
-    Inner_region(
-	Config &conf,
-	Inner_region_config_part &inner_region_conf );
+    Inner_region( Config &conf,	Inner_region_config_part &inner_region_conf );
+    Inner_region( hid_t h5_inner_region_group_id );
     virtual ~Inner_region() {};
     virtual void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
 	std::cout << "potential = " << potential << std::endl;
     }
-    void sync_absorbed_charge_and_particles_across_proc();
     virtual bool check_if_point_inside( double x, double y, double z ) = 0;
     bool check_if_particle_inside( Particle &p );
     bool check_if_particle_inside_and_count_charge( Particle &p );
@@ -75,6 +68,8 @@ private:
 	Inner_region_config_part &inner_region_conf );
     virtual void get_values_from_config(
 	Inner_region_config_part &inner_region_conf );
+    virtual void get_values_from_h5(
+	hid_t h5_inner_region_group_id );
 };
 
 
@@ -89,6 +84,8 @@ public:
 public:
     Inner_region_box( Config &conf,
 		      Inner_region_box_config_part &inner_region_conf,
+		      Spatial_mesh &spat_mesh );
+    Inner_region_box( hid_t h5_inner_region_box_group_id,
 		      Spatial_mesh &spat_mesh );
     virtual ~Inner_region_box() {};
     void print() {
@@ -107,7 +104,9 @@ private:
 	Config &conf,
 	Inner_region_box_config_part &inner_region_box_conf );
     virtual void get_values_from_config(
-	Inner_region_box_config_part &inner_region_box_conf );    
+	Inner_region_box_config_part &inner_region_box_conf );
+    virtual void get_values_from_h5(
+        hid_t h5_inner_region_box_group_id );
     virtual void write_hdf5_region_specific_parameters(
 	hid_t current_region_group_id );
 };
@@ -124,6 +123,8 @@ public:
 	Config &conf,
 	Inner_region_sphere_config_part &inner_region_conf,
 	Spatial_mesh &spat_mesh );
+    Inner_region_sphere( hid_t h5_inner_region_group_id,
+			 Spatial_mesh &spat_mesh );
     virtual ~Inner_region_sphere() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -140,6 +141,8 @@ private:
 	Inner_region_sphere_config_part &inner_region_sphere_conf );
     virtual void get_values_from_config(
 	Inner_region_sphere_config_part &inner_region_sphere_conf );
+    virtual void get_values_from_h5(
+        hid_t h5_inner_region_sphere_group_id );
     virtual void write_hdf5_region_specific_parameters(
 	hid_t current_region_group_id );
 };
@@ -159,6 +162,8 @@ public:
 	Config &conf,
 	Inner_region_cylinder_config_part &inner_region_conf,
 	Spatial_mesh &spat_mesh );
+    Inner_region_cylinder( hid_t h5_inner_region_group_id,
+			   Spatial_mesh &spat_mesh );
     virtual ~Inner_region_cylinder() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -179,6 +184,8 @@ private:
 	Inner_region_cylinder_config_part &inner_region_cylinder_conf );
     virtual void get_values_from_config(
 	Inner_region_cylinder_config_part &inner_region_cylinder_conf );
+    virtual void get_values_from_h5(
+        hid_t h5_inner_region_cylinder_group_id );
     virtual void write_hdf5_region_specific_parameters(
 	hid_t current_region_group_id );
 };
@@ -199,6 +206,8 @@ public:
 	Config &conf,
 	Inner_region_tube_config_part &inner_region_conf,
 	Spatial_mesh &spat_mesh );
+    Inner_region_tube( hid_t h5_inner_region_group_id,
+		       Spatial_mesh &spat_mesh );
     virtual ~Inner_region_tube() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -219,10 +228,108 @@ private:
 	Inner_region_tube_config_part &inner_region_tube_conf );
     virtual void get_values_from_config(
 	Inner_region_tube_config_part &inner_region_tube_conf );
+    virtual void get_values_from_h5(
+        hid_t h5_inner_region_tube_group_id );
     virtual void write_hdf5_region_specific_parameters(
 	hid_t current_region_group_id );
 };
 
+
+class Inner_region_tube_along_z_segment : public Inner_region{
+public:
+    double axis_x;
+    double axis_y;
+    double axis_start_z;
+    double axis_end_z;
+    double inner_radius;
+    double outer_radius;
+    double start_angle_deg;
+    double end_angle_deg;
+public:
+    Inner_region_tube_along_z_segment(
+	Config &conf,
+	Inner_region_tube_along_z_segment_config_part &inner_region_conf,
+	Spatial_mesh &spat_mesh );
+    Inner_region_tube_along_z_segment( hid_t h5_inner_region_group_id,
+				       Spatial_mesh &spat_mesh );
+    virtual ~Inner_region_tube_along_z_segment() {};
+    void print() {
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "axis_x = " << axis_x << std::endl;
+	std::cout << "axis_y = " << axis_y << std::endl;
+	std::cout << "axis_start_z = " << axis_start_z << std::endl;
+	std::cout << "axis_end_z = " << axis_end_z << std::endl;
+	std::cout << "inner_radius = " << inner_radius << std::endl;
+	std::cout << "outer_radius = " << outer_radius << std::endl;
+	std::cout << "start_angle_deg = " << start_angle_deg << std::endl;
+	std::cout << "end_angle_deg = " << end_angle_deg << std::endl;
+    }
+    virtual bool check_if_point_inside( double x, double y, double z );
+private:
+    virtual void check_correctness_of_related_config_fields(
+	Config &conf,
+	Inner_region_tube_along_z_segment_config_part
+	&inner_region_tube_along_z_segment_conf );
+    virtual void get_values_from_config(
+	Inner_region_tube_along_z_segment_config_part
+	&inner_region_tube_along_z_segment_conf );
+    virtual void get_values_from_h5(
+        hid_t h5_inner_region_tube_along_z_segment_group_id );
+    virtual void write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id );
+};
+
+class Inner_region_cone_along_z : public Inner_region{
+public:
+    double axis_x;
+    double axis_y;
+    double axis_start_z;
+    double axis_end_z;
+    double start_inner_radius;
+    double start_outer_radius;
+    double end_inner_radius;
+    double end_outer_radius;
+public:
+    Inner_region_cone_along_z(
+	Config &conf,
+	Inner_region_cone_along_z_config_part &inner_region_conf,
+	Spatial_mesh &spat_mesh );
+    Inner_region_cone_along_z( hid_t h5_inner_region_group_id,
+			       Spatial_mesh &spat_mesh );
+    virtual ~Inner_region_cone_along_z() {};
+    void print() {
+	std::cout << "Inner region: name = " << name << std::endl;
+	std::cout << "potential = " << potential << std::endl;
+	std::cout << "axis_x = " << axis_x << std::endl;
+	std::cout << "axis_y = " << axis_y << std::endl;
+	std::cout << "axis_start_z = " << axis_start_z << std::endl;
+	std::cout << "axis_end_z = " << axis_end_z << std::endl;
+	std::cout << "start_inner_radius = "
+		  << start_inner_radius << std::endl;
+	std::cout << "start_outer_radius = "
+		  << start_outer_radius << std::endl;
+	std::cout << "end_inner_radius = "
+		  << end_inner_radius << std::endl;
+	std::cout << "end_outer_radius = "
+		  << end_outer_radius << std::endl;
+    }
+    virtual bool check_if_point_inside( double x, double y, double z );
+    bool point_inside_cone( double axis_x, double axis_y,
+			    double axis_start_z, double axis_end_z,
+			    double r_start, double r_end, 
+			    double x, double y, double z );
+private:
+    virtual void check_correctness_of_related_config_fields(
+	Config &conf,
+	Inner_region_cone_along_z_config_part &inner_region_cone_along_z_conf );
+    virtual void get_values_from_config(
+	Inner_region_cone_along_z_config_part &inner_region_cone_along_z_conf );
+    virtual void get_values_from_h5(
+        hid_t h5_inner_region_cone_along_z_group_id );
+    virtual void write_hdf5_region_specific_parameters(
+	hid_t current_region_group_id );
+};
 
 
 class Inner_regions_manager{
@@ -252,13 +359,98 @@ public:
 		regions.push_back( new Inner_region_tube( conf,
 							  *tube_conf,
 							  spat_mesh ) );
+	    } else if( Inner_region_tube_along_z_segment_config_part
+		       *tube_along_z_segment_conf =
+		       dynamic_cast<Inner_region_tube_along_z_segment_config_part*>( &inner_region_conf ) ){
+		regions.push_back( new Inner_region_tube_along_z_segment(
+				       conf,
+				       *tube_along_z_segment_conf,
+				       spat_mesh ) );
+	    } else if( Inner_region_cone_along_z_config_part
+		       *cone_along_z_conf =
+		       dynamic_cast<Inner_region_cone_along_z_config_part*>( &inner_region_conf ) ){
+		regions.push_back( new Inner_region_cone_along_z(
+				       conf,
+				       *cone_along_z_conf,
+				       spat_mesh ) );
 	    } else {
-		std::cout << "In Inner_regions_manager constructor: "
-			  << "Unknown config type. Aborting"
+		std::cout << "In Inner_regions_manager constructor-from-conf: "
+			  << "Unknown inner_region type. Aborting"
 			  << std::endl;
 		exit( EXIT_FAILURE );
 	    }
 	}
+    }
+
+    Inner_regions_manager( hid_t h5_inner_region_group,
+			   Spatial_mesh &spat_mesh )
+    {	
+	hsize_t nobj;
+	ssize_t len;
+	herr_t err;
+	int otype;
+	size_t MAX_NAME = 1024;
+	char memb_name_cstr[MAX_NAME];
+	hid_t current_ir_grpid;
+	err = H5Gget_num_objs(h5_inner_region_group, &nobj);
+
+	for( hsize_t i = 0; i < nobj; i++ ){
+	    len = H5Gget_objname_by_idx(h5_inner_region_group, i, 
+					memb_name_cstr, MAX_NAME );
+	    hdf5_status_check( len );
+	    otype = H5Gget_objtype_by_idx( h5_inner_region_group, i );
+	    if ( otype == H5G_GROUP ) {
+		current_ir_grpid = H5Gopen( h5_inner_region_group,
+					    memb_name_cstr, H5P_DEFAULT );
+		parse_hdf5_inner_reg( current_ir_grpid, spat_mesh );
+		err = H5Gclose( current_ir_grpid );
+		hdf5_status_check( err );
+	    }		
+	}
+	
+	// To iterate over subgroups, there is H5Giterate function.
+	// However, it needs a callback function as one of it's arguments.
+	// H5Giterate( h5_inner_region_group, "./", NULL,
+	//               parse_hdf5_inner_reg, &spat_mesh );	
+	// It is difficult to pass a C++ method as a callback.
+	// See: https://isocpp.org/wiki/faq/pointers-to-members#memfnptr-vs-fnptr
+	// Therefore, iteration is manual.
+    }
+    
+    void parse_hdf5_inner_reg( hid_t current_ir_grpid,
+			       Spatial_mesh &spat_mesh )
+    {
+	herr_t status;
+	char object_type_cstr[50];
+	status = H5LTget_attribute_string(
+	    current_ir_grpid, "./", "object_type", object_type_cstr );
+	hdf5_status_check( status );
+
+	std::string obj_type( object_type_cstr );
+	if( obj_type == "box" ){
+	    regions.push_back( new Inner_region_box( current_ir_grpid,
+						     spat_mesh ) );
+	} else if ( obj_type == "sphere" ) {
+	    regions.push_back( new Inner_region_sphere( current_ir_grpid,
+							spat_mesh ) );
+	} else if ( obj_type == "cylinder" ) {
+	    regions.push_back( new Inner_region_cylinder( current_ir_grpid,
+							  spat_mesh ) );
+	} else if ( obj_type == "tube" ) {
+	    regions.push_back( new Inner_region_tube( current_ir_grpid,
+						      spat_mesh ) );
+	} else if ( obj_type == "tube_along_z_segment" ) {
+	    regions.push_back( new Inner_region_tube_along_z_segment(
+				   current_ir_grpid, spat_mesh ) );
+	} else if ( obj_type == "cone_along_z" ) {
+	    regions.push_back( new Inner_region_cone_along_z(
+				   current_ir_grpid, spat_mesh ) );
+	} else {
+	    std::cout << "In Inner_regions_manager constructor-from-h5: "
+		      << "Unknown inner_region type. Aborting"
+		      << std::endl;
+	    exit( EXIT_FAILURE );
+	}	
     }
 
     virtual ~Inner_regions_manager() {};    
@@ -279,12 +471,6 @@ public:
 		return true;
 	}
 	return false;
-    }
-
-    void sync_absorbed_charge_and_particles_across_proc()
-    {
-	for( auto &region : regions )
-	    region.sync_absorbed_charge_and_particles_across_proc();
     }
     
     void print( )
@@ -308,7 +494,7 @@ public:
 	hid_t group_id;
 	herr_t status;
 	int single_element = 1;
-	std::string hdf5_groupname = "/Inner_regions";
+	std::string hdf5_groupname = "/InnerRegions";
 	int n_of_regions = regions.size();
 	group_id = H5Gcreate2(
 	    hdf5_file_id, hdf5_groupname.c_str(),
@@ -331,7 +517,7 @@ public:
     {
 	if( status < 0 ){
 	    std::cout << "Something went wrong while "
-		      << "writing Inner_regions group. Aborting."
+		      << "writing or reading Inner_regions group. Aborting."
 		      << std::endl;
 	    exit( EXIT_FAILURE );
 	}

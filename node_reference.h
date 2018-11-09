@@ -24,9 +24,9 @@ public:
 	std::cout << "Node = " << x << " " << y << " " << z << std::endl;
     };
     bool at_domain_edge( int nx, int ny, int nz ){
-	return ( x <= 0 || x >= nx - 1 ||
-		 y <= 0 || y >= ny - 1 ||
-		 z <= 0 || z >= nz - 1 );
+        return ( x <= 0 || x >= nx - 1 ||
+                 y <= 0 || y >= ny - 1 ||
+                 z <= 0 || z >= nz - 1 );
     };
     bool left_from( Node_reference other_node ){
 	return x-1 == other_node.x;

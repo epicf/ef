@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <string>
-#include <mpi.h>
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "config.h"
@@ -11,9 +10,10 @@
 class Particle_interaction_model {
   public:
     std::string particle_interaction_model;
-    bool noninteracting, pic;
+    bool noninteracting, binary, pic;
   public:
     Particle_interaction_model( Config &conf );
+    Particle_interaction_model( hid_t h5_particle_interaction_model_group );
     void print();
     void write_to_file( hid_t hdf5_file_id );
   private:
