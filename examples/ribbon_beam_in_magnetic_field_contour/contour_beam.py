@@ -42,7 +42,7 @@ def get_source_geometry( h5file ):
     start_x = h5["/ParticleSources/cathode_emitter"].attrs["box_x_left"][0]
     end_x = h5["/ParticleSources/cathode_emitter"].attrs["box_x_right"][0]
     length_of_cathode = start_y-end_y
-    half_width_of_cathode = (start_x-end_x) / 2
+    half_width_of_cathode = np.abs((start_x-end_x) / 2)
     center_of_beam = (start_x+end_x) / 2    
     return ( length_of_cathode * SI_conv_cm_to_m, 
             half_width_of_cathode * SI_conv_cm_to_m, 
@@ -50,7 +50,7 @@ def get_source_geometry( h5file ):
     
 def get_zlim( h5file ):
     start_z = (h5["/ParticleSources/cathode_emitter"].attrs["box_z_near"][0]+h5["/ParticleSources/cathode_emitter"].attrs["box_z_far"][0])/2
-    end_z = h5["/Spatial_mesh/"].attrs["z_volume_size"][0]
+    end_z = h5["/SpatialMesh/"].attrs["z_volume_size"][0]
     return( start_z * SI_conv_cm_to_m, 
            end_z * SI_conv_cm_to_m)
 
@@ -96,7 +96,6 @@ def contour( z_position , x0_const, R_const, lambda_const, phi_const):
 def contour_2(z_position, x0_const, current_dens, mass, charge, velocity, B_field):
     omega_const = charge * B_field / mass
     c_const = current_dens * mass / (2*eps0*charge*velocity*B_field**2)
-    c_const = -c_const # todo: remove
     angle_const=np.cos(omega_const*z_position/velocity)
     contour = x0_const-c_const+c_const*angle_const
     return contour
