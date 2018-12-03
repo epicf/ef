@@ -36,7 +36,7 @@ def get_source_geometry( h5file ):
     start_x = h5file["/ParticleSources/cathode_emitter"].attrs["box_x_left"][0]
     end_x = h5file["/ParticleSources/cathode_emitter"].attrs["box_x_right"][0]
     length_of_cathode = start_y - end_y
-    half_width_of_cathode = ( end_x - start_x ) / 2
+    half_width_of_cathode = np.abs(( end_x - start_x ) / 2)
     center_of_beam = ( start_x + end_x ) / 2    
     return ( length_of_cathode * SI_conv_cm_to_m, 
              half_width_of_cathode * SI_conv_cm_to_m, 
