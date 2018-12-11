@@ -7,19 +7,6 @@
 //#include "hdf5_hl.h"
 class SpatialMeshCu {
 public:
-	__constant__ double3 d_volume_size;
-	__constant__ double3 d_cell_size;
-	__constant__ dim3 d_n_nodes;
-	
-	__constant__ double d_up_border;
-	__constant__ double d_bot_border;
-	
-	__constant__ double d_left_border;
-	__constant__ double d_right_border;
-
-	__constant__ double d_far_border;
-	__constant__ double d_near_border;
-
 
 	dim3 n_nodes;
 	double3 *dev_node_coordinates;
@@ -28,10 +15,6 @@ public:
 	double3 *dev_electric_field;
 
 
-	//boost::multi_array<Vec3d, 3> node_coordinates;
-	//boost::multi_array<double, 3> charge_density;
-	//boost::multi_array<double, 3> potential;
-	//boost::multi_array<Vec3d, 3> electric_field;
 public:
 	SpatialMeshCu(Config &conf);
 
@@ -77,10 +60,4 @@ private:
 
 	dim3 GetThreads();
 	dim3 GetBlocks(dim3 nThreads);
-
-	__global__ void fill_coordinates(double3* node_coordinates);
-	__device__ int GetIdxVolume();
-	__global__ void SetBoundaryConditionOrthoX(double* potential);
-	__global__ void SetBoundaryConditionOrthoY(double* potential);
-	__global__ void SetBoundaryConditionOrthoZ(double* potential);
 };
