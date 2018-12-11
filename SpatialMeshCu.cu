@@ -1,6 +1,103 @@
 #include "SpatialMeshCu.cuh"
 #include "device_launch_parameters.h"
 
+	__constant__ double3 d_volume_size[1];
+	__constant__ double3 d_cell_size[1];
+	__constant__ int3 d_n_nodes[1];
+	
+	__constant__ double d_up_border[1];
+	__constant__ double d_bot_border[1];
+	
+	__constant__ double d_left_border[1];
+	__constant__ double d_right_border[1];
+
+	__constant__ double d_far_border[1];
+	__constant__ double d_near_border[1];
+
+
+
+__device__ int GetIdxVolume() {
+	//int xStepthread = 1;
+	int xStepBlock = blockDim.x;
+
+	int yStepThread = d_n_nodes[0].x;
+	int yStepBlock = yStepThread * blockDim.y;
+
+	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
+	int zStepBlock = zStepThread * blockDim.z;
+
+	return threadIdx.x + blockIdx.x*xStepBlock +
+		threadIdx.y*yStepThread + blockIdx.y*yStepBlock +
+		threadIdx.z*zStepThread + blockIdx.z*zStepBlock;
+}
+
+__global__ void fill_coordinates(double3* node_coordinates) {
+
+	int idx = GetIdxVolume();
+
+	int x = threadIdx.x + blockIdx.x*blockDim.x;
+	int y = threadIdx.y + blockIdx.y*blockDim.y;
+	int z = threadIdx.z + blockIdx.z*blockDim.z;
+	node_coordinates[idx] = make_double3(d_volume_size[0].x * x, d_volume_size[0].y * y, d_volume_size[0].z * z);//(double).,
+}
+
+
+
+
+__global__ void SetBoundaryConditionOrthoX(double* potential) {
+	int xIdx = blockIdx.z*(d_n_nodes[0].x - 1); //0 or nodes.x-1
+
+
+	int yStepThread = d_n_nodes[0].x;//x=
+	int yStepBlock = d_n_nodes[0].x * blockDim.x;
+
+	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
+	int zStepBlock = zStepThread * blockDim.y;
+
+	int idx = xIdx +
+		threadIdx.x*yStepThread + blockIdx.x*yStepBlock +
+		threadIdx.y*zStepThread + blockIdx.y*zStepBlock;
+
+	potential[idx] = ((double)(1 - blockIdx.z)) * d_left_border[0] + (blockIdx.z*d_right_border[0]);
+
+}
+
+__global__ void SetBoundaryConditionOrthoY(double* potential) {
+	int yIdx = blockIdx.z * d_n_nodes[0].x*(d_n_nodes[0].y - 1); //0 or nodes.x-1
+
+
+	int xStepThread = 1;//x=
+	int xStepBlock = blockDim.x;
+
+	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
+	int zStepBlock = zStepThread * blockDim.y;
+
+	int idx = yIdx +
+		threadIdx.x*xStepThread + blockIdx.x*xStepBlock +
+		threadIdx.y*zStepThread + blockIdx.y*zStepBlock;
+
+	potential[idx] = ((double)(1 - blockIdx.z)) * d_bot_border[0] + (blockIdx.z * d_up_border[0]);
+
+}
+
+__global__ void SetBoundaryConditionOrthoZ(double* potential) {
+	int zIdx = blockIdx.z * (d_n_nodes[0].x * d_n_nodes[0].y * (d_n_nodes[0].z - 1)); //0 or nodes.x-1
+
+
+	int xStepThread = 1;//x=
+	int xStepBlock = blockDim.x;
+
+	int yStepThread = d_n_nodes[0].x;
+	int yStepBlock = yStepThread * blockDim.y;
+
+	int idx = zIdx +
+		threadIdx.x*xStepThread + blockIdx.x*xStepBlock +
+		threadIdx.y*yStepThread + blockIdx.y*yStepBlock;
+
+	potential[idx] = ((double)(1 - blockIdx.z)) * d_near_border[0] + (blockIdx.z * d_far_border[0]);
+
+}
+
 SpatialMeshCu::SpatialMeshCu(Config &conf)
 {
 	check_correctness_of_related_config_fields(conf);
@@ -70,26 +167,26 @@ void SpatialMeshCu::init_z_grid(Config &conf)
 
 void SpatialMeshCu::init_constants(Config & conf)
 {
-	n_nodes = dim3(
+	n_nodes = make_int3(
 		ceil(conf.mesh_config_part.grid_x_size / conf.mesh_config_part.grid_x_step) + 1,
 		ceil(conf.mesh_config_part.grid_y_size / conf.mesh_config_part.grid_y_step) + 1,
 		ceil(conf.mesh_config_part.grid_z_size / conf.mesh_config_part.grid_z_step) + 1
 	);
-	cudaMemcpyToSymbol((void*)&d_n_nodes, (void*)&n_nodes,sizeof(double3),cudaMemcpyHostToDevice);
+	cudaMemcpyToSymbol(d_n_nodes, (void*)&n_nodes,sizeof(dim3),cudaMemcpyHostToDevice);
 
 	double3 volume_size = make_double3(
 		conf.mesh_config_part.grid_x_size,
 		conf.mesh_config_part.grid_y_size,
 		conf.mesh_config_part.grid_z_size
 	);
-	cudaMemcpyToSymbol((void*)& d_volume_size, (void*)& volume_size, sizeof(double3), cudaMemcpyHostToDevice);
+	cudaMemcpyToSymbol(d_volume_size, (void*)& volume_size, sizeof(double3), cudaMemcpyHostToDevice);
 
-	double3 cell_size = make_double3(
+	cell_size = make_double3(
 		volume_size.x / (n_nodes.x - 1),
 		volume_size.y / (n_nodes.y - 1),
 		volume_size.z / (n_nodes.z - 1)
 	);
-	cudaMemcpyToSymbol((void*)& d_volume_size, (void*)& volume_size, sizeof(double3), cudaMemcpyHostToDevice);
+	cudaMemcpyToSymbol(d_volume_size, (void*)& volume_size, sizeof(double3), cudaMemcpyHostToDevice);
 
 	///TODO Border constants init
 }
@@ -122,20 +219,12 @@ void SpatialMeshCu::fill_node_coordinates()
 	dim3 threads = GetThreads();
 	dim3 blocks = GetBlocks(threads);
 
-	<<<threads, blocks >>> fill_coordinates(dev_node_coordinates);
+	 fill_coordinates<<<threads, blocks>>>(dev_node_coordinates);
 }
 
   
 
-__global__ void SpatialMeshCu::fill_coordinates(double3* node_coordinates) {
 
-	int idx = GetIdxVolume();
-
-	int x = threadIdx.x + blockIdx.x*blockDim.x;
-	int y = threadIdx.y + blockIdx.y*blockDim.y;
-	int z = threadIdx.z + blockIdx.z*blockDim.z;
-	node_coordinates[idx] = make_double3(d_volume_size.x * x, d_volume_size.y * y, d_volume_size.z * z);//(double).,
-}
 void SpatialMeshCu::clear_old_density_values()
 {
 	//std::fill(charge_density.data(),
@@ -164,13 +253,13 @@ void SpatialMeshCu::set_boundary_conditions(const double phi_left, const double 
 	dim3 blockSize = dim3(16, 16, 2);
 
 	dim3 gridSize = dim3(n_nodes.y / 16, n_nodes.z / 16, 1);
-	<<<blockSize, gridSize >>> SetBoundaryConditionOrthoX(dev_potential);
+	 SetBoundaryConditionOrthoX <<<blockSize, gridSize >>> (dev_potential);
 
 	gridSize = dim3(n_nodes.x / 16, n_nodes.z / 16, 2);
-	<<<blockSize, gridSize >>> SetBoundaryConditionOrthoY(dev_potential);
+	 SetBoundaryConditionOrthoY <<<blockSize, gridSize >>> (dev_potential);
 
 	gridSize = dim3(n_nodes.x / 16, n_nodes.y / 16, 2);
-	<<<blockSize, gridSize >>> SetBoundaryConditionOrthoZ(dev_potential);
+	 SetBoundaryConditionOrthoZ <<<blockSize, gridSize >>> (dev_potential);
 		//for (int j = 0; j < ny; j++) {
 		//	for (int k = 0; k < nz; k++) {
 		//		potential[0][j][k] = phi_right;
@@ -307,133 +396,46 @@ void SpatialMeshCu::check_and_exit_if_not(const bool &should_be, const std::stri
 
 double SpatialMeshCu::node_number_to_coordinate_x(int i)
 {
-	//if (i >= 0 && i < x_n_nodes) {
-	//	return i * x_cell_size;
-	//}
-	//else {
-	//	printf("invalid node number i=%d at node_number_to_coordinate_x\n", i);
-	//	exit(EXIT_FAILURE);
-	//}
+	if (i >= 0 && i < n_nodes.x) {
+		return i * cell_size.x;
+	}
+	else {
+		printf("invalid node number i=%d at node_number_to_coordinate_x\n", i);
+		exit(EXIT_FAILURE);
+	}
+	return 0;
 }
 
 double SpatialMeshCu::node_number_to_coordinate_y(int j)
 {
-	//if (j >= 0 && j < y_n_nodes) {
-	//	return j * y_cell_size;
-	//}
-	//else {
-	//	printf("invalid node number j=%d at node_number_to_coordinate_y\n", j);
-	//	exit(EXIT_FAILURE);
-	//}
+	if (j >= 0 && j < n_nodes.y) {
+		return j * cell_size.y;
+	}
+	else {
+		printf("invalid node number j=%d at node_number_to_coordinate_y\n", j);
+		exit(EXIT_FAILURE);
+	}
+	return 0;
 }
 
 double SpatialMeshCu::node_number_to_coordinate_z(int k)
 {
-	//if (k >= 0 && k < z_n_nodes) {
-	//	return k * z_cell_size;
-	//}
-	//else {
-	//	printf("invalid node number k=%d at node_number_to_coordinate_z\n", k);
-	//	exit(EXIT_FAILURE);
-	//}
+	if (k >= 0 && k < n_nodes.z) {
+		return k * cell_size.z;
+	}
+	else {
+		printf("invalid node number k=%d at node_number_to_coordinate_z\n", k);
+		exit(EXIT_FAILURE);
+	}
+	return 0;
 }
-
 dim3 SpatialMeshCu::GetThreads() {
-	return dim3(16, 16, d_n_nodes.z / 16);
+	return dim3(16, 16, n_nodes.z / 16);
 }
 
 dim3 SpatialMeshCu::GetBlocks(dim3 nThreads) {
-	return dim3(d_n_nodes.x / nThreads.x, d_n_nodes.y / nThreads.y, 16);
+	return dim3(n_nodes.x / nThreads.x, n_nodes.y / nThreads.y, 16);
 }
-
-__device__ int SpatialMeshCu::GetIdxVolume() {
-	//int xStepthread = 1;
-	int xStepBlock = blockDim.x;
-
-	int yStepThread = d_n_nodes.x;
-	int yStepBlock = yStepThread * blockDim.y;
-
-	int zStepThread = d_n_nodes.x * d_n_nodes.y;
-	int zStepBlock = zStepThread * blockDim.z;
-
-	return threadIdx.x + blockIdx.x*xStepBlock +
-		threadIdx.y*yStepThread + blockIdx.y*yStepBlock +
-		threadIdx.z*zStepThread + blockIdx.z*zStepBlock;
-}
-
-__global__ void SpatialMeshCu::SetBoundaryConditionOrthoX(double* potential) {
-	int xIdx = blockIdx.z*(d_n_nodes.x - 1); //0 or nodes.x-1
-
-
-	int yStepThread = d_n_nodes.x;//x=
-	int yStepBlock = d_n_nodes.x * blockDim.x;
-
-	int zStepThread = d_n_nodes.x * d_n_nodes.y;
-	int zStepBlock = zStepThread * blockDim.y;
-
-	int idx = xIdx +
-		threadIdx.x*yStepThread + blockIdx.x*yStepBlock +
-		threadIdx.y*zStepThread + blockIdx.y*zStepBlock;
-
-	potential[idx] = ((double)(1 - blockIdx.z))*d_bot_border + (blockIdx.z*d_up_border);
-
-}
-
-//верхн€€ и нижн€€ граница устанавливаютс€ одним вызовом
-__global__ void SpatialMeshCu::SetBoundaryConditionOrthoX(double* potential) {
-	int xIdx = blockIdx.z*(d_n_nodes.x - 1); //0 or nodes.x-1
-
-
-	int yStepThread = d_n_nodes.x;//x=
-	int yStepBlock = d_n_nodes.x * blockDim.x;
-
-	int zStepThread = d_n_nodes.x * d_n_nodes.y;
-	int zStepBlock = zStepThread * blockDim.y;
-
-	int idx = xIdx +
-		threadIdx.x*yStepThread + blockIdx.x*yStepBlock +
-		threadIdx.y*zStepThread + blockIdx.y*zStepBlock;
-	//используетс€ дл€ замены if конструкции
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_left_border + (blockIdx.z*d_right_border);
-
-}
-
-__global__ void SpatialMeshCu::SetBoundaryConditionOrthoY(double* potential) {
-	int yIdx = blockIdx.z * d_n_nodes.x*(d_n_nodes.y - 1); //0 or nodes.x-1
-
-
-	int xStepThread = 1;//x=
-	int xStepBlock = blockDim.x;
-
-	int zStepThread = d_n_nodes.x * d_n_nodes.y;
-	int zStepBlock = zStepThread * blockDim.y;
-
-	int idx = yIdx +
-		threadIdx.x*xStepThread + blockIdx.x*xStepBlock +
-		threadIdx.y*zStepThread + blockIdx.y*zStepBlock;
-	//используетс€ дл€ замены if конструкции
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_bot_border + (blockIdx.z * d_up_border);
-
-}
-
-__global__ void SpatialMeshCu::SetBoundaryConditionOrthoZ(double* potential) {
-	int zIdx = blockIdx.z * (d_n_nodes.x * d_n_nodes.y * (d_n_nodes.z - 1)); //0 or nodes.x-1
-
-
-	int xStepThread = 1;//x=
-	int xStepBlock = blockDim.x;
-
-	int yStepThread = d_n_nodes.x;
-	int yStepBlock = yStepThread * blockDim.y;
-
-	int idx = zIdx +
-		threadIdx.x*xStepThread + blockIdx.x*xStepBlock +
-		threadIdx.y*yStepThread + blockIdx.y*yStepBlock;
-	//используетс€ дл€ замены if конструкции
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_near_border + (blockIdx.z * d_far_border);
-
-}
-
 SpatialMeshCu::~SpatialMeshCu() {
 	cudaFree((void*)dev_node_coordinates);
 	cudaFree((void*)dev_potential);
