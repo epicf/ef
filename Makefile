@@ -39,7 +39,7 @@ SUBDIRS=doc
 $(EXECUTABLE): $(OBJECTS) $(TINYEXPR) $(CUOBJECTS)
 	$(CC) $(LDFLAGS) $(OBJECTS) $(TINYEXPR_OBJ) $(CUOBJECTS) -o $@ $(LIBS) $(CUDALIBS)
 $(CUOBJECTS):%.o:%.cu $(CUHEADERS)
-	$(NVCC) $(CUDAFLAGS) -c $< -o $@
+	$(NVCC) $(CUDAFLAGS) -I/usr/local/hdf5/include -c $< -o $@
 $(OBJECTS):%.o:%.cpp $(CPPHEADERS)
 	$(CC) $(CFLAGS) -c $< -o $@
 
