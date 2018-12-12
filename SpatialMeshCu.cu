@@ -93,9 +93,6 @@ __global__ void SetBoundaryConditionOrthoZ(double* potential) {
 
 SpatialMeshCu::SpatialMeshCu(Config &conf) {
 	check_correctness_of_related_config_fields(conf);
-	init_x_grid(conf);
-	init_y_grid(conf);
-	init_z_grid(conf);
 	init_constants(conf);
 	allocate_ongrid_values();
 	fill_node_coordinates();
@@ -192,48 +189,6 @@ void SpatialMeshCu::check_correctness_of_related_config_fields(Config &conf) {
 	grid_y_step_gt_zero_le_grid_y_size(conf);
 	grid_z_size_gt_zero(conf);
 	grid_z_step_gt_zero_le_grid_z_size(conf);
-}
-
-void SpatialMeshCu::init_x_grid(Config &conf) {
-	//x_volume_size = conf.mesh_config_part.grid_x_size;
-	//x_n_nodes =
-	//	ceil(conf.mesh_config_part.grid_x_size / conf.mesh_config_part.grid_x_step) + 1;
-	//x_cell_size = x_volume_size / (x_n_nodes - 1);
-	//if (x_cell_size != conf.mesh_config_part.grid_x_step) {
-	//	std::cout.precision(3);
-	//	std::cout << "X_step was shrinked to " << x_cell_size
-	//		<< " from " << conf.mesh_config_part.grid_x_step
-	//		<< " to fit round number of cells" << std::endl;
-	//}
-	//return;
-}
-
-void SpatialMeshCu::init_y_grid(Config &conf) {
-	//y_volume_size = conf.mesh_config_part.grid_y_size;
-	//y_n_nodes =
-	//	ceil(conf.mesh_config_part.grid_y_size / conf.mesh_config_part.grid_y_step) + 1;
-	//y_cell_size = y_volume_size / (y_n_nodes - 1);
-	//if (y_cell_size != conf.mesh_config_part.grid_y_step) {
-	//	std::cout.precision(3);
-	//	std::cout << "Y_step was shrinked to " << y_cell_size
-	//		<< " from " << conf.mesh_config_part.grid_y_step
-	//		<< " to fit round number of cells." << std::endl;
-	//}
-	//return;
-}
-
-void SpatialMeshCu::init_z_grid(Config &conf) {
-	//z_volume_size = conf.mesh_config_part.grid_z_size;
-	//z_n_nodes =
-	//	ceil(conf.mesh_config_part.grid_z_size / conf.mesh_config_part.grid_z_step) + 1;
-	//z_cell_size = z_volume_size / (z_n_nodes - 1);
-	//if (z_cell_size != conf.mesh_config_part.grid_z_step) {
-	//	std::cout.precision(3);
-	//	std::cout << "Z_step was shrinked to " << z_cell_size
-	//		<< " from " << conf.mesh_config_part.grid_z_step
-	//		<< " to fit round number of cells." << std::endl;
-	//}
-	//return;
 }
 
 void SpatialMeshCu::init_constants(Config & conf) {

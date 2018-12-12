@@ -32,9 +32,6 @@ public:
 private:
 	// init
 	void check_correctness_of_related_config_fields(Config &conf);
-	void init_x_grid(Config &conf);
-	void init_y_grid(Config &conf);
-	void init_z_grid(Config &conf);
 	void init_constants(Config &conf);
 	void copy_constants_to_device();
 	void allocate_ongrid_values();
