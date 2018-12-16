@@ -7,6 +7,10 @@
 #include "inner_region.h"
 #include "cuda.h"
 #include "cuda_runtime.h"
+#include <cassert>
+#include "device_launch_parameters.h"
+#include "math_functions.h"
+#include "math_constants.h"
 
 class FieldSolver {
 public:
@@ -25,7 +29,7 @@ private:
 	//boost::multi_array<double, 3> phi_current;
 	//boost::multi_array<double, 3> phi_next;
 	void allocate_next_phi();
-	void init_constants();
+	void copy_constants_to_device();
 	// Solve potential
 	void solve_poisson_eqn_Jacobi(Inner_regions_manager &inner_regions);
 	void single_Jacobi_iteration(Inner_regions_manager &inner_regions);

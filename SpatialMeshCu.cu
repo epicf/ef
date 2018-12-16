@@ -236,7 +236,7 @@ void SpatialMeshCu::copy_constants_to_device() {
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status);
 	
-	cuda_status = cudaMemcpyToSymbol(d_volume_size, (void*)&volume_size, sizeof(double3),
+	cuda_status = cudaMemcpyToSymbol(d_cell_size, (void*)&cell_size, sizeof(double3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status);
 
