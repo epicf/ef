@@ -34,10 +34,6 @@ private:
 	void set_phi_next_at_inner_regions(Inner_regions_manager &inner_regions);
 	bool iterative_Jacobi_solutions_converged();
 	void set_phi_next_as_phi_current();
-	void transfer_solution_to_spat_mesh();
-	// Eval fields from potential
-	double boundary_difference(double phi1, double phi2, double dx);
-	double central_difference(double phi1, double phi2, double dx);
 };
 
 #endif  _FIELD_SOLVER_H_

@@ -25,6 +25,10 @@ __device__ int GetIdxVolume_NoBorder() {
 		(threadIdx.z * zStepThread + blockIdx.z * zStepBlock);
 }
 
+__device__ double GradientComponent(double phi1, double phi2, double cell_side_size) {
+	return ((phi2 - phi1) / cell_side_size);
+}
+
 __global__ void SetPhiNextAsCurrent(double* d_phi_current, double* d_phi_next) {
 	int idx = GetIdxVolume_NoBorder();
 	d_phi_current[idx] = d_phi_next[idx];
@@ -70,9 +74,6 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 	d_phi_next[idx] /= denom;
 
 }
-__device__ double GradientComponent(double phi1, double phi2, double cell_side_size) {
-	return ((phi2 - phi1) / cell_side_size);
-}
 
 __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_field) {
 	int idx = GetIdxVolume_NoBorder();
@@ -116,6 +117,7 @@ __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_fiel
 	dev_el_field[idx] = e;
 
 }
+
 FieldSolver::FieldSolver(SpatialMeshCu &mesh, Inner_regions_manager &inner_regions) :mesh(mesh)
 {
 	allocate_next_phi();
@@ -129,7 +131,9 @@ void FieldSolver::allocate_next_phi()
 	cuda_status= cudaMalloc<double>(&dev_phi_next, dim);
 	
 }
+void FieldSolver::init_constants() {
 
+}
 void FieldSolver::eval_potential(Inner_regions_manager &inner_regions)
 {
 	solve_poisson_eqn_Jacobi(inner_regions);
@@ -151,7 +155,7 @@ void FieldSolver::solve_poisson_eqn_Jacobi(Inner_regions_manager &inner_regions)
 	if (iter == max_Jacobi_iterations) {
 		printf("WARING: potential evaluation did't converge after max iterations!\n");
 	}
-	//transfer_solution_to_mesh();
+	set_phi_next_as_phi_current();
 
 	//return;
 }
