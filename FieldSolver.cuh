@@ -1,15 +1,13 @@
-#ifndef _FIELD_SOLVER_H_
-#define _FIELD_SOLVER_H_
+#ifndef _FIELD_SOLVER_CUH_
+#define _FIELD_SOLVER_CUH_
 
 #include <iostream>
 #include <vector>
 #include "SpatialMeshCu.cuh"
 #include "inner_region.h"
-#include "cuda.h"
 #include "cuda_runtime.h"
 #include <cassert>
 #include "device_launch_parameters.h"
-#include "math_functions.h"
 #include "math_constants.h"
 
 class FieldSolver {
@@ -40,4 +38,4 @@ private:
 	void set_phi_next_as_phi_current();
 };
 
-#endif  _FIELD_SOLVER_H_
+#endif  /*_FIELD_SOLVER_CUH_*/

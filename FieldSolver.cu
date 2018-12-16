@@ -1,8 +1,7 @@
 #include "FieldSolver.cuh"
 
 
-#define ABS_TOLERANCE = 1.0e-5;
-#define REL_TOLERANCE = 1.0e-12;
+
 
 __constant__ double3 d_cell_size[1];
 __constant__ int3 d_n_nodes[1];
@@ -14,7 +13,7 @@ __constant__ double dev_dxdxdydydzdz[1];
 
 __constant__ int dev_end[1];
 
-__device__ int GetIdxVolume() {
+__device__ int GetIdx() {
 	//int xStepthread = 1;
 	int xStepBlock = blockDim.x;
 	int yStepThread = d_n_nodes[0].x;
@@ -31,12 +30,12 @@ __device__ double GradientComponent(double phi1, double phi2, double cell_side_s
 }
 
 __global__ void SetPhiNextAsCurrent(double* d_phi_current, double* d_phi_next) {
-	int idx = GetIdxVolume();
+	int idx = GetIdx();
 	d_phi_current[idx] = d_phi_next[idx];
 }
 
 __global__ void ComputePhiNext(const double* d_phi_current, const double* d_charge, double* d_phi_next) {
-	int idx = GetIdxVolume();
+	int idx = GetIdx();
 	int offset_Dx = 1;
 	//todo rewrite usind device n_nodes.x/y/z
 	int offset_Dy = d_n_nodes[0].x;
@@ -68,7 +67,7 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 }
 
 __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_field) {
-	int idx = GetIdxVolume();
+	int idx = GetIdx();
 
 	double3 e = make_double3(0, 0, 0);
 	//assuming true=1, false =0 
@@ -115,11 +114,14 @@ __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_fiel
 __global__ void AssertConvergence(const double* d_phi_current, const double* d_phi_next) {
 	double rel_diff;
 	double abs_diff;
-	int idx = GetIdxVolume();
+    double abs_tolerance = 1.0e-5;
+    double rel_tolerance = 1.0e-12;
+	int idx = GetIdx();
 	abs_diff = fabs(d_phi_next[idx] - d_phi_current[idx]);
 	rel_diff = abs_diff / fabs(d_phi_current[idx]);
+	bool converged =((abs_diff <= abs_tolerance) || (rel_diff <= rel_tolerance));
 
-	assert((abs_diff < ABS_TOLERANCE) || (rel_diff < REL_TOLERANCE));
+	assert(converged==true);
 }
 
 FieldSolver::FieldSolver(SpatialMeshCu &mesh, Inner_regions_manager &inner_regions) :mesh(mesh)
@@ -247,6 +249,7 @@ bool FieldSolver::iterative_Jacobi_solutions_converged()
 	}
 
 	std::cout << "Cuda error: " << cudaGetErrorString(status) << std::endl;
+	return false;
 }
 
 

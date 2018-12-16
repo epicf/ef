@@ -10,10 +10,10 @@
 #include <hdf5.h>
 #include "config.h"
 #include "time_grid.h"
-#include "spatial_mesh.h"
+#include "SpatialMeshCu.cuh"
 #include "inner_region.h"
 #include "particle_to_mesh_map.h"
-#include "field_solver.h"
+#include "FieldSolver.cuh"
 #include "External_field.h"
 #include "particle_interaction_model.h"
 #include "particle_source.h"
@@ -28,10 +28,10 @@ class Domain {
     //Domain() {};
   public:
     Time_grid time_grid;
-    Spatial_mesh spat_mesh;
+    SpatialMeshCu spat_mesh;
     Inner_regions_manager inner_regions;
     Particle_to_mesh_map particle_to_mesh_map;
-    Field_solver field_solver;    
+    FieldSolver field_solver;
     Particle_sources_manager particle_sources;
     External_fields_manager external_fields;
     Particle_interaction_model particle_interaction_model;

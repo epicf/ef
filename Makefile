@@ -11,7 +11,8 @@ WARNINGS=-Wall
 CFLAGS = ${HDF5FLAGS} -O2 -std=c++11 ${WARNINGS}
 LDFLAGS = 
 
-CUDAFLAGS= -I/usr/local/cuda10/include -std=c++11 -arch=sm_30
+CUDAINCLUDES= -I/usr/local/cuda10/include
+CUDAFLAGS= ${CUDAINCLUDES} -std=c++11 -arch=sm_30
 
 ### Libraries
 COMMONLIBS=-lm
@@ -41,7 +42,7 @@ $(EXECUTABLE): $(OBJECTS) $(TINYEXPR) $(CUOBJECTS)
 $(CUOBJECTS):%.o:%.cu $(CUHEADERS)
 	$(NVCC) $(CUDAFLAGS) -I/usr/local/hdf5/include -c $< -o $@
 $(OBJECTS):%.o:%.cpp $(CPPHEADERS)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(CUDAINCLUDES) -c $< -o $@
 
 .PHONY: allsubdirs $(SUBDIRS) $(TINYEXPR) clean cleansubdirs cleanall
 
