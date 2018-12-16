@@ -21,7 +21,7 @@ public:
 	SpatialMeshCu(Config &conf);
 	SpatialMeshCu(hid_t h5_spat_mesh_group);
 	void clear_old_density_values();
-	void set_boundary_conditions(Config &conf);
+	void set_boundary_conditions(double* d_potential);
 	bool is_potential_equal_on_boundaries();
 	void print();
 	void write_to_file(hid_t hdf5_file_id);
@@ -29,6 +29,8 @@ public:
 	double node_number_to_coordinate_x(int i);
 	double node_number_to_coordinate_y(int j);
 	double node_number_to_coordinate_z(int k);
+	dim3 GetThreads();
+	dim3 GetBlocks(dim3 nThreads);
 private:
 	// init
 	void check_correctness_of_related_config_fields(Config &conf);
@@ -36,9 +38,7 @@ private:
 	void copy_constants_to_device();
 	void allocate_ongrid_values();
 	void fill_node_coordinates();
-	void set_boundary_conditions(const double phi_left, const double phi_right,
-		const double phi_top, const double phi_bottom,
-		const double phi_near, const double phi_far);
+	
 	// print
 	void print_grid();
 	void print_ongrid_values();
@@ -56,7 +56,7 @@ private:
 	void grid_z_size_gt_zero(Config &conf);
 	void grid_z_step_gt_zero_le_grid_z_size(Config &conf);
 	void check_and_exit_if_not(const bool &should_be, const std::string &message);
+	//cuda
+	void cuda_status_check(cudaError_t status);
 
-	dim3 GetThreads();
-	dim3 GetBlocks(dim3 nThreads);
 };
