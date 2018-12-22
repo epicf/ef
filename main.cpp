@@ -17,8 +17,8 @@ void extract_filename_prefix_and_suffix_from_h5filename( std::string h5_file,
 
 int main( int argc, char *argv[] )
 {
-	cudaError_t status;
-	cudaStatus = cudaSetDevice(0);
+    cudaError_t cudaStatus;
+    cudaStatus = cudaSetDevice(0);
     std::string config_or_h5_file;
     parse_cmd_line( argc, argv, config_or_h5_file );
 
