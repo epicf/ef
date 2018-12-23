@@ -69,7 +69,7 @@ private:
 	void grid_z_step_gt_zero_le_grid_z_size(Config &conf);
 	void check_and_exit_if_not(const bool &should_be, const std::string &message);
 	//cuda
-	void cuda_status_check(cudaError_t status);
+	void cuda_status_check(cudaError_t status, std::string &sender);
 
 };
 #endif /* _SPATIAL_MESH_H_ */
