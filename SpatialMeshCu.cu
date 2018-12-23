@@ -242,7 +242,7 @@ void SpatialMeshCu::copy_constants_to_device() {
 	cuda_status = cudaMemcpyToSymbol(d_cell_size, &cell_size, sizeof(double3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
-
+	std::cout << "node, volume and cell size copied to constant device memory succesfully" << std::endl;
 	return;
 }
 
