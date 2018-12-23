@@ -39,7 +39,7 @@ __global__ void fill_coordinates(double3* node_coordinates) {
 		d_volume_size[0].y * y, d_volume_size[0].z * z); //(double).,
 }
 
-__global__ void SetBoundaryConditionOrthoX(double* potential) {
+__global__ void SetBoundaryConditionOrthoX(double* potential, double* left_bound, double* right_bound) {
 	int xIdx = blockIdx.z * (d_n_nodes[0].x - 1); //0 or nodes.x-1
 
 	int yStepThread = d_n_nodes[0].x; //x=
@@ -51,12 +51,12 @@ __global__ void SetBoundaryConditionOrthoX(double* potential) {
 	int idx = xIdx + threadIdx.x * yStepThread + blockIdx.x * yStepBlock
 		+ threadIdx.y * zStepThread + blockIdx.y * zStepBlock;
 
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_left_border[0]
-		+ (blockIdx.z * d_right_border[0]);
+	potential[idx] = ((double)(1 - blockIdx.z)) * left_bound[0]
+		+ (blockIdx.z * right_bound[0]);
 
 }
 
-__global__ void SetBoundaryConditionOrthoY(double* potential) {
+__global__ void SetBoundaryConditionOrthoY(double* potential, double* bot_bound, double* up_bound) {
 	int yIdx = blockIdx.z * d_n_nodes[0].x * (d_n_nodes[0].y - 1); //0 or nodes.x-1
 
 	int xStepThread = 1; //x=
@@ -68,12 +68,12 @@ __global__ void SetBoundaryConditionOrthoY(double* potential) {
 	int idx = yIdx + threadIdx.x * xStepThread + blockIdx.x * xStepBlock
 		+ threadIdx.y * zStepThread + blockIdx.y * zStepBlock;
 
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_bot_border[0]
-		+ (blockIdx.z * d_up_border[0]);
+	potential[idx] = ((double)(1 - blockIdx.z)) * bot_bound[0]
+		+ (blockIdx.z * up_bound[0]);
 
 }
 
-__global__ void SetBoundaryConditionOrthoZ(double* potential) {
+__global__ void SetBoundaryConditionOrthoZ(double* potential, double* near_bound, double* far_bound) {
 	int zIdx = blockIdx.z
 		* (d_n_nodes[0].x * d_n_nodes[0].y * (d_n_nodes[0].z - 1)); //0 or nodes.x-1
 
@@ -86,8 +86,8 @@ __global__ void SetBoundaryConditionOrthoZ(double* potential) {
 	int idx = zIdx + threadIdx.x * xStepThread + blockIdx.x * xStepBlock
 		+ threadIdx.y * yStepThread + blockIdx.y * yStepBlock;
 
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_near_border[0]
-		+ (blockIdx.z * d_far_border[0]);
+	potential[idx] = ((double)(1 - blockIdx.z)) * near_bound[0]
+		+ (blockIdx.z * far_bound[0]);
 
 }
 
@@ -354,17 +354,17 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	std::string debug_message = std::string(" set boundary ");
 
 	dim3 blocks = dim3(n_nodes.y / 16, n_nodes.z / 16, 1);
-	SetBoundaryConditionOrthoX <<< blocks, threads >>> (d_potential);
+	SetBoundaryConditionOrthoX <<< blocks, threads >>> (d_potential, d_left_border, d_right_border);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
 	blocks = dim3(n_nodes.x / 16, n_nodes.z / 16, 2);
-	SetBoundaryConditionOrthoY <<< blocks, threads >>> (d_potential);
+	SetBoundaryConditionOrthoY <<< blocks, threads >>> (d_potential, d_bot_border, d_up_border);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
 	blocks = dim3(n_nodes.x / 16, n_nodes.y / 16, 2);
-	SetBoundaryConditionOrthoZ <<< blocks, threads >>> (d_potential);
+	SetBoundaryConditionOrthoZ <<< blocks, threads >>> (d_potential, d_near_border, d_far_border);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
