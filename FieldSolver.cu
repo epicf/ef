@@ -102,7 +102,7 @@ __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_fiel
 	is_on_low_border = ((threadIdx.z == (blockDim.z - 1)) && (blockIdx.z == (gridDim.z - 1)));
 	is_inside_borders = !(is_on_low_border || is_on_up_border);
 
-	e.z = -(1 / (1 + is_inside_borders)) * GradientComponent(
+	e.z = -((double)1 / ((double)1 + is_inside_borders)) * GradientComponent(
 		dev_potential[idx + (offset * is_on_up_border) - (offset * is_inside_borders)],
 		dev_potential[idx - (offset * is_on_low_border) + (offset * is_inside_borders)],
 		d_cell_size[0].z);
