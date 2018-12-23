@@ -231,15 +231,15 @@ void SpatialMeshCu::copy_constants_to_device() {
 	cudaError_t cuda_status;
 	//mesh params
 	std::string debug_message = std::string(" copy constants ");
-	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (void*)&n_nodes, sizeof(dim3),
+	cuda_status = cudaMemcpyToSymbol(d_n_nodes, &n_nodes, sizeof(dim3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 	
-	cuda_status = cudaMemcpyToSymbol(d_volume_size, (void*)&volume_size, sizeof(double3),
+	cuda_status = cudaMemcpyToSymbol(d_volume_size, &volume_size, sizeof(double3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 	
-	cuda_status = cudaMemcpyToSymbol(d_cell_size, (void*)&cell_size, sizeof(double3),
+	cuda_status = cudaMemcpyToSymbol(d_cell_size, &cell_size, sizeof(double3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
@@ -250,27 +250,27 @@ void SpatialMeshCu::copy_boundary_to_device(Config &conf) {
 	cudaError_t cuda_status;
 	//boundary params
 	std::string debug_message = std::string(" copy border constants ");
-	cuda_status = cudaMemcpyToSymbol(d_left_border, (void*)&conf.boundary_config_part.boundary_phi_left,
+	cuda_status = cudaMemcpyToSymbol(d_left_border, &conf.boundary_config_part.boundary_phi_left,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol(d_right_border, (void*)&conf.boundary_config_part.boundary_phi_right,
+	cuda_status = cudaMemcpyToSymbol(d_right_border, &conf.boundary_config_part.boundary_phi_right,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol(d_up_border, (void*)&conf.boundary_config_part.boundary_phi_top,
+	cuda_status = cudaMemcpyToSymbol(d_up_border, &conf.boundary_config_part.boundary_phi_top,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol(d_bot_border, (void*)&conf.boundary_config_part.boundary_phi_bottom,
+	cuda_status = cudaMemcpyToSymbol(d_bot_border, &conf.boundary_config_part.boundary_phi_bottom,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol(d_near_border, (void*)&conf.boundary_config_part.boundary_phi_near,
+	cuda_status = cudaMemcpyToSymbol(d_near_border, &conf.boundary_config_part.boundary_phi_near,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol(d_far_border, (void*)&conf.boundary_config_part.boundary_phi_far,
+	cuda_status = cudaMemcpyToSymbol(d_far_border, &conf.boundary_config_part.boundary_phi_far,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 }
@@ -282,7 +282,7 @@ void SpatialMeshCu::allocate_ongrid_values() {
 
 	size_t total_node_count = nx * ny * nz;
 	cudaError_t cuda_status;
-	std::string debug_message = std::string(" copy borders ");
+	std::string debug_message = std::string(" allocation ");
 
 	cuda_status = cudaMalloc < double3 >(&dev_node_coordinates, total_node_count);
 	cuda_status_check(cuda_status, debug_message);
