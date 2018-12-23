@@ -82,24 +82,24 @@ __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_fiel
 	is_on_low_border = ((threadIdx.x == (blockDim.x - 1)) && (blockIdx.x == (gridDim.x - 1)));
 	is_inside_borders = !(is_on_low_border || is_on_up_border);
 
-	e.x = -(1 / (1 + is_inside_borders)) * GradientComponent(
+	e.x = -((double)1 / ((double)1 + is_inside_borders)) * GradientComponent(
 		dev_potential[idx + (offset*is_on_up_border) - (offset*is_inside_borders)],
 		dev_potential[idx - (offset*is_on_low_border) + (offset*is_inside_borders)],
 		d_cell_size[0].x);
 
 	offset = d_n_nodes[0].x;
-	is_on_up_border = ((threadIdx.x == 0) && (blockIdx.x == 0));
-	is_on_low_border = ((threadIdx.x == (blockDim.x - 1)) && (blockIdx.x == (gridDim.x - 1)));
+	is_on_up_border = ((threadIdx.y == 0) && (blockIdx.y == 0));
+	is_on_low_border = ((threadIdx.y == (blockDim.y - 1)) && (blockIdx.y == (gridDim.y - 1)));
 	is_inside_borders = !(is_on_low_border || is_on_up_border);
 
-	e.y = -(1 / (1 + is_inside_borders)) * GradientComponent(
+	e.y = -((double)1 / ((double)1 + is_inside_borders)) * GradientComponent(
 		dev_potential[idx + (offset*is_on_up_border) - (offset*is_inside_borders)],
 		dev_potential[idx - (offset*is_on_low_border) + (offset*is_inside_borders)],
 		d_cell_size[0].y);
 
 	offset = d_n_nodes[0].y*d_n_nodes[0].x;
-	is_on_up_border = ((threadIdx.x == 0) && (blockIdx.x == 0));
-	is_on_low_border = ((threadIdx.x == (blockDim.x - 1)) && (blockIdx.x == (gridDim.x - 1)));
+	is_on_up_border = ((threadIdx.z == 0) && (blockIdx.z == 0));
+	is_on_low_border = ((threadIdx.z == (blockDim.z - 1)) && (blockIdx.z == (gridDim.z - 1)));
 	is_inside_borders = !(is_on_low_border || is_on_up_border);
 
 	e.z = -(1 / (1 + is_inside_borders)) * GradientComponent(
