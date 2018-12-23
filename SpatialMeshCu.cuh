@@ -19,7 +19,12 @@ public:
 	double *dev_potential;
 	double3 *dev_electric_field;
 
-
+	double* d_up_border;
+	double* d_bot_border;
+	double* d_left_border;
+	double* d_right_border;
+	double* d_far_border;
+	double* d_near_border;
 	//double border_left;
 	//double border_right;
 	//double border_top;
