@@ -20,6 +20,14 @@ public:
 	double3 *dev_electric_field;
 
 
+	//double border_left;
+	//double border_right;
+	//double border_top;
+	//double border_bottom;
+	//double border_near;
+	//double border_far;
+
+
 public:
 	SpatialMeshCu(Config &conf);
 	SpatialMeshCu(hid_t h5_spat_mesh_group);
@@ -39,6 +47,7 @@ private:
 	void check_correctness_of_related_config_fields(Config &conf);
 	void init_constants(Config &conf);
 	void copy_constants_to_device();
+	void copy_boundary_to_device(Config &conf);
 	void allocate_ongrid_values();
 	void fill_node_coordinates();
 	

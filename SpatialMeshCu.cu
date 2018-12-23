@@ -220,14 +220,14 @@ void SpatialMeshCu::init_constants(Config & conf) {
 	cell_size = make_double3(volume_size.x / (n_nodes.x - 1),
 		volume_size.y / (n_nodes.y - 1), volume_size.z / (n_nodes.z - 1));
 
-	copy_constants_to_device();
 
-	///TODO Border constants init
+	copy_constants_to_device();
+	copy_boundary_to_device(conf);
 }
 
 void SpatialMeshCu::copy_constants_to_device() {
 	cudaError_t cuda_status;
-	
+	//mesh params
 	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (void*)&n_nodes, sizeof(dim3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status);
@@ -241,6 +241,34 @@ void SpatialMeshCu::copy_constants_to_device() {
 	cuda_status_check(cuda_status);
 
 	return;
+}
+
+void SpatialMeshCu::copy_boundary_to_device(Config &conf) {
+	cudaError_t cuda_status;
+	//boundary params
+	cuda_status = cudaMemcpyToSymbol(d_left_border, (void*)&conf.boundary_config_part.boundary_phi_left,
+		sizeof(double), cudaMemcpyHostToDevice);
+	cuda_status_check(cuda_status);
+
+	cuda_status = cudaMemcpyToSymbol(d_right_border, (void*)&conf.boundary_config_part.boundary_phi_right,
+		sizeof(double), cudaMemcpyHostToDevice);
+	cuda_status_check(cuda_status);
+
+	cuda_status = cudaMemcpyToSymbol(d_up_border, (void*)&conf.boundary_config_part.boundary_phi_top,
+		sizeof(double), cudaMemcpyHostToDevice);
+	cuda_status_check(cuda_status);
+
+	cuda_status = cudaMemcpyToSymbol(d_bot_border, (void*)&conf.boundary_config_part.boundary_phi_bottom,
+		sizeof(double), cudaMemcpyHostToDevice);
+	cuda_status_check(cuda_status);
+
+	cuda_status = cudaMemcpyToSymbol(d_near_border, (void*)&conf.boundary_config_part.boundary_phi_near,
+		sizeof(double), cudaMemcpyHostToDevice);
+	cuda_status_check(cuda_status);
+
+	cuda_status = cudaMemcpyToSymbol(d_far_border, (void*)&conf.boundary_config_part.boundary_phi_far,
+		sizeof(double), cudaMemcpyHostToDevice);
+	cuda_status_check(cuda_status);
 }
 
 void SpatialMeshCu::allocate_ongrid_values() {
