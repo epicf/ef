@@ -685,11 +685,11 @@ void SpatialMeshCu::cuda_status_check(cudaError_t status)
 }
 
 dim3 SpatialMeshCu::GetThreads() {
-	return dim3(16, 16, n_nodes.z / 16);
+	return dim3(4, 4, 4);
 }
 
-dim3 SpatialMeshCu::GetBlocks(dim3 nThreads) {
-	return dim3(n_nodes.x / nThreads.x, n_nodes.y / nThreads.y, 16);
+dim3 SpatialMeshCu::GetBlocks(dim3 nThreads) {	
+	return dim3(n_nodes.x / nThreads.x, n_nodes.y / nThreads.y, n_nodes.z/nThreads.z);
 }
 
 SpatialMeshCu::~SpatialMeshCu() {
