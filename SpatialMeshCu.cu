@@ -250,27 +250,37 @@ void SpatialMeshCu::copy_boundary_to_device(Config &conf) {
 	cudaError_t cuda_status;
 	//boundary params
 	std::string debug_message = std::string(" copy border constants ");
-	cuda_status = cudaMemcpyToSymbol(d_left_border, &conf.boundary_config_part.boundary_phi_left,
+
+	double left_border, right_border, up_border, bot_border, near_border, far_border;
+
+	left_border = conf.boundary_config_part.boundary_phi_left;
+	right_border = conf.boundary_config_part.boundary_phi_right;
+	up_border = conf.boundary_config_part.boundary_phi_top;
+	bot_border = conf.boundary_config_part.boundary_phi_bottom;
+	near_border = conf.boundary_config_part.boundary_phi_near;
+	far_border = conf.boundary_config_part.boundary_phi_far;
+
+	cuda_status = cudaMemcpyToSymbol(d_left_border, &left_border,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol(d_right_border, &conf.boundary_config_part.boundary_phi_right,
+	cuda_status = cudaMemcpyToSymbol(d_right_border, &right_border,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol(d_up_border, &conf.boundary_config_part.boundary_phi_top,
+	cuda_status = cudaMemcpyToSymbol(d_up_border, &up_border,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol(d_bot_border, &conf.boundary_config_part.boundary_phi_bottom,
+	cuda_status = cudaMemcpyToSymbol(d_bot_border, &bot_border,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol(d_near_border, &conf.boundary_config_part.boundary_phi_near,
+	cuda_status = cudaMemcpyToSymbol(d_near_border, &near_border,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol(d_far_border, &conf.boundary_config_part.boundary_phi_far,
+	cuda_status = cudaMemcpyToSymbol(d_far_border, &far_border,
 		sizeof(double), cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 }
