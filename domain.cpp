@@ -367,9 +367,9 @@ bool Domain::out_of_bound( const Particle &p )
     bool out;
 
     out =
-        ( x >= spat_mesh.volume_size.x ) || ( x <= 0 ) ||
-        ( y >= spat_mesh.volume_size.y ) || ( y <= 0 ) ||
-        ( z >= spat_mesh.volume_size.z ) || ( z <= 0 ) ;
+        ( x >= spat_mesh.volume_size->x ) || ( x <= 0 ) ||
+        ( y >= spat_mesh.volume_size->y ) || ( y <= 0 ) ||
+        ( z >= spat_mesh.volume_size->z ) || ( z <= 0 ) ;
 
     return out;
 
