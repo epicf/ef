@@ -325,17 +325,17 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	std::string debug_message = std::string(" set boundary ");
 
 	dim3 blocks = dim3(n_nodes->y / 16, n_nodes->z / 16, 1);
-	SetBoundaryConditionOrthoX <<< blocks, threads >>> (d_potential, d_left_border, d_right_border);
+	SetBoundaryConditionOrthoX <<< blocks, threads >>> (d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
 	blocks = dim3(n_nodes->x / 16, n_nodes->z / 16, 2);
-	SetBoundaryConditionOrthoY <<< blocks, threads >>> (d_potential, d_bot_border, d_up_border);
+	SetBoundaryConditionOrthoY <<< blocks, threads >>> (d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
 	blocks = dim3(n_nodes->x / 16, n_nodes->y / 16, 2);
-	SetBoundaryConditionOrthoZ <<< blocks, threads >>> (d_potential, d_near_border, d_far_border);
+	SetBoundaryConditionOrthoZ <<< blocks, threads >>> (d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
