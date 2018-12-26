@@ -4,23 +4,23 @@ __constant__ double3 d_volume_size[1];
 __constant__ double3 d_cell_size[1];
 __constant__ int3 d_n_nodes[1];
 
-//__constant__ double d_up_border[1];
-//__constant__ double d_bot_border[1];
-//
-//__constant__ double d_left_border[1];
-//__constant__ double d_right_border[1];
-//
-//__constant__ double d_far_border[1];
-//__constant__ double d_near_border[1];
+#define TOP 0
+#define BOTTOM 1
+#define LEFT 2
+#define RIGHT 3
+#define FAR 4
+#define NEAR 5
+
+__constant__ double d_boundary[6];
 
 __device__ int GetIdxVolume() {
 	//int xStepthread = 1;
 	int xStepBlock = blockDim.x;
 
-	int yStepThread = d_n_nodes[0].x;
+	int yStepThread = d_n_nodes->x;
 	int yStepBlock = yStepThread * blockDim.y;
 
-	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
+	int zStepThread = d_n_nodes->x * d_n_nodes->y;
 	int zStepBlock = zStepThread * blockDim.z;
 
 	return threadIdx.x + blockIdx.x * xStepBlock + threadIdx.y * yStepThread
@@ -35,28 +35,28 @@ __global__ void fill_coordinates(double3* node_coordinates) {
 	int x = threadIdx.x + blockIdx.x * blockDim.x;
 	int y = threadIdx.y + blockIdx.y * blockDim.y;
 	int z = threadIdx.z + blockIdx.z * blockDim.z;
-	node_coordinates[idx] = make_double3(d_volume_size[0].x * x,
-		d_volume_size[0].y * y, d_volume_size[0].z * z); //(double).,
+	node_coordinates[idx] = make_double3(d_volume_size->x * x,
+		d_volume_size->y * y, d_volume_size->z * z); //(double).,
 }
 
-__global__ void SetBoundaryConditionOrthoX(double* potential, double* left_bound, double* right_bound) {
-	int xIdx = blockIdx.z * (d_n_nodes[0].x - 1); //0 or nodes.x-1
+__global__ void SetBoundaryConditionOrthoX(double* potential) {
+	int xIdx = blockIdx.z * (d_n_nodes->x - 1); //0 or nodes.x-1
 
-	int yStepThread = d_n_nodes[0].x; //x=
-	int yStepBlock = d_n_nodes[0].x * blockDim.x;
+	int yStepThread = d_n_nodes->x; //x=
+	int yStepBlock = d_n_nodes->x * blockDim.x;
 
-	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
+	int zStepThread = d_n_nodes->x * d_n_nodes->y;
 	int zStepBlock = zStepThread * blockDim.y;
 
 	int idx = xIdx + threadIdx.x * yStepThread + blockIdx.x * yStepBlock
 		+ threadIdx.y * zStepThread + blockIdx.y * zStepBlock;
 
-	potential[idx] = ((double)(1 - blockIdx.z)) * left_bound[0]
-		+ (blockIdx.z * right_bound[0]);
+	potential[idx] = ((double)(1 - blockIdx.z)) * d_boundary[LEFT]
+		+ (blockIdx.z * d_boundary[RIGHT]);
 
 }
 
-__global__ void SetBoundaryConditionOrthoY(double* potential, double* bot_bound, double* up_bound) {
+__global__ void SetBoundaryConditionOrthoY(double* potential) {
 	int yIdx = blockIdx.z * d_n_nodes[0].x * (d_n_nodes[0].y - 1); //0 or nodes.x-1
 
 	int xStepThread = 1; //x=
@@ -68,12 +68,12 @@ __global__ void SetBoundaryConditionOrthoY(double* potential, double* bot_bound,
 	int idx = yIdx + threadIdx.x * xStepThread + blockIdx.x * xStepBlock
 		+ threadIdx.y * zStepThread + blockIdx.y * zStepBlock;
 
-	potential[idx] = ((double)(1 - blockIdx.z)) * bot_bound[0]
-		+ (blockIdx.z * up_bound[0]);
+	potential[idx] = ((double)(1 - blockIdx.z)) * d_boundary[BOTTOM]
+		+ (blockIdx.z * d_boundary[TOP]);
 
 }
 
-__global__ void SetBoundaryConditionOrthoZ(double* potential, double* near_bound, double* far_bound) {
+__global__ void SetBoundaryConditionOrthoZ(double* potential) {
 	int zIdx = blockIdx.z
 		* (d_n_nodes[0].x * d_n_nodes[0].y * (d_n_nodes[0].z - 1)); //0 or nodes.x-1
 
@@ -86,8 +86,8 @@ __global__ void SetBoundaryConditionOrthoZ(double* potential, double* near_bound
 	int idx = zIdx + threadIdx.x * xStepThread + blockIdx.x * xStepBlock
 		+ threadIdx.y * yStepThread + blockIdx.y * yStepBlock;
 
-	potential[idx] = ((double)(1 - blockIdx.z)) * near_bound[0]
-		+ (blockIdx.z * far_bound[0]);
+	potential[idx] = ((double)(1 - blockIdx.z)) * d_boundary[NEAR]
+		+ (blockIdx.z * d_boundary[FAR]);
 
 }
 
@@ -104,44 +104,44 @@ SpatialMeshCu::SpatialMeshCu(hid_t h5_spat_mesh_group) {
 	cudaError_t cuda_status;
 	std::string debug_message = std::string(" reading from hdf5 ");
 
-	volume_size = make_double3(0, 0, 0);
-	cell_size = make_double3(0, 0, 0);
-	n_nodes = make_int3(0, 0, 0);
+	volume_size[0] = make_double3(0, 0, 0);
+	cell_size[0] = make_double3(0, 0, 0);
+	n_nodes[0] = make_int3(0, 0, 0);
 
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "x_volume_size",
-		&volume_size.x);
+		&volume_size->x);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "y_volume_size",
-		&volume_size.y);
+		&volume_size->y);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "z_volume_size",
-		&volume_size.z);
+		&volume_size->z);
 	hdf5_status_check(status);
 
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "x_cell_size",
-		&cell_size.x);
+		&cell_size->x);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "y_cell_size",
-		&cell_size.y);
+		&cell_size->y);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "z_cell_size",
-		&cell_size.z);
+		&cell_size->z);
 	hdf5_status_check(status);
 
 	status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "x_n_nodes",
-		&n_nodes.x);
+		&n_nodes->x);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "y_n_nodes",
-		&n_nodes.y);
+		&n_nodes->y);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "z_n_nodes",
-		&n_nodes.z);
+		&n_nodes->z);
 	hdf5_status_check(status);
 
 	allocate_ongrid_values();
 	copy_constants_to_device();
 
-	int dim = n_nodes.x * n_nodes.y * n_nodes.z;
+	int dim = n_nodes[0].x * n_nodes[0].y * n_nodes->z;
 	double *h5_tmp_buf_1 = new double[dim];
 	double *h5_tmp_buf_2 = new double[dim];
 	double *h5_tmp_buf_3 = new double[dim];
@@ -204,7 +204,7 @@ void SpatialMeshCu::check_correctness_of_related_config_fields(Config &conf) {
 }
 
 void SpatialMeshCu::init_constants(Config & conf) {
-	n_nodes = make_int3(
+	n_nodes[0] = make_int3(
 		ceil(
 			conf.mesh_config_part.grid_x_size
 			/ conf.mesh_config_part.grid_x_step) + 1,
@@ -215,12 +215,12 @@ void SpatialMeshCu::init_constants(Config & conf) {
 			conf.mesh_config_part.grid_z_size
 			/ conf.mesh_config_part.grid_z_step) + 1);
 
-	volume_size = make_double3(conf.mesh_config_part.grid_x_size,
+	volume_size[0] = make_double3(conf.mesh_config_part.grid_x_size,
 		conf.mesh_config_part.grid_y_size,
 		conf.mesh_config_part.grid_z_size);
 
-	cell_size = make_double3(volume_size.x / (n_nodes.x - 1),
-		volume_size.y / (n_nodes.y - 1), volume_size.z / (n_nodes.z - 1));
+	cell_size[0] = make_double3(volume_size[0].x / (n_nodes[0].x - 1),
+		volume_size[0].y / (n_nodes[0].y - 1), volume_size[0].z / (n_nodes[0].z - 1));
 
 
 	copy_constants_to_device();
@@ -231,15 +231,21 @@ void SpatialMeshCu::copy_constants_to_device() {
 	cudaError_t cuda_status;
 	//mesh params
 	std::string debug_message = std::string(" copy constants ");
-	cuda_status = cudaMemcpyToSymbol(d_n_nodes, &n_nodes, sizeof(dim3),
+	
+	cuda_status = cudaMalloc < int3 >(&d_n_nodes, 1);
+	cuda_status_check(cuda_status, debug_message);
+
+	debug_message = std::string(" copy constants ");
+
+	cuda_status = cudaMemcpyToSymbol(d_n_nodes, n_nodes, sizeof(int3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 	
-	cuda_status = cudaMemcpyToSymbol(d_volume_size, &volume_size, sizeof(double3),
+	cuda_status = cudaMemcpyToSymbol(d_volume_size, volume_size, sizeof(double3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 	
-	cuda_status = cudaMemcpyToSymbol(d_cell_size, &cell_size, sizeof(double3),
+	cuda_status = cudaMemcpyToSymbol(d_cell_size, cell_size, sizeof(double3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 	return;
@@ -248,46 +254,29 @@ void SpatialMeshCu::copy_constants_to_device() {
 void SpatialMeshCu::copy_boundary_to_device(Config &conf) {
 	cudaError_t cuda_status;
 	//boundary params
-	std::string debug_message = std::string(" copy border constants ");
+	std::string debug_message;
 
-	double left_border, right_border, up_border, bot_border, near_border, far_border;
+	debug_message = std::string(" copy border constants ");
 
-	left_border = conf.boundary_config_part.boundary_phi_left;
-	right_border = conf.boundary_config_part.boundary_phi_right;
-	up_border = conf.boundary_config_part.boundary_phi_top;
-	bot_border = conf.boundary_config_part.boundary_phi_bottom;
-	near_border = conf.boundary_config_part.boundary_phi_near;
-	far_border = conf.boundary_config_part.boundary_phi_far;
+	double boundary[6];
 
-	cuda_status = cudaMemcpy((void**) &d_left_border, &left_border,
-		sizeof(double), cudaMemcpyHostToDevice);
+	boundary[LEFT] = conf.boundary_config_part.boundary_phi_left;
+	boundary[RIGHT] = conf.boundary_config_part.boundary_phi_right;
+	boundary[TOP] = conf.boundary_config_part.boundary_phi_top;
+	boundary[BOTTOM] = conf.boundary_config_part.boundary_phi_bottom;
+	boundary[NEAR] = conf.boundary_config_part.boundary_phi_near;
+	boundary[FAR] = conf.boundary_config_part.boundary_phi_far;
+
+	cuda_status = cudaMemcpyToSymbol(d_boundary, boundary,
+		sizeof(double) * 6, cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpy((void**) &d_right_border, &right_border,
-		sizeof(double), cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpy((void**) &d_up_border, &up_border,
-		sizeof(double), cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpy((void**) &d_bot_border, &bot_border,
-		sizeof(double), cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpy((void**) &d_near_border, &near_border,
-		sizeof(double), cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpy((void**) &d_far_border, &far_border,
-		sizeof(double), cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
 }
 
 void SpatialMeshCu::allocate_ongrid_values() {
-	int nx = n_nodes.x;
-	int ny = n_nodes.y;
-	int nz = n_nodes.z;
+	int nx = n_nodes->x;
+	int ny = n_nodes->y;
+	int nz = n_nodes->z;
 
 	size_t total_node_count = nx * ny * nz;
 	cudaError_t cuda_status;
@@ -305,25 +294,7 @@ void SpatialMeshCu::allocate_ongrid_values() {
 	cuda_status = cudaMalloc < double3 >(&dev_electric_field, total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
-	debug_message = std::string(" borders allocation ");
 
-	cuda_status = cudaMalloc < double >(&d_left_border, 1);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMalloc < double >(&d_right_border, 1);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMalloc < double >(&d_up_border, 1);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMalloc < double >(&d_bot_border, 1);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMalloc < double >(&d_near_border, 1);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMalloc < double >(&d_far_border, 1);
-	cuda_status_check(cuda_status, debug_message);
 
 	return;
 }
@@ -353,17 +324,17 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	cudaError_t cuda_status;
 	std::string debug_message = std::string(" set boundary ");
 
-	dim3 blocks = dim3(n_nodes.y / 16, n_nodes.z / 16, 1);
+	dim3 blocks = dim3(n_nodes->y / 16, n_nodes->z / 16, 1);
 	SetBoundaryConditionOrthoX <<< blocks, threads >>> (d_potential, d_left_border, d_right_border);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
-	blocks = dim3(n_nodes.x / 16, n_nodes.z / 16, 2);
+	blocks = dim3(n_nodes->x / 16, n_nodes->z / 16, 2);
 	SetBoundaryConditionOrthoY <<< blocks, threads >>> (d_potential, d_bot_border, d_up_border);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
-	blocks = dim3(n_nodes.x / 16, n_nodes.y / 16, 2);
+	blocks = dim3(n_nodes->x / 16, n_nodes->y / 16, 2);
 	SetBoundaryConditionOrthoZ <<< blocks, threads >>> (d_potential, d_near_border, d_far_border);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
@@ -454,31 +425,31 @@ void SpatialMeshCu::write_hdf5_attributes(hid_t group_id) {
 	std::string hdf5_current_group = "./";
 
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"x_volume_size", &volume_size.x, single_element);
+		"x_volume_size", &(volume_size->x), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"y_volume_size", &volume_size.y, single_element);
+		"y_volume_size", &(volume_size->y), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"z_volume_size", &volume_size.z, single_element);
+		"z_volume_size", &(volume_size->z), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"x_cell_size", &cell_size.x, single_element);
+		"x_cell_size", &(cell_size->x), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"y_cell_size", &cell_size.y, single_element);
+		"y_cell_size", &(cell_size->y), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"z_cell_size", &cell_size.z, single_element);
+		"z_cell_size", &(cell_size->z), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_int(group_id, hdf5_current_group.c_str(),
-		"x_n_nodes", &n_nodes.x, single_element);
+		"x_n_nodes", &(n_nodes->x), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_int(group_id, hdf5_current_group.c_str(),
-		"y_n_nodes", &n_nodes.y, single_element);
+		"y_n_nodes", &(n_nodes->y), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_int(group_id, hdf5_current_group.c_str(),
-		"z_n_nodes", &n_nodes.z, single_element);
+		"z_n_nodes", &(n_nodes->z), single_element);
 	hdf5_status_check(status);
 }
 
@@ -490,7 +461,7 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 
 	int rank = 1;
 	hsize_t dims[rank];
-	dims[0] = n_nodes.x * n_nodes.y * n_nodes.z;
+	dims[0] = n_nodes->x * n_nodes->y * n_nodes->z;
 
 	filespace = H5Screate_simple(rank, dims, NULL);
 
@@ -619,6 +590,30 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 		delete[] ez;
 		delete[] hdf5_tmp_write_data;
 	}
+	double left_border[1], right_border[1], up_border[1], bot_border[1], near_border[1], far_border[1];
+	cuda_status = cudaMemcpyToSymbol( left_border, d_left_border,
+		sizeof(double), cudaMemcpyDeviceToHost);
+	cuda_status_check(cuda_status, debug_message);
+
+	cuda_status = cudaMemcpyToSymbol( right_border, d_right_border,
+		sizeof(double), cudaMemcpyDeviceToHost);
+	cuda_status_check(cuda_status, debug_message);
+
+	cuda_status = cudaMemcpyToSymbol( up_border, d_up_border,
+		sizeof(double), cudaMemcpyDeviceToHost);
+	cuda_status_check(cuda_status, debug_message);
+
+	cuda_status = cudaMemcpyToSymbol( bot_border, d_bot_border,
+		sizeof(double), cudaMemcpyDeviceToHost);
+	cuda_status_check(cuda_status, debug_message);
+
+	cuda_status = cudaMemcpyToSymbol( near_border, d_near_border,
+		sizeof(double), cudaMemcpyDeviceToHost);
+	cuda_status_check(cuda_status, debug_message);
+
+	cuda_status = cudaMemcpyToSymbol( far_border, d_far_border,
+		sizeof(double), cudaMemcpyDeviceToHost);
+	cuda_status_check(cuda_status, debug_message);
 	status = H5Sclose(filespace);
 	hdf5_status_check(status);
 }
@@ -672,8 +667,8 @@ void SpatialMeshCu::check_and_exit_if_not(const bool &should_be,
 }
 
 double SpatialMeshCu::node_number_to_coordinate_x(int i) {
-	if (i >= 0 && i < n_nodes.x) {
-		return i * cell_size.x;
+	if (i >= 0 && i < n_nodes->x) {
+		return i * cell_size->x;
 	}
 	else {
 		printf("invalid node number i=%d at node_number_to_coordinate_x\n", i);
@@ -683,8 +678,8 @@ double SpatialMeshCu::node_number_to_coordinate_x(int i) {
 }
 
 double SpatialMeshCu::node_number_to_coordinate_y(int j) {
-	if (j >= 0 && j < n_nodes.y) {
-		return j * cell_size.y;
+	if (j >= 0 && j < n_nodes->y) {
+		return j * cell_size->y;
 	}
 	else {
 		printf("invalid node number j=%d at node_number_to_coordinate_y\n", j);
@@ -694,8 +689,8 @@ double SpatialMeshCu::node_number_to_coordinate_y(int j) {
 }
 
 double SpatialMeshCu::node_number_to_coordinate_z(int k) {
-	if (k >= 0 && k < n_nodes.z) {
-		return k * cell_size.z;
+	if (k >= 0 && k < n_nodes->z) {
+		return k * cell_size->z;
 	}
 	else {
 		printf("invalid node number k=%d at node_number_to_coordinate_z\n", k);
@@ -726,7 +721,7 @@ dim3 SpatialMeshCu::GetThreads() {
 }
 
 dim3 SpatialMeshCu::GetBlocks(dim3 nThreads) {	
-	return dim3(n_nodes.x / nThreads.x, n_nodes.y / nThreads.y, n_nodes.z/nThreads.z);
+	return dim3(n_nodes->x / nThreads.x, n_nodes->y / nThreads.y, n_nodes->z/nThreads.z);
 }
 
 SpatialMeshCu::~SpatialMeshCu() {
