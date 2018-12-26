@@ -75,12 +75,12 @@ __global__ void SetBoundaryConditionOrthoY(double* potential) {
 
 __global__ void SetBoundaryConditionOrthoZ(double* potential) {
 	int zIdx = blockIdx.z
-		* (d_n_nodes[0].x * d_n_nodes[0].y * (d_n_nodes[0].z - 1)); //0 or nodes.x-1
+		* (d_n_nodes->x * d_n_nodes->y * (d_n_nodes->z - 1)); //0 or nodes.x-1
 
 	int xStepThread = 1; //x=
 	int xStepBlock = blockDim.x;
 
-	int yStepThread = d_n_nodes[0].x;
+	int yStepThread = d_n_nodes->x;
 	int yStepBlock = yStepThread * blockDim.y;
 
 	int idx = zIdx + threadIdx.x * xStepThread + blockIdx.x * xStepBlock

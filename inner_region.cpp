@@ -82,9 +82,9 @@ bool Inner_region::check_if_node_inside( Node_reference &node,
 
 void Inner_region::mark_inner_nodes( SpatialMeshCu &spat_mesh )
 {
-    int nx = spat_mesh.n_nodes.x;
-    int ny = spat_mesh.n_nodes.y;
-    int nz = spat_mesh.n_nodes.z;
+    int nx = spat_mesh.n_nodes->x;
+    int ny = spat_mesh.n_nodes->y;
+    int nz = spat_mesh.n_nodes->z;
 
     for ( int k = 0; k < nz; k++ ) {
         for ( int j = 0; j < ny; j++ ) {
@@ -101,9 +101,9 @@ void Inner_region::mark_inner_nodes( SpatialMeshCu &spat_mesh )
 
 void Inner_region::select_inner_nodes_not_at_domain_edge( SpatialMeshCu &spat_mesh )
 {
-    int nx = spat_mesh.n_nodes.x;
-    int ny = spat_mesh.n_nodes.y;
-    int nz = spat_mesh.n_nodes.z;
+    int nx = spat_mesh.n_nodes->x;
+    int ny = spat_mesh.n_nodes->y;
+    int nz = spat_mesh.n_nodes->z;
 
     inner_nodes_not_at_domain_edge.reserve( inner_nodes.size() );
     
@@ -116,9 +116,9 @@ void Inner_region::select_inner_nodes_not_at_domain_edge( SpatialMeshCu &spat_me
 
 void Inner_region::mark_near_boundary_nodes( SpatialMeshCu &spat_mesh )
 {
-    int nx = spat_mesh.n_nodes.x;
-    int ny = spat_mesh.n_nodes.y;
-    int nz = spat_mesh.n_nodes.z;
+    int nx = spat_mesh.n_nodes->x;
+    int ny = spat_mesh.n_nodes->y;
+    int nz = spat_mesh.n_nodes->z;
 
     // rewrite; 
     for( auto &node : inner_nodes ){
@@ -143,9 +143,9 @@ void Inner_region::select_near_boundary_nodes_not_at_domain_edge( SpatialMeshCu 
 {
     // todo: repeats with select_inner_nodes_not_at_domain_edge;
     // remove code duplication
-    int nx = spat_mesh.n_nodes.x;
-    int ny = spat_mesh.n_nodes.y;
-    int nz = spat_mesh.n_nodes.z;
+    int nx = spat_mesh.n_nodes->x;
+    int ny = spat_mesh.n_nodes->y;
+    int nz = spat_mesh.n_nodes->z;
 
     near_boundary_nodes_not_at_domain_edge.reserve( near_boundary_nodes.size() );
     
