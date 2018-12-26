@@ -590,30 +590,11 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 		delete[] ez;
 		delete[] hdf5_tmp_write_data;
 	}
-	double left_border[1], right_border[1], up_border[1], bot_border[1], near_border[1], far_border[1];
-	cuda_status = cudaMemcpyToSymbol( left_border, d_left_border,
-		sizeof(double), cudaMemcpyDeviceToHost);
-	cuda_status_check(cuda_status, debug_message);
+	//cuda_status = cudaMemcpyToSymbol( boundary, d_boundary,
+	//	sizeof(double), cudaMemcpyDeviceToHost);
+	//cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol( right_border, d_right_border,
-		sizeof(double), cudaMemcpyDeviceToHost);
-	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMemcpyToSymbol( up_border, d_up_border,
-		sizeof(double), cudaMemcpyDeviceToHost);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpyToSymbol( bot_border, d_bot_border,
-		sizeof(double), cudaMemcpyDeviceToHost);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpyToSymbol( near_border, d_near_border,
-		sizeof(double), cudaMemcpyDeviceToHost);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpyToSymbol( far_border, d_far_border,
-		sizeof(double), cudaMemcpyDeviceToHost);
-	cuda_status_check(cuda_status, debug_message);
 	status = H5Sclose(filespace);
 	hdf5_status_check(status);
 }
