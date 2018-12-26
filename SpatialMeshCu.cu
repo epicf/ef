@@ -4,14 +4,13 @@ __constant__ double3 d_volume_size[1];
 __constant__ double3 d_cell_size[1];
 __constant__ int3 d_n_nodes[1];
 
+__constant__ double d_boundary[6];
 #define TOP 0
 #define BOTTOM 1
 #define LEFT 2
 #define RIGHT 3
 #define FAR 4
 #define NEAR 5
-
-__constant__ double d_boundary[6];
 
 __device__ int GetIdxVolume() {
 	//int xStepthread = 1;
@@ -104,44 +103,49 @@ SpatialMeshCu::SpatialMeshCu(hid_t h5_spat_mesh_group) {
 	cudaError_t cuda_status;
 	std::string debug_message = std::string(" reading from hdf5 ");
 
-	volume_size[0] = make_double3(0, 0, 0);
-	cell_size[0] = make_double3(0, 0, 0);
-	n_nodes[0] = make_int3(0, 0, 0);
+	double volume_sz_x, volume_sz_y, volume_sz_z;
+	double cell_size_x, cell_size_y, cell_size_z;
+	int n_nodes_x, n_nodes_y, n_nodes_z;
+
 
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "x_volume_size",
-		&(volume_size[0].x));
+		&volume_sz_x);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "y_volume_size",
-		&(volume_size[0].y));
+		&volume_sz_y);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "z_volume_size",
-		&(volume_size[0].z));
+		&volume_sz_z);
 	hdf5_status_check(status);
 
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "x_cell_size",
-		&(cell_size[0].x));
+		&cell_size_x);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "y_cell_size",
-		&(cell_size[0].y));
+		&cell_size_y);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "z_cell_size",
-		&(cell_size[0].z));
+		&cell_size_z);
 	hdf5_status_check(status);
 
 	status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "x_n_nodes",
-		&(n_nodes[0].x));
+		&n_nodes_x);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "y_n_nodes",
-		&(n_nodes[0].y));
+		&n_nodes_y);
 	hdf5_status_check(status);
 	status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "z_n_nodes",
-		&(n_nodes[0].z));
+		&n_nodes_z);
 	hdf5_status_check(status);
+
+	volume_size[0] = make_double3(volume_sz_x, volume_sz_y, volume_sz_z);
+	cell_size[0] = make_double3(cell_size_x, cell_size_y, cell_size_z);
+	n_nodes[0] = make_int3(n_nodes_x, n_nodes_y, n_nodes_z);
 
 	allocate_ongrid_values();
 	copy_constants_to_device();
 
-	int dim = n_nodes[0].x * n_nodes[0].y * n_nodes->z;
+	int dim = n_nodes->x * n_nodes->y * n_nodes->z;
 	double *h5_tmp_buf_1 = new double[dim];
 	double *h5_tmp_buf_2 = new double[dim];
 	double *h5_tmp_buf_3 = new double[dim];
@@ -156,10 +160,6 @@ SpatialMeshCu::SpatialMeshCu(hid_t h5_spat_mesh_group) {
 		h5_tmp_buf_1);
 	H5LTread_dataset_double(h5_spat_mesh_group, "./potential", h5_tmp_buf_2);
 
-	//    for ( int i = 0; i < dim; i++ ) {
-	//	( charge_density.data() )[i] = h5_tmp_buf_1[i];
-	//	( potential.data() )[i] = h5_tmp_buf_2[i];
-	//    }
 
 	cuda_status = cudaMemcpy(h5_tmp_buf_1, dev_charge_density, sizeof(double) * dim,
 		cudaMemcpyHostToDevice);
