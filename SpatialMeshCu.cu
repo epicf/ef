@@ -3,15 +3,14 @@
 __constant__ double3 d_volume_size[1];
 __constant__ double3 d_cell_size[1];
 __constant__ int3 d_n_nodes[1];
+__constant__ double d_boundary[6];
 
-__constant__ double d_up_border[1];
-__constant__ double d_bot_border[1];
-
-__constant__ double d_left_border[1];
-__constant__ double d_right_border[1];
-
-__constant__ double d_far_border[1];
-__constant__ double d_near_border[1];
+#define TOP 0
+#define BOTTOM 1
+#define LEFT 2
+#define RIGHT 3
+#define FAR 4
+#define NEAR 5
 
 __device__ int GetIdxVolume() {
 	//int xStepthread = 1;
@@ -51,8 +50,8 @@ __global__ void SetBoundaryConditionOrthoX(double* potential) {
 	int idx = xIdx + threadIdx.x * yStepThread + blockIdx.x * yStepBlock
 		+ threadIdx.y * zStepThread + blockIdx.y * zStepBlock;
 
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_left_border[0]
-		+ (blockIdx.z * d_right_border[0]);
+	potential[idx] = ((double)(1 - blockIdx.z)) * d_boundary[LEFT]
+		+ (blockIdx.z * d_boundary[RIGHT]);
 
 }
 
@@ -68,8 +67,8 @@ __global__ void SetBoundaryConditionOrthoY(double* potential) {
 	int idx = yIdx + threadIdx.x * xStepThread + blockIdx.x * xStepBlock
 		+ threadIdx.y * zStepThread + blockIdx.y * zStepBlock;
 
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_bot_border[0]
-		+ (blockIdx.z * d_up_border[0]);
+	potential[idx] = ((double)(1 - blockIdx.z)) * d_boundary[BOTTOM]
+		+ (blockIdx.z * d_boundary[TOP]);
 
 }
 
@@ -85,9 +84,8 @@ __global__ void SetBoundaryConditionOrthoZ(double* potential) {
 
 	int idx = zIdx + threadIdx.x * xStepThread + blockIdx.x * xStepBlock
 		+ threadIdx.y * yStepThread + blockIdx.y * yStepBlock;
-
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_near_border[0]
-		+ (blockIdx.z * d_far_border[0]);
+	potential[idx] = ((double)(1 - blockIdx.z)) * d_boundary[NEAR]
+		+ (blockIdx.z * d_boundary[FAR]);
 
 }
 
@@ -230,16 +228,17 @@ void SpatialMeshCu::init_constants(Config & conf) {
 void SpatialMeshCu::copy_constants_to_device() {
 	cudaError_t cuda_status;
 	//mesh params
+	const int3 *nodes = &n_nodes;
 	std::string debug_message = std::string(" copy constants ");
-	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (void*)&n_nodes, sizeof(dim3),
+	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)nodes, sizeof(dim3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 	
-	cuda_status = cudaMemcpyToSymbol(d_volume_size, (void*)&volume_size, sizeof(double3),
+	cuda_status = cudaMemcpyToSymbol(d_volume_size, (const void*)&volume_size, sizeof(double3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 	
-	cuda_status = cudaMemcpyToSymbol(d_cell_size, (void*)&cell_size, sizeof(double3),
+	cuda_status = cudaMemcpyToSymbol(d_cell_size, (const void*)&cell_size, sizeof(double3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
@@ -250,28 +249,8 @@ void SpatialMeshCu::copy_boundary_to_device(Config &conf) {
 	cudaError_t cuda_status;
 	//boundary params
 	std::string debug_message = std::string(" copy border constants ");
-	cuda_status = cudaMemcpyToSymbol(d_left_border, (void*)&conf.boundary_config_part.boundary_phi_left,
-		sizeof(double), cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpyToSymbol(d_right_border, (void*)&conf.boundary_config_part.boundary_phi_right,
-		sizeof(double), cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpyToSymbol(d_up_border, (void*)&conf.boundary_config_part.boundary_phi_top,
-		sizeof(double), cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpyToSymbol(d_bot_border, (void*)&conf.boundary_config_part.boundary_phi_bottom,
-		sizeof(double), cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpyToSymbol(d_near_border, (void*)&conf.boundary_config_part.boundary_phi_near,
-		sizeof(double), cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
-
-	cuda_status = cudaMemcpyToSymbol(d_far_border, (void*)&conf.boundary_config_part.boundary_phi_far,
-		sizeof(double), cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(d_boundary, (void*)&conf.boundary_config_part.boundary_phi_left,
+		sizeof(double)*6, cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 }
 
@@ -320,21 +299,21 @@ void SpatialMeshCu::clear_old_density_values() {
 }
 
 void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
-	dim3 threads = dim3(16, 16, 2);
+	dim3 threads = dim3(4, 4, 2);
 	cudaError_t cuda_status;
 	std::string debug_message = std::string(" set boundary ");
 
-	dim3 blocks = dim3(n_nodes.y / 16, n_nodes.z / 16, 1);
+	dim3 blocks = dim3(n_nodes.y / 4, n_nodes.z / 4, 1);
 	SetBoundaryConditionOrthoX <<< blocks, threads >>> (d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
-	blocks = dim3(n_nodes.x / 16, n_nodes.z / 16, 2);
+	blocks = dim3(n_nodes.x / 4, n_nodes.z / 4, 2);
 	SetBoundaryConditionOrthoY <<< blocks, threads >>> (d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
-	blocks = dim3(n_nodes.x / 16, n_nodes.y / 16, 2);
+	blocks = dim3(n_nodes.x / 4, n_nodes.y / 4, 2);
 	SetBoundaryConditionOrthoZ <<< blocks, threads >>> (d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
