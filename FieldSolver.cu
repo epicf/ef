@@ -289,7 +289,7 @@ bool FieldSolver::iterative_Jacobi_solutions_converged()
 	//	return true;
 	//}
 
-	std::cout << "Cuda error: " << cudaGetErrorString(status) << std::endl;
+	//std::cout << "Cuda error: " << cudaGetErrorString(status) << std::endl;
 	return *convergence == 0 ;
 }
 
