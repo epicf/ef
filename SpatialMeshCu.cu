@@ -99,99 +99,99 @@ SpatialMeshCu::SpatialMeshCu(Config &conf) {
 }
 
 SpatialMeshCu::SpatialMeshCu(hid_t h5_spat_mesh_group) {
-	herr_t status;
-	cudaError_t cuda_status;
-	std::string debug_message = std::string(" reading from hdf5 ");
+	//herr_t status;
+	//cudaError_t cuda_status;
+	//std::string debug_message = std::string(" reading from hdf5 ");
 
-	double volume_sz_x, volume_sz_y, volume_sz_z;
-	double cell_size_x, cell_size_y, cell_size_z;
-	int n_nodes_x, n_nodes_y, n_nodes_z;
-
-
-	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "x_volume_size",
-		&volume_sz_x);
-	hdf5_status_check(status);
-	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "y_volume_size",
-		&volume_sz_y);
-	hdf5_status_check(status);
-	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "z_volume_size",
-		&volume_sz_z);
-	hdf5_status_check(status);
-
-	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "x_cell_size",
-		&cell_size_x);
-	hdf5_status_check(status);
-	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "y_cell_size",
-		&cell_size_y);
-	hdf5_status_check(status);
-	status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "z_cell_size",
-		&cell_size_z);
-	hdf5_status_check(status);
-
-	status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "x_n_nodes",
-		&n_nodes_x);
-	hdf5_status_check(status);
-	status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "y_n_nodes",
-		&n_nodes_y);
-	hdf5_status_check(status);
-	status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "z_n_nodes",
-		&n_nodes_z);
-	hdf5_status_check(status);
-
-	volume_size[0] = make_double3(volume_sz_x, volume_sz_y, volume_sz_z);
-	cell_size[0] = make_double3(cell_size_x, cell_size_y, cell_size_z);
-	n_nodes[0] = make_int3(n_nodes_x, n_nodes_y, n_nodes_z);
-
-	allocate_ongrid_values();
-	copy_constants_to_device();
-
-	int dim = n_nodes->x * n_nodes->y * n_nodes->z;
-	double *h5_tmp_buf_1 = new double[dim];
-	double *h5_tmp_buf_2 = new double[dim];
-	double *h5_tmp_buf_3 = new double[dim];
-
-	dim3 threads = GetThreads();
-	dim3 blocks = GetBlocks(threads);
-	fill_coordinates <<< blocks, threads >>> (dev_node_coordinates);
-	cuda_status = cudaDeviceSynchronize();
-	cuda_status_check(cuda_status, debug_message);
-
-	H5LTread_dataset_double(h5_spat_mesh_group, "./charge_density",
-		h5_tmp_buf_1);
-	H5LTread_dataset_double(h5_spat_mesh_group, "./potential", h5_tmp_buf_2);
+	//double volume_sz_x, volume_sz_y, volume_sz_z;
+	//double cell_size_x, cell_size_y, cell_size_z;
+	//int n_nodes_x, n_nodes_y, n_nodes_z;
 
 
-	cuda_status = cudaMemcpy(h5_tmp_buf_1, dev_charge_density, sizeof(double) * dim,
-		cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
+	//status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "x_volume_size",
+	//	&volume_sz_x);
+	//hdf5_status_check(status);
+	//status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "y_volume_size",
+	//	&volume_sz_y);
+	//hdf5_status_check(status);
+	//status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "z_volume_size",
+	//	&volume_sz_z);
+	//hdf5_status_check(status);
 
-	cuda_status = cudaMemcpy(h5_tmp_buf_2, dev_potential, sizeof(double) * dim,
-		cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
+	//status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "x_cell_size",
+	//	&cell_size_x);
+	//hdf5_status_check(status);
+	//status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "y_cell_size",
+	//	&cell_size_y);
+	//hdf5_status_check(status);
+	//status = H5LTget_attribute_double(h5_spat_mesh_group, "./", "z_cell_size",
+	//	&cell_size_z);
+	//hdf5_status_check(status);
 
-	double3 *h5_tmp_vector = new double3[dim];
+	//status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "x_n_nodes",
+	//	&n_nodes_x);
+	//hdf5_status_check(status);
+	//status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "y_n_nodes",
+	//	&n_nodes_y);
+	//hdf5_status_check(status);
+	//status = H5LTget_attribute_int(h5_spat_mesh_group, "./", "z_n_nodes",
+	//	&n_nodes_z);
+	//hdf5_status_check(status);
 
-	H5LTread_dataset_double(h5_spat_mesh_group, "./electric_field_x",
-		h5_tmp_buf_1);
-	H5LTread_dataset_double(h5_spat_mesh_group, "./electric_field_y",
-		h5_tmp_buf_2);
-	H5LTread_dataset_double(h5_spat_mesh_group, "./electric_field_z",
-		h5_tmp_buf_3);
-	for (int i = 0; i < dim; i++) {
-		h5_tmp_vector[i] = make_double3(h5_tmp_buf_1[i], h5_tmp_buf_2[i],
-			h5_tmp_buf_3[i]);
-	}
+	//volume_size[0] = make_double3(volume_sz_x, volume_sz_y, volume_sz_z);
+	//cell_size[0] = make_double3(cell_size_x, cell_size_y, cell_size_z);
+	//n_nodes[0] = make_int3(n_nodes_x, n_nodes_y, n_nodes_z);
 
-	cuda_status = cudaMemcpy(h5_tmp_buf_2, dev_electric_field, sizeof(double3) * dim,
-		cudaMemcpyHostToDevice);
-	cuda_status_check(cuda_status, debug_message);
+	//allocate_ongrid_values();
+	//copy_constants_to_device();
 
-	delete[] h5_tmp_buf_1;
-	delete[] h5_tmp_buf_2;
-	delete[] h5_tmp_buf_3;
-	delete[] h5_tmp_vector;
+	//int dim = n_nodes->x * n_nodes->y * n_nodes->z;
+	//double *h5_tmp_buf_1 = new double[dim];
+	//double *h5_tmp_buf_2 = new double[dim];
+	//double *h5_tmp_buf_3 = new double[dim];
 
-	return;
+	//dim3 threads = GetThreads();
+	//dim3 blocks = GetBlocks(threads);
+	//fill_coordinates <<< blocks, threads >>> (dev_node_coordinates);
+	//cuda_status = cudaDeviceSynchronize();
+	//cuda_status_check(cuda_status, debug_message);
+
+	//H5LTread_dataset_double(h5_spat_mesh_group, "./charge_density",
+	//	h5_tmp_buf_1);
+	//H5LTread_dataset_double(h5_spat_mesh_group, "./potential", h5_tmp_buf_2);
+
+
+	//cuda_status = cudaMemcpy(h5_tmp_buf_1, dev_charge_density, sizeof(double) * dim,
+	//	cudaMemcpyHostToDevice);
+	//cuda_status_check(cuda_status, debug_message);
+
+	//cuda_status = cudaMemcpy(h5_tmp_buf_2, dev_potential, sizeof(double) * dim,
+	//	cudaMemcpyHostToDevice);
+	//cuda_status_check(cuda_status, debug_message);
+
+	//double3 *h5_tmp_vector = new double3[dim];
+
+	//H5LTread_dataset_double(h5_spat_mesh_group, "./electric_field_x",
+	//	h5_tmp_buf_1);
+	//H5LTread_dataset_double(h5_spat_mesh_group, "./electric_field_y",
+	//	h5_tmp_buf_2);
+	//H5LTread_dataset_double(h5_spat_mesh_group, "./electric_field_z",
+	//	h5_tmp_buf_3);
+	//for (int i = 0; i < dim; i++) {
+	//	h5_tmp_vector[i] = make_double3(h5_tmp_buf_1[i], h5_tmp_buf_2[i],
+	//		h5_tmp_buf_3[i]);
+	//}
+
+	//cuda_status = cudaMemcpy(h5_tmp_buf_2, dev_electric_field, sizeof(double3) * dim,
+	//	cudaMemcpyHostToDevice);
+	//cuda_status_check(cuda_status, debug_message);
+
+	//delete[] h5_tmp_buf_1;
+	//delete[] h5_tmp_buf_2;
+	//delete[] h5_tmp_buf_3;
+	//delete[] h5_tmp_vector;
+
+	//return;
 }
 
 void SpatialMeshCu::check_correctness_of_related_config_fields(Config &conf) {
