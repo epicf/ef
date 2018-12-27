@@ -127,9 +127,9 @@ __global__ void AssertConvergence(const double* d_phi_current, const double* d_p
 FieldSolver::FieldSolver(SpatialMeshCu &mesh, Inner_regions_manager &inner_regions) : mesh(mesh)
 {
 	allocate_next_phi();
-	std::cout << "solver memory allocation";
+	std::cout << "solver memory allocation ";
 	copy_constants_to_device();
-	std::cout << "solver copy constants";
+	std::cout << " solver copy constants ";
 }
 
 void FieldSolver::allocate_next_phi()
@@ -144,35 +144,28 @@ void FieldSolver::allocate_next_phi()
 void FieldSolver::copy_constants_to_device() {
 	cudaError_t cuda_status;
 
-	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (void*)&mesh.n_nodes, sizeof(dim3),
-		cudaMemcpyHostToDevice);
-	cuda_status = cudaMemcpyToSymbol(d_cell_size, (void*)&mesh.cell_size, sizeof(double3),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)&mesh.n_nodes, sizeof(dim3));
+	cuda_status = cudaMemcpyToSymbol(d_cell_size, (const void*)&mesh.cell_size, sizeof(double3));
 
 	double dxdxdydy = mesh.cell_size.x * mesh.cell_size.x *
 		mesh.cell_size.y * mesh.cell_size.y;
-	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydy, (void*)&dxdxdydy, sizeof(double),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydy, (const void*)&dxdxdydy, sizeof(double));
 
 	double dxdxdzdz = mesh.cell_size.x * mesh.cell_size.x *
 		mesh.cell_size.z * mesh.cell_size.z;
-	cuda_status = cudaMemcpyToSymbol(dev_dxdxdzdz, (void*)&dxdxdzdz, sizeof(double),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(dev_dxdxdzdz, (const void*)&dxdxdzdz, sizeof(double));
 
 	double dydydzdz = mesh.cell_size.y * mesh.cell_size.y *
 		mesh.cell_size.z * mesh.cell_size.z;
-	cuda_status = cudaMemcpyToSymbol(dev_dydydzdz, (void*)&dydydzdz, sizeof(double),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(dev_dydydzdz, (const void*)&dydydzdz, sizeof(double));
 
 	double dxdxdydydzdz = mesh.cell_size.x * mesh.cell_size.x *
 		mesh.cell_size.y * mesh.cell_size.y *
 		mesh.cell_size.z * mesh.cell_size.z;
-	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydydzdz, (void*)&dxdxdydydzdz, sizeof(double),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydydzdz, (const void*)&dxdxdydydzdz, sizeof(double));
 
 	int end = mesh.n_nodes.x * mesh.n_nodes.y * mesh.n_nodes.z - 1;
-	cuda_status = cudaMemcpyToSymbol(dev_end, (void*)&end, sizeof(int),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(dev_end, (const void*)&end, sizeof(int));
 }
 
 void FieldSolver::eval_potential(Inner_regions_manager &inner_regions)
