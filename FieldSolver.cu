@@ -134,7 +134,7 @@ FieldSolver::FieldSolver(SpatialMeshCu &mesh, Inner_regions_manager &inner_regio
 
 void FieldSolver::allocate_next_phi()
 {
-	size_t dim = mesh.n_nodes.x * mesh.n_nodes.y * mesh.n_nodes.z;
+	size_t dim = mesh.n_nodes->x * mesh.n_nodes->y * mesh.n_nodes->z;
 	cudaError_t cuda_status;
 
 	cuda_status = cudaMalloc<double>(&dev_phi_next, dim);
@@ -149,28 +149,28 @@ void FieldSolver::copy_constants_to_device() {
 	cuda_status = cudaMemcpyToSymbol(d_cell_size, (void*)&mesh.cell_size, sizeof(double3),
 		cudaMemcpyHostToDevice);
 
-	double dxdxdydy = mesh.cell_size.x * mesh.cell_size.x *
-		mesh.cell_size.y * mesh.cell_size.y;
+	double dxdxdydy = mesh.cell_size->x * mesh.cell_size->x *
+		mesh.cell_size->y * mesh.cell_size->y;
 	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydy, (void*)&dxdxdydy, sizeof(double),
 		cudaMemcpyHostToDevice);
 
-	double dxdxdzdz = mesh.cell_size.x * mesh.cell_size.x *
-		mesh.cell_size.z * mesh.cell_size.z;
+	double dxdxdzdz = mesh.cell_size->x * mesh.cell_size->x *
+		mesh.cell_size->z * mesh.cell_size->z;
 	cuda_status = cudaMemcpyToSymbol(dev_dxdxdzdz, (void*)&dxdxdzdz, sizeof(double),
 		cudaMemcpyHostToDevice);
 
-	double dydydzdz = mesh.cell_size.y * mesh.cell_size.y *
-		mesh.cell_size.z * mesh.cell_size.z;
+	double dydydzdz = mesh.cell_size->y * mesh.cell_size->y *
+		mesh.cell_size->z * mesh.cell_size->z;
 	cuda_status = cudaMemcpyToSymbol(dev_dydydzdz, (void*)&dydydzdz, sizeof(double),
 		cudaMemcpyHostToDevice);
 
-	double dxdxdydydzdz = mesh.cell_size.x * mesh.cell_size.x *
-		mesh.cell_size.y * mesh.cell_size.y *
-		mesh.cell_size.z * mesh.cell_size.z;
+	double dxdxdydydzdz = mesh.cell_size->x * mesh.cell_size->x *
+		mesh.cell_size->y * mesh.cell_size->y *
+		mesh.cell_size->z * mesh.cell_size->z;
 	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydydzdz, (void*)&dxdxdydydzdz, sizeof(double),
 		cudaMemcpyHostToDevice);
 
-	int end = mesh.n_nodes.x * mesh.n_nodes.y * mesh.n_nodes.z - 1;
+	int end = mesh.n_nodes->x * mesh.n_nodes->y * mesh.n_nodes->z - 1;
 	cuda_status = cudaMemcpyToSymbol(dev_end, (void*)&end, sizeof(int),
 		cudaMemcpyHostToDevice);
 }
