@@ -259,7 +259,8 @@ void SpatialMeshCu::copy_boundary_to_device(Config &conf) {
 	boundary[BOTTOM] = conf.boundary_config_part.boundary_phi_bottom;
 	boundary[NEAR] = conf.boundary_config_part.boundary_phi_near;
 	boundary[FAR] = conf.boundary_config_part.boundary_phi_far;
-	cuda_status = cudaMemcpyToSymbol(d_boundary, (const void*)boundary,
+	const double *c_boundary = boundary;
+	cuda_status = cudaMemcpyToSymbol(d_boundary, (const void*)c_boundary,
 		sizeof(double)*6, cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 	delete[] boundary;
@@ -272,18 +273,22 @@ void SpatialMeshCu::allocate_ongrid_values() {
 
 	size_t total_node_count = nx * ny * nz;
 	cudaError_t cuda_status;
-	std::string debug_message = std::string(" copy borders ");
 
-	cuda_status = cudaMalloc < double3 >(&dev_node_coordinates, total_node_count);
+	std::string debug_message = std::string(" malloc coords");
+
+	cuda_status = cudaMalloc < double3 >(&dev_node_coordinates, sizeof(double3) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMalloc<double>(&dev_charge_density, total_node_count);
+	debug_message = std::string(" malloc charde density");
+	cuda_status = cudaMalloc<double>(&dev_charge_density, sizeof(double3) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMalloc<double>(&dev_potential, total_node_count);
+	debug_message = std::string(" malloc potential");
+	cuda_status = cudaMalloc<double>(&dev_potential, sizeof(double3) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
-	cuda_status = cudaMalloc < double3 >(&dev_electric_field, total_node_count);
+	debug_message = std::string(" malloc field");
+	cuda_status = cudaMalloc < double3 >(&dev_electric_field, sizeof(double3) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
 	return;
