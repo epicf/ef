@@ -277,7 +277,7 @@ bool FieldSolver::iterative_Jacobi_solutions_converged()
 	status = cudaHostAlloc((void **)&convergence, sizeof(unsigned int), cudaHostAllocMapped);
 	status = cudaHostGetDevicePointer((void **)&d_convergence, convergence, 0);
 
-	int nwarps = 2;
+	const int nwarps = 2;
 	Convergence<nwarps><<<blocks, threads>>>(mesh.dev_potential, dev_phi_next, d_convergence);
 	status = cudaDeviceSynchronize();
 	//if (status == cudaErrorAssert) {
