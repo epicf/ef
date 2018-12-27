@@ -230,7 +230,7 @@ void SpatialMeshCu::copy_constants_to_device() {
 	//mesh params
 	const int3 *nodes = &n_nodes;
 	std::string debug_message = std::string(" copy nodes number ");
-	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)nodes, sizeof(dim3),
+	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)nodes, sizeof(int3),
 		cudaMemcpyHostToDevice);
 	cuda_status_check(cuda_status, debug_message);
 
@@ -279,11 +279,11 @@ void SpatialMeshCu::allocate_ongrid_values() {
 	cuda_status_check(cuda_status, debug_message);
 
 	debug_message = std::string(" malloc charde density");
-	cuda_status = cudaMalloc<double>(&dev_charge_density, sizeof(double3) * total_node_count);
+	cuda_status = cudaMalloc<double>(&dev_charge_density, sizeof(double) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
 	debug_message = std::string(" malloc potential");
-	cuda_status = cudaMalloc<double>(&dev_potential, sizeof(double3) * total_node_count);
+	cuda_status = cudaMalloc<double>(&dev_potential, sizeof(double) * total_node_count);
 	cuda_status_check(cuda_status, debug_message);
 
 	debug_message = std::string(" malloc field");
