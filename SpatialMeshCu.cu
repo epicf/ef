@@ -230,10 +230,10 @@ void SpatialMeshCu::init_constants(Config & conf) {
 void SpatialMeshCu::copy_constants_to_device() {
 	cudaError_t cuda_status;
 	//mesh params
-	std::string debug_message = std::string(" copy constants ");
+	std::string debug_message;
 	
-	cuda_status = cudaMalloc < int3 >(&d_n_nodes, 1);
-	cuda_status_check(cuda_status, debug_message);
+	//cuda_status = cudaMalloc < int3 >(&d_n_nodes, 1);
+	//cuda_status_check(cuda_status, debug_message);
 
 	debug_message = std::string(" copy constants ");
 
