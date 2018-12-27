@@ -11,9 +11,9 @@
 class SpatialMeshCu {
 public:
 
-	int3 *const n_nodes;
-	double3 *const cell_size;
-	double3 *const volume_size;
+	int3 *const n_nodes=&make_int3(0,0,0);
+	double3 *const cell_size = &make_double3(0, 0, 0);
+	double3 *const volume_size = &make_double3(0, 0, 0);
 	double3 *dev_node_coordinates;
 	double *dev_charge_density;
 	double *dev_potential;
