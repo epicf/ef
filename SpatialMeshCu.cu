@@ -263,7 +263,6 @@ void SpatialMeshCu::copy_boundary_to_device(Config &conf) {
 	cuda_status = cudaMemcpyToSymbol(d_boundary, (const void*)c_boundary,
 		sizeof(double)*6);
 	cuda_status_check(cuda_status, debug_message);
-	delete[] boundary;
 }
 
 void SpatialMeshCu::allocate_ongrid_values() {
