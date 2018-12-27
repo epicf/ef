@@ -2,6 +2,8 @@
 
 
 
+#define FULL_MASK 0xffffffff
+//mask for __all_sync used in convergence method
 
 __constant__ double3 d_cell_size[1];
 __constant__ int3 d_n_nodes[1];
@@ -111,25 +113,63 @@ __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_fiel
 
 }
 
-__global__ void AssertConvergence(const double* d_phi_current, const double* d_phi_next) {
+//__global__ void AssertConvergence(const double* d_phi_current, const double* d_phi_next) {
+//	double rel_diff;
+//	double abs_diff;
+//	double abs_tolerance = 1.0e-5;
+//	double rel_tolerance = 1.0e-12;
+//	int idx = GetIdx();
+//	abs_diff = fabs(d_phi_next[idx] - d_phi_current[idx]);
+//	rel_diff = abs_diff / fabs(d_phi_current[idx]);
+//	bool converged = ((abs_diff <= abs_tolerance) || (rel_diff <= rel_tolerance));
+//
+//	assert(converged==true);
+//}
+
+template<int nwarps>
+__global__ void Convergence(const double* d_phi_current, const double* d_phi_next, unsigned int *d_convergence)
+{
+	__shared__ int w_convegence[nwarps];
+	unsigned int laneid = (threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y) % warpSize;
+	unsigned int warpid = (threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y) / warpSize;
+
 	double rel_diff;
 	double abs_diff;
 	double abs_tolerance = 1.0e-5;
 	double rel_tolerance = 1.0e-12;
+
 	int idx = GetIdx();
+
 	abs_diff = fabs(d_phi_next[idx] - d_phi_current[idx]);
 	rel_diff = abs_diff / fabs(d_phi_current[idx]);
-	bool converged = ((abs_diff <= abs_tolerance) || (rel_diff <= rel_tolerance));
 
-	assert(converged==true);
+	unsigned int converged = ((abs_diff <= abs_tolerance) || (rel_diff <= rel_tolerance));
+
+	converged = __all_sync(FULL_MASK, converged == 1 );
+
+	if (laneid == 0) {
+		w_convegence[warpid] = converged;
+	}
+	__syncthreads();
+
+	if (threadIdx.x == 0) {
+		int b_convergence = 0;
+#pragma unroll
+		for (int i = 0; i<nwarps; i++) {
+			b_convergence &= w_convegence[i];
+		}
+		if (b_convergence == 0 ) {
+			atomicAdd(d_convergence, 1);
+		}
+	}
 }
 
 FieldSolver::FieldSolver(SpatialMeshCu &mesh, Inner_regions_manager &inner_regions) : mesh(mesh)
 {
 	allocate_next_phi();
-	std::cout << "solver memory allocation";
+	//std::cout << "solver memory allocation ";
 	copy_constants_to_device();
-	std::cout << "solver copy constants";
+	//std::cout << " solver copy constants ";
 }
 
 void FieldSolver::allocate_next_phi()
@@ -144,35 +184,28 @@ void FieldSolver::allocate_next_phi()
 void FieldSolver::copy_constants_to_device() {
 	cudaError_t cuda_status;
 
-	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (void*)&mesh.n_nodes, sizeof(dim3),
-		cudaMemcpyHostToDevice);
-	cuda_status = cudaMemcpyToSymbol(d_cell_size, (void*)&mesh.cell_size, sizeof(double3),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(d_n_nodes, (const void*)&mesh.n_nodes, sizeof(dim3));
+	cuda_status = cudaMemcpyToSymbol(d_cell_size, (const void*)&mesh.cell_size, sizeof(double3));
 
 	double dxdxdydy = mesh.cell_size.x * mesh.cell_size.x *
 		mesh.cell_size.y * mesh.cell_size.y;
-	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydy, (void*)&dxdxdydy, sizeof(double),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydy, (const void*)&dxdxdydy, sizeof(double));
 
 	double dxdxdzdz = mesh.cell_size.x * mesh.cell_size.x *
 		mesh.cell_size.z * mesh.cell_size.z;
-	cuda_status = cudaMemcpyToSymbol(dev_dxdxdzdz, (void*)&dxdxdzdz, sizeof(double),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(dev_dxdxdzdz, (const void*)&dxdxdzdz, sizeof(double));
 
 	double dydydzdz = mesh.cell_size.y * mesh.cell_size.y *
 		mesh.cell_size.z * mesh.cell_size.z;
-	cuda_status = cudaMemcpyToSymbol(dev_dydydzdz, (void*)&dydydzdz, sizeof(double),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(dev_dydydzdz, (const void*)&dydydzdz, sizeof(double));
 
 	double dxdxdydydzdz = mesh.cell_size.x * mesh.cell_size.x *
 		mesh.cell_size.y * mesh.cell_size.y *
 		mesh.cell_size.z * mesh.cell_size.z;
-	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydydzdz, (void*)&dxdxdydydzdz, sizeof(double),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(dev_dxdxdydydzdz, (const void*)&dxdxdydydzdz, sizeof(double));
 
 	int end = mesh.n_nodes.x * mesh.n_nodes.y * mesh.n_nodes.z - 1;
-	cuda_status = cudaMemcpyToSymbol(dev_end, (void*)&end, sizeof(int),
-		cudaMemcpyHostToDevice);
+	cuda_status = cudaMemcpyToSymbol(dev_end, (const void*)&end, sizeof(int));
 }
 
 void FieldSolver::eval_potential(Inner_regions_manager &inner_regions)
@@ -202,8 +235,8 @@ void FieldSolver::solve_poisson_eqn_Jacobi(Inner_regions_manager &inner_regions)
 
 void FieldSolver::single_Jacobi_iteration(Inner_regions_manager &inner_regions)
 {
-	set_phi_next_at_boundaries();
 	compute_phi_next_at_inner_points();
+	set_phi_next_at_boundaries();
 	set_phi_next_at_inner_regions(inner_regions);
 }
 
@@ -241,17 +274,23 @@ bool FieldSolver::iterative_Jacobi_solutions_converged()
 	cudaError_t status;
 	dim3 threads = mesh.GetThreads();
 	dim3 blocks = mesh.GetBlocks(threads);
-	AssertConvergence<<<blocks, threads>>>(mesh.dev_potential,dev_phi_next);
-	status = cudaDeviceSynchronize();
-	if (status == cudaErrorAssert) {
-		return false;
-	}
-	if (status == cudaSuccess) {
-		return true;
-	}
 
-	std::cout << "Cuda error: " << cudaGetErrorString(status) << std::endl;
-	return false;
+	unsigned int *convergence, *d_convergence;//host,device  flags
+	status = cudaHostAlloc((void **)&convergence, sizeof(unsigned int), cudaHostAllocMapped);
+	status = cudaHostGetDevicePointer((void **)&d_convergence, convergence, 0);
+
+	const int nwarps = 2;
+	Convergence<nwarps><<<blocks, threads>>>(mesh.dev_potential, dev_phi_next, d_convergence);
+	status = cudaDeviceSynchronize();
+	//if (status == cudaErrorAssert) {
+	//	return false;
+	//}
+	//if (status == cudaSuccess) {
+	//	return true;
+	//}
+
+	//std::cout << "Cuda error: " << cudaGetErrorString(status) << std::endl;
+	return *convergence == 0 ;
 }
 
 

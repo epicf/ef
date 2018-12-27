@@ -11,20 +11,15 @@
 class SpatialMeshCu {
 public:
 
-	int3 n_nodes[1];
-	double3 cell_size[1];
-	double3 volume_size[1];
+	int3 n_nodes;
+	double3 cell_size;
+	double3 volume_size;
 	double3 *dev_node_coordinates;
 	double *dev_charge_density;
 	double *dev_potential;
 	double3 *dev_electric_field;
 
-	//double* d_up_border;
-	//double* d_bot_border;
-	//double* d_left_border;
-	//double* d_right_border;
-	//double* d_far_border;
-	//double* d_near_border;
+
 	//double border_left;
 	//double border_right;
 	//double border_top;
