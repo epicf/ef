@@ -19,10 +19,6 @@ public:
 	double *dev_potential;
 	double3 *dev_electric_field;
 
-	double3* d_volume_size;
-	double3* d_cell_size;
-	int3* d_n_nodes;
-
 	//double* d_up_border;
 	//double* d_bot_border;
 	//double* d_left_border;
