@@ -2,6 +2,8 @@
 
 
 
+#define FULL_MASK 0xffffffff
+//mask for __all_sync used in convergence method
 
 __constant__ double3 d_cell_size[1];
 __constant__ int3 d_n_nodes[1];
@@ -136,7 +138,7 @@ __global__ void Convergence(const double* d_phi_current, const double* d_phi_nex
 	double abs_tolerance = 1.0e-5;
 	double rel_tolerance = 1.0e-12;
 
-	int idx = GetIdxVolume();
+	int idx = GetIdx();
 
 	abs_diff = fabs(d_phi_next[idx] - d_phi_current[idx]);
 	rel_diff = abs_diff / fabs(d_phi_current[idx]);
