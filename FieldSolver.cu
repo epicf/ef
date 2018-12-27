@@ -158,7 +158,7 @@ __global__ void Convergence(const double* d_phi_current, const double* d_phi_nex
 		for (int i = 0; i<nwarps; i++) {
 			b_convergence &= w_convegence[i];
 		}
-		if ( bchanged == 0 ) {
+		if (b_convergence == 0 ) {
 			atomicAdd(d_convergence, 1);
 		}
 	}
