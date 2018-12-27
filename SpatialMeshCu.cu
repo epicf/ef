@@ -463,6 +463,8 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 		double *ny = new double[dims[0]];
 		double *nz = new double[dims[0]];
 
+		debug_message = std::string(" write hdf5 node_coords");
+
 		double3 *hdf5_tmp_write_data = new double3[dims[0]];
 		cuda_status = cudaMemcpy(hdf5_tmp_write_data, dev_node_coordinates,
 			sizeof(double3) * dims[0], cudaMemcpyDeviceToHost);
@@ -473,7 +475,7 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 			nz[i] = hdf5_tmp_write_data[i].z;
 		}
 
-		dset = H5Dcreate(group_id, "./node_coordinates_x", H5T_IEEE_F64BE,
+		dset = H5Dcreate(group_id, "./node_coordinates_x ", H5T_IEEE_F64BE,
 			filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 		hdf5_status_check(dset);
 		status = H5Dwrite(dset, H5T_NATIVE_DOUBLE, H5S_ALL, filespace,
@@ -505,6 +507,8 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 		delete[] hdf5_tmp_write_data;
 	}
 	{
+		debug_message = std::string(" write hdf5 charge_density ");
+
 		double *hdf5_tmp_write_data = new double[dims[0]];
 		cuda_status = cudaMemcpy(hdf5_tmp_write_data, dev_charge_density,
 			sizeof(double) * dims[0], cudaMemcpyDeviceToHost);
@@ -521,10 +525,13 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 		delete[] hdf5_tmp_write_data;
 	}
 	{
+
+		debug_message = std::string(" write hdf5 potential ");
 		double *hdf5_tmp_write_data = new double[dims[0]];
 		cuda_status = cudaMemcpy(hdf5_tmp_write_data, dev_potential, sizeof(double) * dims[0],
 			cudaMemcpyDeviceToHost);
 		cuda_status_check(cuda_status, debug_message);
+
 		dset = H5Dcreate(group_id, "./potential", H5T_IEEE_F64BE, filespace,
 			H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 		hdf5_status_check(dset);
@@ -537,6 +544,8 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 
 	}
 	{
+		debug_message = std::string(" write hdf5 charge_density ");
+
 		double *ex = new double[dims[0]];
 		double *ey = new double[dims[0]];
 		double *ez = new double[dims[0]];

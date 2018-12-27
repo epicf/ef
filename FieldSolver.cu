@@ -167,9 +167,9 @@ __global__ void Convergence(const double* d_phi_current, const double* d_phi_nex
 FieldSolver::FieldSolver(SpatialMeshCu &mesh, Inner_regions_manager &inner_regions) : mesh(mesh)
 {
 	allocate_next_phi();
-	std::cout << "solver memory allocation ";
+	//std::cout << "solver memory allocation ";
 	copy_constants_to_device();
-	std::cout << " solver copy constants ";
+	//std::cout << " solver copy constants ";
 }
 
 void FieldSolver::allocate_next_phi()
