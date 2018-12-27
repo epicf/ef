@@ -111,17 +111,55 @@ __global__ void EvaluateFields(const double* dev_potential, double3* dev_el_fiel
 
 }
 
-__global__ void AssertConvergence(const double* d_phi_current, const double* d_phi_next) {
+//__global__ void AssertConvergence(const double* d_phi_current, const double* d_phi_next) {
+//	double rel_diff;
+//	double abs_diff;
+//	double abs_tolerance = 1.0e-5;
+//	double rel_tolerance = 1.0e-12;
+//	int idx = GetIdx();
+//	abs_diff = fabs(d_phi_next[idx] - d_phi_current[idx]);
+//	rel_diff = abs_diff / fabs(d_phi_current[idx]);
+//	bool converged = ((abs_diff <= abs_tolerance) || (rel_diff <= rel_tolerance));
+//
+//	assert(converged==true);
+//}
+
+template<int nwarps>
+__global__ void Convergence(const double* d_phi_current, const double* d_phi_next, unsigned int *d_convergence)
+{
+	__shared__ int w_convegence[nwarps];
+	unsigned int laneid = (threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y) % warpSize;
+	unsigned int warpid = (threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y) / warpSize;
+
 	double rel_diff;
 	double abs_diff;
 	double abs_tolerance = 1.0e-5;
 	double rel_tolerance = 1.0e-12;
-	int idx = GetIdx();
+
+	int idx = GetIdxVolume();
+
 	abs_diff = fabs(d_phi_next[idx] - d_phi_current[idx]);
 	rel_diff = abs_diff / fabs(d_phi_current[idx]);
-	bool converged = ((abs_diff <= abs_tolerance) || (rel_diff <= rel_tolerance));
 
-	assert(converged==true);
+	unsigned int converged = ((abs_diff <= abs_tolerance) || (rel_diff <= rel_tolerance));
+
+	converged = __all_sync(FULL_MASK, converged == 1 );
+
+	if (laneid == 0) {
+		w_convegence[warpid] = converged;
+	}
+	__syncthreads();
+
+	if (threadIdx.x == 0) {
+		int b_convergence = 0;
+#pragma unroll
+		for (int i = 0; i<nwarps; i++) {
+			b_convergence &= w_convegence[i];
+		}
+		if ( bchanged == 0 ) {
+			atomicAdd(d_convergence, 1);
+		}
+	}
 }
 
 FieldSolver::FieldSolver(SpatialMeshCu &mesh, Inner_regions_manager &inner_regions) : mesh(mesh)
@@ -195,8 +233,8 @@ void FieldSolver::solve_poisson_eqn_Jacobi(Inner_regions_manager &inner_regions)
 
 void FieldSolver::single_Jacobi_iteration(Inner_regions_manager &inner_regions)
 {
-	set_phi_next_at_boundaries();
 	compute_phi_next_at_inner_points();
+	set_phi_next_at_boundaries();
 	set_phi_next_at_inner_regions(inner_regions);
 }
 
@@ -234,17 +272,23 @@ bool FieldSolver::iterative_Jacobi_solutions_converged()
 	cudaError_t status;
 	dim3 threads = mesh.GetThreads();
 	dim3 blocks = mesh.GetBlocks(threads);
-	AssertConvergence<<<blocks, threads>>>(mesh.dev_potential,dev_phi_next);
+
+	unsigned int *convergence, *d_convergence;//host,device  flags
+	status = cudaHostAlloc((void **)&convergence, sizeof(unsigned int), cudaHostAllocMapped);
+	status = cudaHostGetDevicePointer((void **)&d_convergence, convergence, 0);
+
+	int nwarps = 2;
+	Convergence<nwarps><<<blocks, threads>>>(mesh.dev_potential, dev_phi_next, d_convergence);
 	status = cudaDeviceSynchronize();
-	if (status == cudaErrorAssert) {
-		return false;
-	}
-	if (status == cudaSuccess) {
-		return true;
-	}
+	//if (status == cudaErrorAssert) {
+	//	return false;
+	//}
+	//if (status == cudaSuccess) {
+	//	return true;
+	//}
 
 	std::cout << "Cuda error: " << cudaGetErrorString(status) << std::endl;
-	return false;
+	return *convergence ==1 ;
 }
 
 
