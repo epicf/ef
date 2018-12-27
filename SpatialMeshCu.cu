@@ -138,9 +138,9 @@ SpatialMeshCu::SpatialMeshCu(hid_t h5_spat_mesh_group) {
 		&n_nodes_z);
 	hdf5_status_check(status);
 
-	volume_size[0] = make_double3(volume_sz_x, volume_sz_y, volume_sz_z);
-	cell_size[0] = make_double3(cell_size_x, cell_size_y, cell_size_z);
-	n_nodes[0] = make_int3(n_nodes_x, n_nodes_y, n_nodes_z);
+	*(volume_size) = make_double3(volume_sz_x, volume_sz_y, volume_sz_z);
+	*(cell_size) = make_double3(cell_size_x, cell_size_y, cell_size_z);
+	*(n_nodes) = make_int3(n_nodes_x, n_nodes_y, n_nodes_z);
 
 	allocate_ongrid_values();
 	copy_constants_to_device();
@@ -204,7 +204,7 @@ void SpatialMeshCu::check_correctness_of_related_config_fields(Config &conf) {
 }
 
 void SpatialMeshCu::init_constants(Config & conf) {
-	n_nodes[0] = make_int3(
+	*(n_nodes) = make_int3(
 		ceil(
 			conf.mesh_config_part.grid_x_size
 			/ conf.mesh_config_part.grid_x_step) + 1,
@@ -215,12 +215,12 @@ void SpatialMeshCu::init_constants(Config & conf) {
 			conf.mesh_config_part.grid_z_size
 			/ conf.mesh_config_part.grid_z_step) + 1);
 
-	volume_size[0] = make_double3(conf.mesh_config_part.grid_x_size,
+	*(volume_size) = make_double3(conf.mesh_config_part.grid_x_size,
 		conf.mesh_config_part.grid_y_size,
 		conf.mesh_config_part.grid_z_size);
 
-	cell_size[0] = make_double3(volume_size[0].x / (n_nodes[0].x - 1),
-		volume_size[0].y / (n_nodes[0].y - 1), volume_size[0].z / (n_nodes[0].z - 1));
+	*(cell_size) = make_double3(volume_size->x / (n_nodes->x - 1),
+		volume_size->y / (n_nodes->y - 1), volume_size->z / (n_nodes->z - 1));
 
 
 	copy_constants_to_device();
@@ -425,31 +425,31 @@ void SpatialMeshCu::write_hdf5_attributes(hid_t group_id) {
 	std::string hdf5_current_group = "./";
 
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"x_volume_size", &(volume_size[0].x), single_element);
+		"x_volume_size", &(volume_size->x), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"y_volume_size", &(volume_size[0].y), single_element);
+		"y_volume_size", &(volume_size->y), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"z_volume_size", &(volume_size[0].z), single_element);
+		"z_volume_size", &(volume_size->z), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"x_cell_size", &(cell_size[0].x), single_element);
+		"x_cell_size", &(cell_size->x), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"y_cell_size", &(cell_size[0].y), single_element);
+		"y_cell_size", &(cell_size->y), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_double(group_id, hdf5_current_group.c_str(),
-		"z_cell_size", &(cell_size[0].z), single_element);
+		"z_cell_size", &(cell_size->z), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_int(group_id, hdf5_current_group.c_str(),
-		"x_n_nodes", &(n_nodes[0].x), single_element);
+		"x_n_nodes", &(n_nodes->x), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_int(group_id, hdf5_current_group.c_str(),
-		"y_n_nodes", &(n_nodes[0].y), single_element);
+		"y_n_nodes", &(n_nodes->y), single_element);
 	hdf5_status_check(status);
 	status = H5LTset_attribute_int(group_id, hdf5_current_group.c_str(),
-		"z_n_nodes", &(n_nodes[0].z), single_element);
+		"z_n_nodes", &(n_nodes->z), single_element);
 	hdf5_status_check(status);
 }
 

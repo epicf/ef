@@ -16,9 +16,9 @@ __constant__ int dev_end[1];
 __device__ int GetIdx() {
 	//int xStepthread = 1;
 	int xStepBlock = blockDim.x;
-	int yStepThread = d_n_nodes[0].x;
+	int yStepThread = d_n_nodes->x;
 	int yStepBlock = yStepThread * blockDim.y;
-	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
+	int zStepThread = d_n_nodes->x * d_n_nodes->y;
 	int zStepBlock = zStepThread * blockDim.z;
 	return (threadIdx.x + blockIdx.x * xStepBlock) +
 		(threadIdx.y * yStepThread + blockIdx.y * yStepBlock) +
@@ -38,8 +38,8 @@ __global__ void ComputePhiNext(const double* d_phi_current, const double* d_char
 	int idx = GetIdx();
 	int offset_Dx = 1;
 	//todo rewrite usind device n_nodes.x/y/z
-	int offset_Dy = d_n_nodes[0].x;
-	int offset_Dz = d_n_nodes[0].x * d_n_nodes[0].y;
+	int offset_Dy = d_n_nodes->x;
+	int offset_Dz = d_n_nodes->x * d_n_nodes->y;
 
 	int prev_neighbour_idx;
 	int next_neighbour_idx;
