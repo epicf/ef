@@ -295,8 +295,8 @@ void SpatialMeshCu::fill_node_coordinates() {
 	dim3 blocks = GetBlocks(threads);
 	cudaError_t cuda_status;
 	std::string debug_message = std::string(" fill coordinates ");
-	fill_coordinates <<< blocks,threads>>> (dev_node_coordinates);
-	cuda_status= cudaDeviceSynchronize();
+	fill_coordinates<<<blocks,threads>>>(dev_node_coordinates);
+	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
 	return;
