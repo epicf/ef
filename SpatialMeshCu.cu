@@ -544,13 +544,13 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 
 	}
 	{
-		debug_message = std::string(" write hdf5 charge_density ");
+		debug_message = std::string(" write electric field to hdf5 ");
 
 		double *ex = new double[dims[0]];
 		double *ey = new double[dims[0]];
 		double *ez = new double[dims[0]];
 		double3 *hdf5_tmp_write_data = new double3[dims[0]];
-		cuda_status = cudaMemcpy(dev_node_coordinates, hdf5_tmp_write_data,
+		cuda_status = cudaMemcpy(hdf5_tmp_write_data, dev_electric_field,
 			sizeof(double3) * dims[0], cudaMemcpyDeviceToHost);
 		cuda_status_check(cuda_status, debug_message);
 
