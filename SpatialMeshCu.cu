@@ -475,7 +475,7 @@ void SpatialMeshCu::write_hdf5_ongrid_values(hid_t group_id) {
 			nz[i] = hdf5_tmp_write_data[i].z;
 		}
 
-		dset = H5Dcreate(group_id, "./node_coordinates_x ", H5T_IEEE_F64BE,
+		dset = H5Dcreate(group_id, "./node_coordinates_x", H5T_IEEE_F64BE,
 			filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 		hdf5_status_check(dset);
 		status = H5Dwrite(dset, H5T_NATIVE_DOUBLE, H5S_ALL, filespace,
