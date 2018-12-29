@@ -29,13 +29,13 @@ __device__ int GetIdxVolume() {
 
 __global__ void fill_coordinates(double3* node_coordinates) {
 
-	int idx = GetIdxVolume();
+	int plain_idx = GetIdxVolume();
 
-	int x = threadIdx.x + blockIdx.x * blockDim.x;
-	int y = threadIdx.y + blockIdx.y * blockDim.y;
-	int z = threadIdx.z + blockIdx.z * blockDim.z;
-	node_coordinates[idx] = make_double3(d_volume_size[0].x * x,
-		d_volume_size[0].y * y, d_volume_size[0].z * z); //(double).,
+	int node_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int node_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int node_z = threadIdx.z + blockIdx.z * blockDim.z;
+	node_coordinates[plain_idx] = make_double3(d_cell_size[0].x * node_x,
+		d_volume_size[0].y * node_y, d_volume_size[0].z * node_z);
 }
 
 __global__ void SetBoundaryConditionOrthoX(double* potential) {
