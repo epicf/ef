@@ -35,7 +35,7 @@ __global__ void fill_coordinates(double3* node_coordinates) {
 	int node_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int node_z = threadIdx.z + blockIdx.z * blockDim.z;
 	node_coordinates[plain_idx] = make_double3(d_cell_size[0].x * node_x,
-		d_volume_size[0].y * node_y, d_volume_size[0].z * node_z);
+		d_cell_size[0].y * node_y, d_cell_size[0].z * node_z);
 }
 
 __global__ void SetBoundaryConditionOrthoX(double* potential) {
