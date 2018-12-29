@@ -692,6 +692,7 @@ void SpatialMeshCu::cuda_status_check(cudaError_t status, std::string &sender)
 }
 
 dim3 SpatialMeshCu::GetThreads() {
+	// todo: explicitly determine number of threads from GPU warp size
 	return dim3(4, 4, 4);
 }
 
