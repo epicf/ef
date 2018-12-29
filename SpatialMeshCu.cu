@@ -44,8 +44,8 @@ __global__ void fill_coordinates(double3* node_coordinates) {
 }
 
 __global__ void SetBoundaryConditionsX(double* potential, int3 *d_n_nodes){
-	// right: threadIdx.x = 0, left: threadIdx.x = 1
-	int mesh_x = threadIdx.x * (d_n_nodes[0].x - 1);
+	// blockIdx.x = 0 or 1; 0 - right boundary, 1 - left boundary
+	int mesh_x = blockIdx.x * (d_n_nodes[0].x - 1);
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
 		
@@ -53,7 +53,7 @@ __global__ void SetBoundaryConditionsX(double* potential, int3 *d_n_nodes){
                	        mesh_y * d_n_nodes[0].x + 
                	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
-	potential[plain_idx] = threadIdx.x * d_boundary[LEFT] + (1.0 - threadIdx.x) * d_boundary[RIGHT];
+	potential[plain_idx] = blockIdx.x * d_boundary[LEFT] + (1.0 - blockIdx.x) * d_boundary[RIGHT];
 }
 
 __global__ void SetBoundaryConditionOrthoY(double* potential) {
@@ -316,8 +316,8 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	std::string debug_message = std::string(" set boundary ");
 
 	// todo: no magic numbers
-	threads = dim3(2, 4, 4);
-	blocks = dim3(1, n_nodes.y / 4, n_nodes.z / 4);
+	threads = dim3(1, 4, 4);
+	blocks = dim3(2, n_nodes.y / 4, n_nodes.z / 4);
 	SetBoundaryConditionsX<<<blocks, threads>>>(d_potential, d_n_nodes);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
