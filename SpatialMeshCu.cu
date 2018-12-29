@@ -12,30 +12,35 @@ __constant__ double d_boundary[6];
 #define FAR 4
 #define NEAR 5
 
-__device__ int GetIdxVolume() {
-	//int xStepthread = 1;
+__device__ int thread_idx_to_array_idx( int3 *d_n_nodes ){
+	int xStepThread = 1;
 	int xStepBlock = blockDim.x;
-
 	int yStepThread = d_n_nodes[0].x;
 	int yStepBlock = yStepThread * blockDim.y;
-
 	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
 	int zStepBlock = zStepThread * blockDim.z;
 
-	return threadIdx.x + blockIdx.x * xStepBlock + threadIdx.y * yStepThread
-		+ blockIdx.y * yStepBlock + threadIdx.z * zStepThread
-		+ blockIdx.z * zStepBlock;
+	return threadIdx.x * xStepThread + blockIdx.x * xStepBlock + 
+               threadIdx.y * yStepThread + blockIdx.y * yStepBlock + 
+               threadIdx.z * zStepThread + blockIdx.z * zStepBlock;
 }
 
+__device__ int3 thread_idx_to_volume_idx( int3 *d_n_nodes ){
+        // each thread handles single volume node
+	int3 vol_idx = make_int3( threadIdx.x + blockIdx.x * blockDim.x,
+                                  threadIdx.y + blockIdx.y * blockDim.y,
+	                          threadIdx.z + blockIdx.z * blockDim.z );
+        return vol_idx;             	
+}
+
+
 __global__ void fill_coordinates(double3* node_coordinates) {
-
-	int plain_idx = GetIdxVolume();
-
-	int node_x = threadIdx.x + blockIdx.x * blockDim.x;
-	int node_y = threadIdx.y + blockIdx.y * blockDim.y;
-	int node_z = threadIdx.z + blockIdx.z * blockDim.z;
-	node_coordinates[plain_idx] = make_double3(d_cell_size[0].x * node_x,
-		d_cell_size[0].y * node_y, d_cell_size[0].z * node_z);
+	int plain_idx = thread_idx_to_array_idx( d_n_nodes );
+	int3 vol_idx = thread_idx_to_volume_idx( d_n_nodes );
+        
+	node_coordinates[plain_idx] = make_double3(d_cell_size[0].x * vol_idx.x,
+                                                   d_cell_size[0].y * vol_idx.y, 
+                                                   d_cell_size[0].z * vol_idx.z);
 }
 
 __global__ void SetBoundaryConditionOrthoX(double* potential) {
