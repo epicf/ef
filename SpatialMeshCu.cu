@@ -43,7 +43,7 @@ __global__ void fill_coordinates(double3* node_coordinates) {
                                                    d_cell_size[0].z * mesh_idx.z);
 }
 
-__global__ void SetBoundaryConditionsX(double* potential, int3 *d_n_nodes){
+__global__ void SetBoundaryConditionsX(double* potential){
 	// blockIdx.x = 0 or 1; 0 - right boundary, 1 - left boundary
 	int mesh_x = blockIdx.x * (d_n_nodes[0].x - 1);
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -318,7 +318,7 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	// todo: no magic numbers
 	threads = dim3(1, 4, 4);
 	blocks = dim3(2, n_nodes.y / 4, n_nodes.z / 4);
-	SetBoundaryConditionsX<<<blocks, threads>>>(d_potential, d_n_nodes);
+	SetBoundaryConditionsX<<<blocks, threads>>>(d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 	
