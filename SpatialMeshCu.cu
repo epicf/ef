@@ -257,8 +257,7 @@ void SpatialMeshCu::copy_boundary_to_device(Config &conf) {
 	boundary[BOTTOM] = conf.boundary_config_part.boundary_phi_bottom;
 	boundary[NEAR] = conf.boundary_config_part.boundary_phi_near;
 	boundary[FAR] = conf.boundary_config_part.boundary_phi_far;
-	const double *c_boundary = boundary;
-	cuda_status = cudaMemcpyToSymbol(d_boundary, (const void*)c_boundary, sizeof(double) * 6);
+	cuda_status = cudaMemcpyToSymbol(d_boundary, boundary, 6 * sizeof(double));
 	cuda_status_check(cuda_status, debug_message);
 }
 
