@@ -4,21 +4,21 @@ SHELL:=/bin/bash -O extglob
 ##### Compilers
 #CC=clang++
 CC=g++
-NVCC=/usr/local/cuda10/bin/nvcc
+NVCC=nvcc
 
-HDF5FLAGS=-I/usr/local/hdf5/include -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FORTIFY_SOURCE=2 -g -fstack-protector-strong -Wformat -Werror=format-security
+HDF5FLAGS=-I/usr/include/hdf5/serial -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FORTIFY_SOURCE=2 -g -fstack-protector-strong -Wformat -Werror=format-security
 WARNINGS=-Wall
 CFLAGS = ${HDF5FLAGS} -O2 -std=c++11 ${WARNINGS}
 LDFLAGS = 
 
-CUDAINCLUDES= -I/usr/local/cuda10/include
+CUDAINCLUDES= -I/usr/local/cuda/include
 CUDAFLAGS= ${CUDAINCLUDES} -std=c++11 -arch=sm_30
 
 ### Libraries
 COMMONLIBS=-lm
 BOOSTLIBS=-lboost_program_options
-HDF5LIBS=-L/usr/local/hdf5/lib -lhdf5_hl -lhdf5 -Wl,-z,relro -lpthread -lz -ldl -lm -Wl,-rpath -Wl,/usr/local/hdf5/lib
-CUDALIBS=-L/usr/local/cuda10/lib64/ -lcudart
+HDF5LIBS=-L/usr/lib/x86_64-linux-gnu/hdf5/serial -lhdf5_hl -lhdf5 -Wl,-z,relro -lpthread -lz -ldl -lm -Wl,-rpath -Wl,/usr/local/hdf5/lib
+CUDALIBS=-L/usr/local/cuda/lib64/ -lcudart
 LIBS=${COMMONLIBS} ${BOOSTLIBS} ${HDF5LIBS}
 
 ### Sources and executable
