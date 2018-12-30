@@ -3,12 +3,12 @@
 
 #include <iostream>
 #include <vector>
+#include <cassert>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+#include <math_constants.h>
 #include "SpatialMeshCu.cuh"
 #include "inner_region.h"
-#include "cuda_runtime.h"
-#include <cassert>
-#include "device_launch_parameters.h"
-#include "math_constants.h"
 
 class FieldSolver {
 public:
