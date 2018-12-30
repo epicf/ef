@@ -1,12 +1,13 @@
 #ifndef _SPATIAL_MESH_CUH_
 #define _SPATIAL_MESH_CUH_
 
-#include "cuda_runtime.h"
-#include "config.h"
 #include <stdlib.h>
-#include "hdf5.h"
-#include "hdf5_hl.h"
-#include "device_launch_parameters.h"
+#include <hdf5.h>
+#include <hdf5_hl.h>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+#include "config.h"
+
 
 class SpatialMeshCu {
 public:
