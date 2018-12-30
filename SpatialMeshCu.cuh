@@ -1,5 +1,5 @@
-#ifndef _SPATIAL_MESH_H_
-#define _SPATIAL_MESH_H_
+#ifndef _SPATIAL_MESH_CUH_
+#define _SPATIAL_MESH_CUH_
 
 #include "cuda_runtime.h"
 #include "config.h"
@@ -72,4 +72,4 @@ private:
 	void cuda_status_check(cudaError_t status, std::string &sender);
 
 };
-#endif /* _SPATIAL_MESH_H_ */
+#endif /* _SPATIAL_MESH_CUH_ */
