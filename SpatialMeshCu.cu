@@ -44,7 +44,7 @@ __global__ void fill_coordinates(double3* node_coordinates) {
 }
 
 __global__ void SetBoundaryConditionsX(double* potential){
-	// blockIdx.x = 0 or 1; 0 - right boundary, 1 - left boundary
+	// blockIdx.x is expected to be 0 or 1; 0 - right boundary, 1 - left boundary
 	int mesh_x = blockIdx.x * (d_n_nodes[0].x - 1);
 	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
 	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
@@ -56,38 +56,31 @@ __global__ void SetBoundaryConditionsX(double* potential){
 	potential[plain_idx] = blockIdx.x * d_boundary[LEFT] + (1.0 - blockIdx.x) * d_boundary[RIGHT];
 }
 
-__global__ void SetBoundaryConditionOrthoY(double* potential) {
-	int yIdx = blockIdx.z * d_n_nodes[0].x * (d_n_nodes[0].y - 1); //0 or nodes.x-1
+__global__ void SetBoundaryConditionsY(double* potential){
+	// blockIdx.y is expected to be 0 or 1; 0 - bottom boundary, 1 - top boundary
+	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int mesh_y = blockIdx.y * (d_n_nodes[0].y - 1);
+	int mesh_z = threadIdx.z + blockIdx.z * blockDim.z;
+		
+	int plain_idx = mesh_x + 
+               	        mesh_y * d_n_nodes[0].x + 
+               	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
-	int xStepThread = 1; //x=
-	int xStepBlock = blockDim.x;
-
-	int zStepThread = d_n_nodes[0].x * d_n_nodes[0].y;
-	int zStepBlock = zStepThread * blockDim.y;
-
-	int idx = yIdx + threadIdx.x * xStepThread + blockIdx.x * xStepBlock
-		+ threadIdx.y * zStepThread + blockIdx.y * zStepBlock;
-
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_boundary[BOTTOM]
-		+ (blockIdx.z * d_boundary[TOP]);
-
+	potential[plain_idx] = blockIdx.y * d_boundary[TOP] + (1.0 - blockIdx.y) * d_boundary[BOTTOM];
 }
 
-__global__ void SetBoundaryConditionOrthoZ(double* potential) {
-	int zIdx = blockIdx.z
-		* (d_n_nodes[0].x * d_n_nodes[0].y * (d_n_nodes[0].z - 1)); //0 or nodes.x-1
 
-	int xStepThread = 1; //x=
-	int xStepBlock = blockDim.x;
+__global__ void SetBoundaryConditionsZ(double* potential){
+	// blockIdx.z is expected to be 0 or 1; 0 - near boundary, 1 - far boundary
+	int mesh_x = threadIdx.x + blockIdx.x * blockDim.x;
+	int mesh_y = threadIdx.y + blockIdx.y * blockDim.y;
+	int mesh_z = blockIdx.z * (d_n_nodes[0].z - 1);
+		
+	int plain_idx = mesh_x + 
+               	        mesh_y * d_n_nodes[0].x + 
+               	        mesh_z * d_n_nodes[0].x * d_n_nodes[0].y;	
 
-	int yStepThread = d_n_nodes[0].x;
-	int yStepBlock = yStepThread * blockDim.y;
-
-	int idx = zIdx + threadIdx.x * xStepThread + blockIdx.x * xStepBlock
-		+ threadIdx.y * yStepThread + blockIdx.y * yStepBlock;
-	potential[idx] = ((double)(1 - blockIdx.z)) * d_boundary[NEAR]
-		+ (blockIdx.z * d_boundary[FAR]);
-
+	potential[plain_idx] = blockIdx.z * d_boundary[FAR] + (1.0 - blockIdx.z) * d_boundary[NEAR];
 }
 
 SpatialMeshCu::SpatialMeshCu(Config &conf) {
@@ -321,18 +314,18 @@ void SpatialMeshCu::set_boundary_conditions(double* d_potential) {
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 	
-	// todo: simplify
-	threads = dim3(4, 4, 2);
-	blocks = dim3(n_nodes.x / 4, n_nodes.z / 4, 2);
-	SetBoundaryConditionOrthoY <<< blocks, threads >>> (d_potential);
+	threads = dim3(4, 1, 4);
+	blocks = dim3(n_nodes.x / 4, 2, n_nodes.z / 4);
+	SetBoundaryConditionsY<<<blocks, threads>>>(d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
 
+	threads = dim3(4, 4, 1);
 	blocks = dim3(n_nodes.x / 4, n_nodes.y / 4, 2);
-	SetBoundaryConditionOrthoZ <<< blocks, threads >>> (d_potential);
+	SetBoundaryConditionsZ<<<blocks, threads>>>(d_potential);
 	cuda_status = cudaDeviceSynchronize();
 	cuda_status_check(cuda_status, debug_message);
-
+	
 	return;
 }
 
