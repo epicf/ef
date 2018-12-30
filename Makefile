@@ -7,10 +7,12 @@ CC=g++
 NVCC=nvcc
 
 HDF5FLAGS=-I/usr/include/hdf5/serial -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FORTIFY_SOURCE=2 -g -fstack-protector-strong -Wformat -Werror=format-security
+NVCCHDF5FLAGS=-I/usr/include/hdf5/serial -D_LARGEFILE_SOURCE -D_LARGEFILE64_SOURCE -D_FORTIFY_SOURCE=2 -g -Wformat -Werror=format-security
 CUDAINCLUDES=-I/usr/local/cuda/include
+
 WARNINGS=-Wall
 CFLAGS = ${HDF5FLAGS} ${CUDAINCLUDES} -O2 -std=c++11 ${WARNINGS}
-NVCCFLAGS= ${HDF5FLAGS} ${CUDAINCLUDES} -O2 -std=c++11 -arch=sm_30 ${WARNINGS}
+NVCCFLAGS= ${NVCCHDF5FLAGS} ${CUDAINCLUDES} -O2 -std=c++11 -arch=sm_30 ${WARNINGS}
 LDFLAGS = 
 
 ### Libraries
