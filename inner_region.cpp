@@ -80,11 +80,11 @@ bool Inner_region::check_if_node_inside( Node_reference &node,
     return check_if_point_inside( node.x * dx, node.y * dy, node.z * dz );
 }
 
-void Inner_region::mark_inner_nodes( Spatial_mesh &spat_mesh )
+void Inner_region::mark_inner_nodes( SpatialMeshCu &spat_mesh )
 {
-    int nx = spat_mesh.x_n_nodes;
-    int ny = spat_mesh.y_n_nodes;
-    int nz = spat_mesh.z_n_nodes;
+    int nx = spat_mesh.n_nodes.x;
+    int ny = spat_mesh.n_nodes.y;
+    int nz = spat_mesh.n_nodes.z;
 
     for ( int k = 0; k < nz; k++ ) {
         for ( int j = 0; j < ny; j++ ) {
@@ -99,11 +99,11 @@ void Inner_region::mark_inner_nodes( Spatial_mesh &spat_mesh )
     }
 }
 
-void Inner_region::select_inner_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh )
+void Inner_region::select_inner_nodes_not_at_domain_edge( SpatialMeshCu &spat_mesh )
 {
-    int nx = spat_mesh.x_n_nodes;
-    int ny = spat_mesh.y_n_nodes;
-    int nz = spat_mesh.z_n_nodes;
+    int nx = spat_mesh.n_nodes.x;
+    int ny = spat_mesh.n_nodes.y;
+    int nz = spat_mesh.n_nodes.z;
 
     inner_nodes_not_at_domain_edge.reserve( inner_nodes.size() );
     
@@ -114,11 +114,11 @@ void Inner_region::select_inner_nodes_not_at_domain_edge( Spatial_mesh &spat_mes
     }
 }
 
-void Inner_region::mark_near_boundary_nodes( Spatial_mesh &spat_mesh )
+void Inner_region::mark_near_boundary_nodes( SpatialMeshCu &spat_mesh )
 {
-    int nx = spat_mesh.x_n_nodes;
-    int ny = spat_mesh.y_n_nodes;
-    int nz = spat_mesh.z_n_nodes;
+    int nx = spat_mesh.n_nodes.x;
+    int ny = spat_mesh.n_nodes.y;
+    int nz = spat_mesh.n_nodes.z;
 
     // rewrite; 
     for( auto &node : inner_nodes ){
@@ -139,13 +139,13 @@ void Inner_region::mark_near_boundary_nodes( Spatial_mesh &spat_mesh )
         near_boundary_nodes.end() );
 }
 
-void Inner_region::select_near_boundary_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh )
+void Inner_region::select_near_boundary_nodes_not_at_domain_edge( SpatialMeshCu &spat_mesh )
 {
     // todo: repeats with select_inner_nodes_not_at_domain_edge;
     // remove code duplication
-    int nx = spat_mesh.x_n_nodes;
-    int ny = spat_mesh.y_n_nodes;
-    int nz = spat_mesh.z_n_nodes;
+    int nx = spat_mesh.n_nodes.x;
+    int ny = spat_mesh.n_nodes.y;
+    int nz = spat_mesh.n_nodes.z;
 
     near_boundary_nodes_not_at_domain_edge.reserve( near_boundary_nodes.size() );
     
@@ -217,7 +217,7 @@ void Inner_region::hdf5_status_check( herr_t status )
 Inner_region_box::Inner_region_box(
     Config &conf,
     Inner_region_box_config_part &inner_region_box_conf,
-    Spatial_mesh &spat_mesh ) :
+    SpatialMeshCu &spat_mesh ) :
     Inner_region( conf, inner_region_box_conf )
 {
     object_type = "box";
@@ -231,7 +231,7 @@ Inner_region_box::Inner_region_box(
 
 Inner_region_box::Inner_region_box(
     hid_t h5_inner_region_box_group_id,
-    Spatial_mesh &spat_mesh ) :
+    SpatialMeshCu &spat_mesh ) :
     Inner_region( h5_inner_region_box_group_id )
 {
     object_type = "box";
@@ -336,7 +336,7 @@ void Inner_region_box::write_hdf5_region_specific_parameters(
 Inner_region_sphere::Inner_region_sphere(
     Config &conf,
     Inner_region_sphere_config_part &inner_region_sphere_conf,
-    Spatial_mesh &spat_mesh ) :
+    SpatialMeshCu &spat_mesh ) :
     Inner_region( conf, inner_region_sphere_conf )
 {
     object_type = "sphere";
@@ -351,7 +351,7 @@ Inner_region_sphere::Inner_region_sphere(
 
 Inner_region_sphere::Inner_region_sphere(
     hid_t h5_inner_region_sphere_group_id,
-    Spatial_mesh &spat_mesh ) :
+    SpatialMeshCu &spat_mesh ) :
     Inner_region( h5_inner_region_sphere_group_id )
 {
     object_type = "sphere";
@@ -442,7 +442,7 @@ void Inner_region_sphere::write_hdf5_region_specific_parameters(
 Inner_region_cylinder::Inner_region_cylinder(
     Config &conf,
     Inner_region_cylinder_config_part &inner_region_cylinder_conf,
-    Spatial_mesh &spat_mesh )
+    SpatialMeshCu &spat_mesh )
     : Inner_region( conf, inner_region_cylinder_conf )
 {
     object_type = "cylinder";
@@ -456,7 +456,7 @@ Inner_region_cylinder::Inner_region_cylinder(
 
 Inner_region_cylinder::Inner_region_cylinder(
     hid_t h5_inner_region_cylinder_group_id,
-    Spatial_mesh &spat_mesh ) :
+    SpatialMeshCu &spat_mesh ) :
     Inner_region( h5_inner_region_cylinder_group_id )
 {
     object_type = "cylinder";
@@ -581,7 +581,7 @@ void Inner_region_cylinder::write_hdf5_region_specific_parameters(
 Inner_region_tube::Inner_region_tube(
     Config &conf,
     Inner_region_tube_config_part &inner_region_tube_conf,
-    Spatial_mesh &spat_mesh )
+    SpatialMeshCu &spat_mesh )
     : Inner_region( conf, inner_region_tube_conf )
 {
     object_type = "tube";
@@ -595,7 +595,7 @@ Inner_region_tube::Inner_region_tube(
 
 Inner_region_tube::Inner_region_tube(
     hid_t h5_inner_region_tube_group_id,
-    Spatial_mesh &spat_mesh ) :
+    SpatialMeshCu &spat_mesh ) :
     Inner_region( h5_inner_region_tube_group_id )
 {
     object_type = "tube";
@@ -728,7 +728,7 @@ void Inner_region_tube::write_hdf5_region_specific_parameters(
 Inner_region_tube_along_z_segment::Inner_region_tube_along_z_segment(
     Config &conf,
     Inner_region_tube_along_z_segment_config_part &inner_region_tube_along_z_segment_conf,
-    Spatial_mesh &spat_mesh )
+    SpatialMeshCu &spat_mesh )
     : Inner_region( conf, inner_region_tube_along_z_segment_conf )
 {
     object_type = "tube_along_z_segment";
@@ -744,7 +744,7 @@ Inner_region_tube_along_z_segment::Inner_region_tube_along_z_segment(
 
 Inner_region_tube_along_z_segment::Inner_region_tube_along_z_segment(
     hid_t h5_inner_region_tube_along_z_segment_group_id,
-    Spatial_mesh &spat_mesh ) :
+    SpatialMeshCu &spat_mesh ) :
     Inner_region( h5_inner_region_tube_along_z_segment_group_id )
 {
     object_type = "tube_along_z_segment";
@@ -893,7 +893,7 @@ void Inner_region_tube_along_z_segment::write_hdf5_region_specific_parameters(
 Inner_region_cone_along_z::Inner_region_cone_along_z(
     Config &conf,
     Inner_region_cone_along_z_config_part &inner_region_cone_along_z_conf,
-    Spatial_mesh &spat_mesh )
+    SpatialMeshCu &spat_mesh )
     : Inner_region( conf, inner_region_cone_along_z_conf )
 {
     object_type = "cone_along_z";
@@ -907,7 +907,7 @@ Inner_region_cone_along_z::Inner_region_cone_along_z(
 
 Inner_region_cone_along_z::Inner_region_cone_along_z(
     hid_t h5_inner_region_cone_along_z_group_id,
-    Spatial_mesh &spat_mesh ) :
+    SpatialMeshCu &spat_mesh ) :
     Inner_region( h5_inner_region_cone_along_z_group_id )
 {
     object_type = "cone_along_z";

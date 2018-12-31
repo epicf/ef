@@ -9,7 +9,7 @@
 #include <hdf5.h>
 #include <hdf5_hl.h>
 #include "config.h"
-#include "spatial_mesh.h"
+#include "SpatialMeshCu.cuh"
 #include "node_reference.h"
 #include "particle.h"
 #include "vec3d.h"
@@ -55,10 +55,10 @@ public:
     void write_to_file( hid_t regions_group_id );
     void hdf5_status_check( herr_t status );
 protected:
-    void mark_inner_nodes( Spatial_mesh &spat_mesh );
-    void select_inner_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh );
-    void mark_near_boundary_nodes( Spatial_mesh &spat_mesh );
-    void select_near_boundary_nodes_not_at_domain_edge( Spatial_mesh &spat_mesh );
+    void mark_inner_nodes( SpatialMeshCu &spat_mesh );
+    void select_inner_nodes_not_at_domain_edge( SpatialMeshCu &spat_mesh );
+    void mark_near_boundary_nodes( SpatialMeshCu &spat_mesh );
+    void select_near_boundary_nodes_not_at_domain_edge( SpatialMeshCu &spat_mesh );
     void write_hdf5_common_parameters( hid_t current_region_group_id );
     virtual void write_hdf5_region_specific_parameters(
 	hid_t current_region_group_id ) = 0;
@@ -84,9 +84,9 @@ public:
 public:
     Inner_region_box( Config &conf,
 		      Inner_region_box_config_part &inner_region_conf,
-		      Spatial_mesh &spat_mesh );
+		      SpatialMeshCu &spat_mesh );
     Inner_region_box( hid_t h5_inner_region_box_group_id,
-		      Spatial_mesh &spat_mesh );
+		      SpatialMeshCu &spat_mesh );
     virtual ~Inner_region_box() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -122,9 +122,9 @@ public:
     Inner_region_sphere(
 	Config &conf,
 	Inner_region_sphere_config_part &inner_region_conf,
-	Spatial_mesh &spat_mesh );
+	SpatialMeshCu &spat_mesh );
     Inner_region_sphere( hid_t h5_inner_region_group_id,
-			 Spatial_mesh &spat_mesh );
+			 SpatialMeshCu &spat_mesh );
     virtual ~Inner_region_sphere() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -161,9 +161,9 @@ public:
     Inner_region_cylinder(
 	Config &conf,
 	Inner_region_cylinder_config_part &inner_region_conf,
-	Spatial_mesh &spat_mesh );
+	SpatialMeshCu &spat_mesh );
     Inner_region_cylinder( hid_t h5_inner_region_group_id,
-			   Spatial_mesh &spat_mesh );
+			   SpatialMeshCu &spat_mesh );
     virtual ~Inner_region_cylinder() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -205,9 +205,9 @@ public:
     Inner_region_tube(
 	Config &conf,
 	Inner_region_tube_config_part &inner_region_conf,
-	Spatial_mesh &spat_mesh );
+	SpatialMeshCu &spat_mesh );
     Inner_region_tube( hid_t h5_inner_region_group_id,
-		       Spatial_mesh &spat_mesh );
+		       SpatialMeshCu &spat_mesh );
     virtual ~Inner_region_tube() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -249,9 +249,9 @@ public:
     Inner_region_tube_along_z_segment(
 	Config &conf,
 	Inner_region_tube_along_z_segment_config_part &inner_region_conf,
-	Spatial_mesh &spat_mesh );
+	SpatialMeshCu &spat_mesh );
     Inner_region_tube_along_z_segment( hid_t h5_inner_region_group_id,
-				       Spatial_mesh &spat_mesh );
+				       SpatialMeshCu &spat_mesh );
     virtual ~Inner_region_tube_along_z_segment() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -294,9 +294,9 @@ public:
     Inner_region_cone_along_z(
 	Config &conf,
 	Inner_region_cone_along_z_config_part &inner_region_conf,
-	Spatial_mesh &spat_mesh );
+	SpatialMeshCu &spat_mesh );
     Inner_region_cone_along_z( hid_t h5_inner_region_group_id,
-			       Spatial_mesh &spat_mesh );
+			       SpatialMeshCu &spat_mesh );
     virtual ~Inner_region_cone_along_z() {};
     void print() {
 	std::cout << "Inner region: name = " << name << std::endl;
@@ -336,7 +336,7 @@ class Inner_regions_manager{
 public:
     boost::ptr_vector<Inner_region> regions;
 public:
-    Inner_regions_manager( Config &conf, Spatial_mesh &spat_mesh )
+    Inner_regions_manager( Config &conf, SpatialMeshCu &spat_mesh )
     {
 	for( auto &inner_region_conf : conf.inner_regions_config_part ){
 	    if( Inner_region_box_config_part *box_conf =
@@ -383,7 +383,7 @@ public:
     }
 
     Inner_regions_manager( hid_t h5_inner_region_group,
-			   Spatial_mesh &spat_mesh )
+			   SpatialMeshCu &spat_mesh )
     {	
 	hsize_t nobj;
 	ssize_t len;
@@ -418,7 +418,7 @@ public:
     }
     
     void parse_hdf5_inner_reg( hid_t current_ir_grpid,
-			       Spatial_mesh &spat_mesh )
+			       SpatialMeshCu &spat_mesh )
     {
 	herr_t status;
 	char object_type_cstr[50];
