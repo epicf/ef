@@ -105,7 +105,7 @@ void Time_grid::write_to_file( hid_t hdf5_file_id )
     hid_t group_id;
     herr_t status;
     int single_element = 1;
-    std::string hdf5_groupname = "/Time_grid";
+    std::string hdf5_groupname = "/TimeGrid";
     group_id = H5Gcreate( hdf5_file_id, hdf5_groupname.c_str(),
 			  H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT); hdf5_status_check( group_id );
 

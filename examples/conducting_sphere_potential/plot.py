@@ -13,7 +13,7 @@ def main():
     
 def extract_sphere_properties_from_out_file( outfile_name ):
     outfile = h5py.File( outfile_name, driver="core", mode="r")
-    sphere_hdf5_group = outfile['/Inner_regions/sphere']
+    sphere_hdf5_group = outfile['/InnerRegions/sphere']
     global sphere_center_x, sphere_center_y, sphere_center_z
     global sphere_radius, sphere_phi
     sphere_center_x = sphere_hdf5_group.attrs['origin_x']
@@ -26,10 +26,10 @@ def extract_sphere_properties_from_out_file( outfile_name ):
     
 def extract_full_nodecoords_and_potential_from_out_file( outfile_name ):
     outfile = h5py.File( outfile_name, driver="core", mode="r" )
-    node_coords_x_hdf5 = outfile['/Spatial_mesh/node_coordinates_x']
-    node_coords_y_hdf5 = outfile['/Spatial_mesh/node_coordinates_y']
-    node_coords_z_hdf5 = outfile['/Spatial_mesh/node_coordinates_z']
-    num_potential_hdf5 = outfile['/Spatial_mesh/potential']
+    node_coords_x_hdf5 = outfile['/SpatialMesh/node_coordinates_x']
+    node_coords_y_hdf5 = outfile['/SpatialMesh/node_coordinates_y']
+    node_coords_z_hdf5 = outfile['/SpatialMesh/node_coordinates_z']
+    num_potential_hdf5 = outfile['/SpatialMesh/potential']
     node_coords_x = np.empty_like( node_coords_x_hdf5 )
     node_coords_y = np.empty_like( node_coords_y_hdf5 )
     node_coords_z = np.empty_like( node_coords_z_hdf5 )

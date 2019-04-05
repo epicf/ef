@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 
 def get_time_potential_charge_absrbd_on_anode_from_h5( filename ):
     h5 = h5py.File( filename, mode="r")
-    absorbed_charge = h5["/Inner_regions/anode"].attrs["total_absorbed_charge"][0]
-    time = h5["/Time_grid"].attrs["current_time"][0]
-    potential = h5["/Inner_regions/anode"].attrs["potential"][0]
+    absorbed_charge = h5["/InnerRegions/anode"].attrs["total_absorbed_charge"][0]
+    time = h5["/TimeGrid"].attrs["current_time"][0]
+    potential = h5["/InnerRegions/anode"].attrs["potential"][0]
     h5.close()
     # return( {"time": time, 
     #         "potential": potential, 

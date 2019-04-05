@@ -321,7 +321,7 @@ class TimeGridConfigPart:
 
     def generate_config_part( self ):
         conf_part = []
-        conf_part.append( "[Time grid]\n" )
+        conf_part.append( "[TimeGrid]\n" )
         export_property_names = [ "total_time",
                                   "time_save_step",
                                   "time_step_size" ]
@@ -380,7 +380,7 @@ class OutputFilenameConfigPart():
     
     def generate_config_part( self ):
         conf_part = []
-        conf_part.append( "[Output filename]\n" )
+        conf_part.append( "[OutputFilename]\n" )
         export_property_names = [ "output_filename_suffix", "output_filename_prefix" ]
         for x in export_property_names:
             conf_part.append(
@@ -437,7 +437,7 @@ class ParticleInteractionModelConfigPart():
     
     def generate_config_part( self ):
         conf_part = []
-        conf_part.append( "[Particle interaction model]\n" )
+        conf_part.append( "[ParticleInteractionModel]\n" )
         export_property_names = [ "particle_interaction_model" ]
         for x in export_property_names:
             conf_part.append(
@@ -566,7 +566,7 @@ class SpatialMeshConfigPart():
     
     def generate_config_part( self ):
         conf_part = []
-        conf_part.append( "[Spatial mesh]\n" )
+        conf_part.append( "[SpatialMesh]\n" )
         export_property_names = [ "grid_x_size", "grid_x_step",
                                   "grid_y_size", "grid_y_step",
                                   "grid_z_size", "grid_z_step" ]
@@ -631,7 +631,7 @@ class BoundaryConditionsConfigPart():
         
     def generate_config_part( self ):
         conf_part = []
-        conf_part.append( "[Boundary conditions]\n" )
+        conf_part.append( "[BoundaryConditions]\n" )
         export_property_names = [ "boundary_phi_left", "boundary_phi_right",
                                   "boundary_phi_top" , "boundary_phi_bottom",
                                   "boundary_phi_near", "boundary_phi_far" ]
@@ -696,7 +696,7 @@ class MagneticFieldConfigPart():
     
     def generate_config_part( self ):
         conf_part = []
-        conf_part.append( "[External magnetic field]\n" )
+        conf_part.append( "[ExternalMagneticField]\n" )
         export_property_names = [ "magnetic_field_x", "magnetic_field_y",
                                   "magnetic_field_z", "speed_of_light" ]
         for x in export_property_names:
@@ -939,7 +939,7 @@ class ParticleSourceConfigPart():
     def generate_config_part( self ):
         conf_part = []
         source_name = self.doc_object.getPropertyByName( "Label" )
-        conf_part.append( "[Particle_source_box.{0}]\n".format( source_name ) )
+        conf_part.append( "[ParticleSourceBox.{0}]\n".format( source_name ) )
         export_property_names = [ "initial_number_of_particles",
                                   "particles_to_generate_each_step",
                                   "box_x_left",   "box_x_right",
@@ -1256,7 +1256,7 @@ class ParticleCylindricalSourceConfigPart():
     def generate_config_part( self ):
         conf_part = []
         source_name = self.doc_object.getPropertyByName( "Label" )
-        conf_part.append( "[Particle_source_cylinder.{0}]\n".format( source_name ) )
+        conf_part.append( "[ParticleSourceCylinder.{0}]\n".format( source_name ) )
         export_property_names = [ "initial_number_of_particles",
                                   "particles_to_generate_each_step",
                                   "cylinder_axis_start_x",
@@ -1417,7 +1417,7 @@ class InnerRegionBoxConfigPart():
     
     def generate_config_part( self ):
         conf_part = []
-        conf_part.append( "[Inner_region_box.{0}]\n".format(
+        conf_part.append( "[InnerRegionBox.{0}]\n".format(
             self.doc_object.getPropertyByName( "Label" ) ) )
         export_property_names = [ "box_x_left",   "box_x_right",
                                   "box_y_bottom", "box_y_top",
