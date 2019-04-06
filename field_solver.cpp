@@ -22,24 +22,28 @@ void Field_solver::allocate_current_next_phi()
 void Field_solver::eval_potential( Spatial_mesh &spat_mesh,
                                    Inner_regions_manager &inner_regions )
 {
-    solve_poisson_eqn_Jacobi( spat_mesh, inner_regions );
+    solve_poisson_eqn_iterative( spat_mesh, inner_regions );
 }
 
-void Field_solver::solve_poisson_eqn_Jacobi( Spatial_mesh &spat_mesh,
-                                             Inner_regions_manager &inner_regions )
+void Field_solver::solve_poisson_eqn_iterative( Spatial_mesh &spat_mesh,
+                                                Inner_regions_manager &inner_regions )
 {
-    max_Jacobi_iterations = 2000;
+    max_iterations = spat_mesh.x_n_nodes * spat_mesh.y_n_nodes * spat_mesh.z_n_nodes;
+    //todo: use different values for each algorithm
+    // max_Jacobi_iterations = x_n_nodes * x_n_nodes *
+    //                         y_n_nodes * y_n_nodes * z_n_nodes * z_n_nodes;
+    // max_SOR_iterations = 150; //todo: use different values for each algorithm
     int iter;
 
     init_current_phi_from_spat_mesh_phi( spat_mesh );
-    for( iter = 0; iter < max_Jacobi_iterations; ++iter ){
-        single_Jacobi_iteration( spat_mesh, inner_regions );
-        if ( iterative_Jacobi_solutions_converged() ) {
+    for( iter = 0; iter < max_iterations; ++iter ){
+        single_solver_iteration( spat_mesh, inner_regions );
+        if ( iterative_solution_converged( spat_mesh ) ) {
             break;
         }
         set_phi_next_as_phi_current();
     }
-    if ( iter == max_Jacobi_iterations ){
+    if ( iter == max_iterations ){
         printf("WARING: potential evaluation did't converge after max iterations!\n");
     }
     transfer_solution_to_spat_mesh( spat_mesh );
@@ -55,11 +59,12 @@ void Field_solver::init_current_phi_from_spat_mesh_phi( Spatial_mesh &spat_mesh 
     return;
 }
 
-void Field_solver::single_Jacobi_iteration( Spatial_mesh &spat_mesh,
+void Field_solver::single_solver_iteration( Spatial_mesh &spat_mesh,
 					    Inner_regions_manager &inner_regions )
 {
     set_phi_next_at_boundaries();
-    compute_phi_next_at_inner_points( spat_mesh );
+    //compute_phi_next_at_inner_points_Jacobi( spat_mesh );
+    compute_phi_next_at_inner_points_SOR( spat_mesh );
     set_phi_next_at_inner_regions( inner_regions );
 }
 
@@ -87,7 +92,7 @@ void Field_solver::set_phi_next_at_boundaries()
     }
 }
 
-void Field_solver::compute_phi_next_at_inner_points( Spatial_mesh &spat_mesh )
+void Field_solver::compute_phi_next_at_inner_points_Jacobi( Spatial_mesh &spat_mesh )
 {
     double dxdxdydy = dx * dx * dy * dy;
     double dxdxdzdz = dx * dx * dz * dz;
@@ -113,6 +118,70 @@ void Field_solver::compute_phi_next_at_inner_points( Spatial_mesh &spat_mesh )
     }
 }
 
+
+void Field_solver::compute_phi_next_at_inner_points_SOR( Spatial_mesh &spat_mesh )
+{
+    double dxdxdydy = dx * dx * dy * dy;
+    double dxdxdzdz = dx * dx * dz * dz;
+    double dydydzdz = dy * dy * dz * dz;
+    double dxdxdydydzdz = dx * dx * dy * dy * dz * dz;
+    double denom = 2.0 * ( dxdxdydy + dxdxdzdz + dydydzdz );
+    double tmp;
+    double sor_omega = 1.5; // todo: estimate from parameters
+    int x_start;
+    bool odd_k, even_k;
+    bool odd_j, even_j;
+    // red
+    for ( int k = 1; k < nz - 1; k++ ) {
+        for ( int j = 1; j < ny - 1; j++ ) {
+            odd_k = k % 2;
+            even_k = !odd_k;
+            odd_j = j % 2;
+            even_j = !odd_j;
+            if ( (odd_k && odd_j) || (even_k && even_j) ) {
+                x_start = 1;
+            } else {
+                x_start = 2;
+            }
+            for ( int i = x_start; i < nx - 1; i++, i++ ) { // leap over black
+                tmp = ( phi_current[i-1][j][k] + phi_current[i+1][j][k] ) * dydydzdz;
+                tmp = tmp + ( phi_current[i][j-1][k] + phi_current[i][j+1][k] ) * dxdxdzdz;
+                tmp = tmp + ( phi_current[i][j][k-1] + phi_current[i][j][k+1] ) * dxdxdydy;
+                // Delta phi = - 4 * pi * rho
+                tmp = tmp + 4.0 * M_PI * spat_mesh.charge_density[i][j][k] * dxdxdydydzdz;
+                tmp = tmp / denom;
+                phi_next[i][j][k] = phi_current[i][j][k] +
+                    sor_omega * ( tmp - phi_current[i][j][k] );
+            }
+        }
+    }
+    // black
+    for ( int k = 1; k < nz - 1; k++ ) {
+        for ( int j = 1; j < ny - 1; j++ ) {
+            odd_k = k % 2;
+            even_k = !odd_k;
+            odd_j = j % 2;
+            even_j = !odd_j;
+            if ( (odd_k && even_j) || (even_k && odd_j) ) {
+                x_start = 1;
+            } else {
+                x_start = 2;
+            }
+            for ( int i = x_start; i < nx - 1; i++, i++ ) { // leap over red
+                tmp = ( phi_next[i-1][j][k] + phi_next[i+1][j][k] ) * dydydzdz;
+                tmp = tmp + ( phi_next[i][j-1][k] + phi_next[i][j+1][k] ) * dxdxdzdz;
+                tmp = tmp + ( phi_next[i][j][k-1] + phi_next[i][j][k+1] ) * dxdxdydy;
+                // Delta phi = - 4 * pi * rho
+                tmp = tmp + 4.0 * M_PI * spat_mesh.charge_density[i][j][k] * dxdxdydydzdz;
+                tmp = tmp / denom;
+                phi_next[i][j][k] = phi_current[i][j][k] +
+                    sor_omega * ( tmp - phi_current[i][j][k] );
+            }
+        }
+    }
+}
+
+
 void Field_solver::set_phi_next_at_inner_regions( Inner_regions_manager &inner_regions )
 {
     for( auto &reg : inner_regions.regions ){
@@ -126,10 +195,14 @@ void Field_solver::set_phi_next_at_inner_regions( Inner_regions_manager &inner_r
 }
 
 
-bool Field_solver::iterative_Jacobi_solutions_converged()
+bool Field_solver::iterative_solution_converged( Spatial_mesh &spat_mesh )
 {
     // todo: bind tol to config parameters
-    //abs_tolerance = std::max( dx * dx, std::max( dy * dy, dz * dz ) ) / 5;
+    // todo: something like that
+    // abs_tolerance = std::max(
+    //     spat_mesh.x_cell_size * spat_mesh.x_cell_size,
+    //     std::max( spat_mesh.y_cell_size * spat_mesh.y_cell_size,
+    //               spat_mesh.z_cell_size * spat_mesh.z_cell_size ) ) / 5;
     abs_tolerance = 1.0e-5;
     rel_tolerance = 1.0e-12;
     double diff;
